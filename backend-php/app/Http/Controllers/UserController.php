@@ -45,8 +45,20 @@ class UserController extends Controller
             DB::beginTransaction();
 
             $year = date('Y');
-            $countRow = DB::table('teachers')->count();
-            $nextSeq = str_pad($countRow + 1, 3, '0', STR_PAD_LEFT);
+            $latestTeacher = DB::table('users')
+                ->where('role', 'teacher')
+                ->where('username', 'like', "JMA/STF/{$year}/%")
+                ->orderBy('username', 'desc')
+                ->first();
+            
+            if ($latestTeacher) {
+                // Extract the last 3 digits from JMA/STF/YYYY/XXX
+                $lastSeq = (int) substr($latestTeacher->username, -3);
+                $nextSeq = str_pad($lastSeq + 1, 3, '0', STR_PAD_LEFT);
+            } else {
+                $nextSeq = '001';
+            }
+            
             $staff_id = "JMA/STF/{$year}/{$nextSeq}";
 
             $username = strtoupper($staff_id);
