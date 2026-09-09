@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Subject;
+use App\Models\SystemSetting;
+use App\Models\ReportCardRemark;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -272,6 +276,12 @@ class ReportCardController extends Controller
                     'usage_count' => $newUsage,
                     'status' => $newStatus
                 ]);
+
+                ActivityLog::log(
+                    'check_result',
+                    'results',
+                    "Viewed Report Card for {$term} {$year} (PIN Usage: {$newUsage} of 5)"
+                );
             }
 
             $reportCardData = $this->buildReportCardData($studentId, $term, $year);

@@ -24,6 +24,11 @@ class ActivityLogController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = ActivityLog::query()->orderByDesc('created_at');
+        
+        $user = auth('api')->user();
+        if ($user && $user->role !== 'admin') {
+            $query->where('user_id', $user->id);
+        }
 
         // ----- Filters -----
         if ($request->filled('user_role')) {

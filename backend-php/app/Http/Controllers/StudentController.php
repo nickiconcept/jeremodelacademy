@@ -177,11 +177,20 @@ class StudentController extends Controller
             if ($class_id) {
                 $classData = DB::table('classes')->where('id', $class_id)->first();
                 if ($classData && $classData->tier) {
+                    $settings = DB::table('system_settings')->orderByDesc('id')->first();
+                    $termLabel = ($settings && $settings->active_term && $settings->active_session) 
+                        ? "{$settings->active_term} {$settings->active_session}"
+                        : "";
+                        
                     $feeStructures = DB::table('fee_structures')->where('tier', $classData->tier)->get();
                     foreach ($feeStructures as $fee) {
+                        $title = $termLabel 
+                            ? "{$fee->title} - {$classData->name} - {$termLabel}" 
+                            : "{$fee->title} - {$classData->name}";
+                            
                         DB::table('fee_invoices')->insert([
                             'student_id' => $userId,
-                            'title' => $fee->title,
+                            'title' => $title,
                             'category' => $fee->category,
                             'amount_due' => $fee->amount,
                             'amount_paid' => 0,

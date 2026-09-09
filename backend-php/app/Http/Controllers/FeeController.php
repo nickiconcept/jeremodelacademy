@@ -24,40 +24,65 @@ class FeeController extends Controller
                 ->join('classes as c', 's.class_id', '=', 'c.id')
                 ->join('users as u', 's.id', '=', 'u.id')
                 ->where('u.status', 'active')
-                ->select('s.id', 'c.tier')
+                ->select('s.id', 'c.tier', 'c.name as class_name')
                 ->get();
 
-            $generatedCount = 0;
+            // 1. Fetch all fee structures grouped by tier
+            $allStructures = DB::table('fee_structures')->get()->groupBy('tier');
+
+            // 2. Fetch all existing invoices for this term to avoid inserting duplicates
+            $existingInvoices = DB::table('fee_invoices')
+                ->where('title', 'like', "% - {$termLabel}")
+                ->select('student_id', 'title')
+                ->get()
+                ->groupBy('student_id')
+                ->map(function ($invoices) {
+                    return $invoices->pluck('title')->toArray();
+                })->toArray();
+
+            $invoicesToInsert = [];
 
             foreach ($students as $student) {
                 if (!$student->tier) continue;
 
-                $structures = DB::table('fee_structures')->where('tier', $student->tier)->get();
+                $structures = $allStructures->get($student->tier, []);
 
                 foreach ($structures as $structure) {
-                    $title = "{$structure->title} - {$termLabel}";
+                    $title = "{$structure->title} - {$student->class_name} - {$termLabel}";
                     
-                    $exists = DB::table('fee_invoices')
-                        ->where('student_id', $student->id)
-                        ->where('title', $title)
-                        ->exists();
-
-                    if (!$exists) {
-                        DB::table('fee_invoices')->insertOrIgnore([
+                    // Check if exists in memory
+                    $studentExistingTitles = $existingInvoices[$student->id] ?? [];
+                    if (!in_array($title, $studentExistingTitles)) {
+                        $invoicesToInsert[] = [
                             'student_id' => $student->id,
                             'title' => $title,
                             'category' => $structure->category,
                             'amount_due' => $structure->amount,
                             'amount_paid' => 0,
-                            'status' => 'unpaid'
-                        ]);
-                        $generatedCount++;
+                            'status' => 'unpaid',
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ];
                     }
                 }
             }
 
+            $generatedCount = count($invoicesToInsert);
+
+            if ($generatedCount === 0) {
+                return response()->json([
+                    'message' => 'All invoices have already been generated for this term. No new invoices were created.',
+                    'count' => 0
+                ], 200);
+            }
+
+            // Bulk insert in chunks to avoid SQL query string size limits
+            foreach (array_chunk($invoicesToInsert, 500) as $chunk) {
+                DB::table('fee_invoices')->insertOrIgnore($chunk);
+            }
+
             return response()->json([
-                'message' => 'Termly fees generated successfully',
+                'message' => "Successfully generated {$generatedCount} new fee invoices.",
                 'count' => $generatedCount
             ], 201);
         } catch (\Exception $e) {

@@ -11,6 +11,7 @@ import PrintPinCards from '../components/PrintPinCards';
 import ClassBroadsheet from '../components/ClassBroadsheet';
 import ReportCard from '../components/ReportCard';
 import ManageGraduatesModal from '../components/ManageGraduatesModal';
+import ActivityLogsTab from '../components/ActivityLogsTab';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Toast from '../components/Toast';
 import StatCard from '../components/StatCard';
@@ -241,6 +242,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
   const [subjectsSubTab, setSubjectsSubTab] = useState('list');
   const [showGraduatesModal, setShowGraduatesModal] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isGeneratingFees, setIsGeneratingFees] = useState(false);
 
   // PDF export refs
   const schemeRef = useRef(null);
@@ -1453,18 +1455,14 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
     if (!confirmed) return;
     setNotify('');
     setErrorMsg('');
-    setLoading(true);
+    setIsGeneratingFees(true);
     try {
       const res = await api.generateTermlyFees();
-      if (res.count === 0) {
-        setNotify('Operation completed. No new fees generated (they might already exist for this term).');
-      } else {
-        setNotify(`Successfully generated ${res.count} new fee invoices.`);
-      }
+      setNotify(res.message);
     } catch (err) {
       setErrorMsg(err.message);
     } finally {
-      setLoading(false);
+      setIsGeneratingFees(false);
     }
   };
 
@@ -1747,8 +1745,21 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
   if (isInitialLoad) return <LoadingSpinner />;
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
-      {/* Toast Notifications are now handled by GlobalUIProvider */}
+    <>
+      {isGeneratingFees && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(3px)',
+          zIndex: 9999, display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div className="spinner" style={{ width: '50px', height: '50px', border: '5px solid var(--border-color)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+          <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+          <h3 style={{ marginTop: '20px', color: 'var(--primary)' }}>Generating Invoices... Please Wait</h3>
+        </div>
+      )}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
+        {/* Toast Notifications are now handled by GlobalUIProvider */}
 
 
 
@@ -3129,7 +3140,14 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                         ) : (
                           paginatedInvoices.map((inv, idx) => (
                         <tr key={idx}>
-                          <td style={{ fontWeight: '600' }}>{inv.title}</td>
+                          <td style={{ fontWeight: '600' }}>
+                            <div>{inv.title.split(' - ')[0]}</div>
+                            {inv.title.split(' - ').length > 1 && (
+                              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 'normal', marginTop: '2px' }}>
+                                {inv.title.split(' - ').slice(1).join(' - ')}
+                              </div>
+                            )}
+                          </td>
                           <td><span className="badge badge-outline">{inv.category}</span></td>
                           <td style={{ color: '#10b981', fontWeight: '700' }}>₦{Number(inv.amount_due).toLocaleString()}</td>
                           <td>{inv.class_name ? `Class: ${inv.class_name}` : `Tier: ${inv.tier ? inv.tier.toUpperCase() : 'N/A'}`}</td>
@@ -3934,7 +3952,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                             <td><strong style={{ fontSize: '1.1rem', letterSpacing: '0.05em' }}>{p.pin}</strong></td>
                             <td>{p.term ? `${p.term} (${p.academic_year})` : 'Universal (Any Term/Session)'}</td>
                             <td>{p.student_name ? `${p.student_name} (${p.admission_number})` : 'Unused Token'}</td>
-                            <td><strong>{Math.max(0, parseInt(settingsForm?.pin_max_checks || 5) - p.usage_count)} / {parseInt(settingsForm?.pin_max_checks || 5)}</strong></td>
+                            <td><strong>{Math.max(0, parseInt(settingsForm?.pin_max_checks || 5) - p.usage_count)}</strong></td>
                             <td>
                               <span className={`badge ${p.status === 'active' ? 'badge-success' : 'badge-danger'}`}>
                                 {p.status}
@@ -5340,6 +5358,12 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
         </div>
       )}
 
+      {activeSubTab === 'logs' && (
+        <div className="logs-module fade-in">
+          <ActivityLogsTab />
+        </div>
+      )}
+
       {/* =======================================================
           TAB 9: SCHEME OF WORK MANAGEMENT (ADMIN)
           ======================================================= */}
@@ -6482,7 +6506,14 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                                   const rem = inv.amount_due - inv.amount_paid;
                                   return (
                                     <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background-color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                                      <td style={{ padding: '14px 15px', fontWeight: '600', color: 'var(--text-primary)' }}>{inv.title}</td>
+                                      <td style={{ padding: '14px 15px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                                        <div>{inv.title.split(' - ')[0]}</div>
+                                        {inv.title.split(' - ').length > 1 && (
+                                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 'normal', marginTop: '2px' }}>
+                                            {inv.title.split(' - ').slice(1).join(' - ')}
+                                          </div>
+                                        )}
+                                      </td>
                                       <td style={{ padding: '14px 15px' }}>
                                         <span className="badge" style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '0.7rem' }}>
                                           {inv.term || settings?.active_term || '3rd Term'} ({inv.session || settings?.active_session || '2026/2027'})
@@ -6764,6 +6795,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
       )}
 
           </div>
+    </>
   );
 }
 

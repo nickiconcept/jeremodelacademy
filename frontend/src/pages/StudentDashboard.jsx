@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import ReportCard from '../components/ReportCard';
 import Toast from '../components/Toast';
-import { ArrowLeft, Award, CreditCard, FileText, ShieldCheck, CheckCircle, Lock, Unlock, Receipt, X, Download, Key, BookOpen, User, Bell, AlertTriangle, BarChart2, Search, Calendar } from 'lucide-react';
+import { ArrowLeft, Award, CreditCard, FileText, ShieldCheck, CheckCircle, Lock, Unlock, Receipt, X, Download, Key, BookOpen, User, Bell, AlertTriangle, BarChart2, Search, Calendar, History } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { useGlobalUI } from '../contexts/GlobalUIContext';
 
 export default function StudentDashboard({ user, settings, activeTab, subTab }) {
+  const { showAlert } = useGlobalUI();
   const [activeSubTab, setActiveSubTab] = useState(() => {
     if (subTab) return subTab;
     if (activeTab && activeTab !== 'dashboard') return activeTab;
@@ -14,6 +16,12 @@ export default function StudentDashboard({ user, settings, activeTab, subTab }) 
   });
   const [isIdCardFlipped, setIsIdCardFlipped] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  // History modal state
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [historyTerm, setHistoryTerm] = useState(null);
+  const [historyLogs, setHistoryLogs] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   // Student statistics
   const [timeline, setTimeline] = useState([]);
@@ -139,13 +147,33 @@ export default function StudentDashboard({ user, settings, activeTab, subTab }) 
     }
   };
 
+  const handleViewHistory = async (item) => {
+    setHistoryTerm(item);
+    setShowHistoryModal(true);
+    setLoadingHistory(true);
+    try {
+      const searchStr = `${item.term} ${item.academic_year}`;
+      const res = await api.get(`/activity-logs?action=check_result&search=${encodeURIComponent(searchStr)}`);
+      setHistoryLogs(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
   const fetchReportCard = async (term, academic_year) => {
     if (!user?.id) return;
     try {
       const data = await api.getReportCard(user.id, term, academic_year);
       setActiveReportCardData(data);
+      await loadStudentData(); // Update PIN usage count in the UI
     } catch (err) {
-      setErrorMsg('Failed to load report card: ' + err.message);
+      if (err.message && err.message.includes('Outstanding school fees')) {
+        showAlert('Outstanding school fees must be cleared first.', 'error', 'Access Denied');
+      } else {
+        showAlert(err.message, 'error', 'Failed to load report card');
+      }
     }
   };
 
@@ -156,10 +184,13 @@ export default function StudentDashboard({ user, settings, activeTab, subTab }) 
     setNotify('');
     try {
       const res = await api.verifyPin(pinInput, selectedTermForRC.term, selectedTermForRC.academic_year);
-      setNotify(`${res.message} You have ${res.usage_remaining} checks remaining.`);
+      const maxChecks = settings?.pin_max_checks ? parseInt(settings.pin_max_checks) : 5;
+      const usageCount = res.pin ? parseInt(res.pin.usage_count) : 0;
+      const remaining = Math.max(0, maxChecks - usageCount - 1); // Subtract 1 because fetchReportCard uses a check
+      
+      setNotify(`${res.message} You have ${remaining} checks remaining.`);
       setShowPinModal(false);
-      await loadStudentData();
-      fetchReportCard(selectedTermForRC.term, selectedTermForRC.academic_year);
+      await fetchReportCard(selectedTermForRC.term, selectedTermForRC.academic_year);
     } catch (err) {
       setErrorMsg(err.message);
     }
@@ -508,7 +539,10 @@ export default function StudentDashboard({ user, settings, activeTab, subTab }) 
                       <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0 }}>
                         {isUnlocked ? (
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--success)' }}>
-                            <Key size={13} /> Unlocked — Views Used: {pinBinding.usage_count} / 5
+                            <Key size={13} /> Unlocked — Checks Remaining: {Math.max(0, (parseInt(settings?.pin_max_checks) || 5) - pinBinding.usage_count)}
+                            <button onClick={() => handleViewHistory(item)} style={{ marginLeft: '10px', background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.8rem', padding: 0 }}>
+                              View History
+                            </button>
                           </span>
                         ) : (
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)' }}>
@@ -592,7 +626,12 @@ export default function StudentDashboard({ user, settings, activeTab, subTab }) 
                       ) : invoices.map((inv, idx) => (
                         <tr key={idx}>
                           <td style={{ padding: '12px 14px', fontWeight: '600' }}>
-                            <div>{inv.title}</div>
+                            <div>{inv.title.split(' - ')[0]}</div>
+                            {inv.title.split(' - ').length > 1 && (
+                              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 'normal', marginTop: '2px' }}>
+                                {inv.title.split(' - ').slice(1).join(' - ')}
+                              </div>
+                            )}
                             <span className="badge" style={{ fontSize: '0.7rem', marginTop: '3px', backgroundColor: 'var(--bg-primary)', color: 'var(--primary)', border: '1px solid var(--border-color)' }}>
                               {inv.category || 'School Fees'}
                             </span>
@@ -636,7 +675,14 @@ export default function StudentDashboard({ user, settings, activeTab, subTab }) 
                       ) : receipts.map((rec, idx) => (
                         <tr key={idx}>
                           <td style={{ padding: '12px 14px', fontWeight: 'bold' }}>{rec.receipt_number}</td>
-                          <td style={{ padding: '12px 14px' }}>{rec.title}</td>
+                          <td style={{ padding: '12px 14px' }}>
+                            <div style={{ fontWeight: '600' }}>{rec.title.split(' - ')[0]}</div>
+                            {rec.title.split(' - ').length > 1 && (
+                              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                {rec.title.split(' - ').slice(1).join(' - ')}
+                              </div>
+                            )}
+                          </td>
                           <td style={{ padding: '12px 14px' }}>₦{Number(rec.amount_paid).toLocaleString()}</td>
                           <td style={{ padding: '12px 14px', textAlign: 'center' }}>
                             <button
@@ -875,13 +921,13 @@ export default function StudentDashboard({ user, settings, activeTab, subTab }) 
             <div style={{ padding: '24px' }}>
               <form onSubmit={handleVerifyPinSubmit}>
                 <div className="form-group">
-                  <label style={{ textAlign: 'center', display: 'block', marginBottom: '8px', fontWeight: '600' }}>Your 10-Character PIN</label>
+                  <label style={{ textAlign: 'center', display: 'block', marginBottom: '8px', fontWeight: '600' }}>Your 12-Character PIN</label>
                   <input
                     type="text"
-                    placeholder="e.g. ABC123XYZ9"
+                    placeholder="e.g. ABCD-1234-XYZ9"
                     className="form-control"
                     style={{ textTransform: 'uppercase', fontSize: '1.4rem', textAlign: 'center', letterSpacing: '0.15em', fontWeight: '700' }}
-                    maxLength="10"
+                    maxLength="14"
                     value={pinInput}
                     onChange={(e) => setPinInput(e.target.value)}
                     required
@@ -1014,6 +1060,63 @@ export default function StudentDashboard({ user, settings, activeTab, subTab }) 
                 })}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* PIN History Modal */}
+      {showHistoryModal && historyTerm && (
+        <div className="modal-backdrop fade-in" style={{ zIndex: 1050 }}>
+          <div className="modal-content scale-in" style={{ maxWidth: '500px', width: '90%', padding: '0', overflow: 'hidden' }}>
+            <div style={{ padding: '20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-secondary)' }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <History size={20} /> PIN Usage History
+              </h3>
+              <button className="btn-close" onClick={() => setShowHistoryModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div style={{ padding: '20px', maxHeight: '400px', overflowY: 'auto' }}>
+              <p style={{ marginBottom: '15px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                Usage history for <strong>{historyTerm.term} {historyTerm.academic_year}</strong>
+              </p>
+              
+              {loadingHistory ? (
+                <div style={{ padding: '40px 0', textAlign: 'center' }}>
+                  <LoadingSpinner />
+                  <p style={{ marginTop: '10px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading history...</p>
+                </div>
+              ) : historyLogs.length === 0 ? (
+                <div style={{ padding: '30px 0', textAlign: 'center', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                  <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>No usage history found.</p>
+                </div>
+              ) : (
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {historyLogs.map((log, idx) => (
+                    <li key={log.id || idx} style={{ padding: '15px', border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--bg-primary)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                        <span style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.9rem' }}>
+                          Check #{historyLogs.length - idx}
+                        </span>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          {new Date(log.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                        {log.description}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            
+            <div style={{ padding: '15px 20px', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)', display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn" onClick={() => setShowHistoryModal(false)} style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: '500' }}>
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
