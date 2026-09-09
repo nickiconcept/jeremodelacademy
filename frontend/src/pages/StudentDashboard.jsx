@@ -976,32 +976,102 @@ export default function StudentDashboard({ user, settings, activeTab, subTab }) 
               <button className="modal-close" onClick={() => setActiveReceipt(null)} style={{ color: 'white', position: 'static', fontSize: '1.2rem' }}>✕</button>
             </div>
 
-            <div className="print-area" style={{ fontFamily: 'monospace', padding: '20px' }} ref={receiptRef}>
-              <div style={{ textAlign: 'center', borderBottom: '1px dashed #000', paddingBottom: '10px', marginBottom: '15px' }}>
-                <h3 style={{ margin: '0' }}>{settings?.landing_school_name || 'Jere Model Academy'}</h3>
-                <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem' }}>{settings?.landing_address || 'Jere Kagarko LGA, Kaduna State.'}</p>
-                <p style={{ margin: '2px 0 0 0', fontSize: '0.75rem' }}>PAYMENT RECEIPT</p>
+            <div className="print-area" style={{ fontFamily: '"Inter", "Segoe UI", sans-serif', padding: '20px 10px', color: '#000' }} ref={receiptRef}>
+              <div style={{ textAlign: 'center', paddingBottom: '15px', borderBottom: '2px solid #e5e7eb', marginBottom: '20px' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '50px', height: '50px', borderRadius: '50%', backgroundColor: 'var(--primary)', color: 'white', marginBottom: '10px' }}>
+                  <Receipt size={24} />
+                </div>
+                <h3 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', fontWeight: '800', color: '#000' }}>{settings?.landing_school_name || 'Jere Model Academy'}</h3>
+                <p style={{ margin: '0 0 8px 0', fontSize: '0.8rem', color: '#000' }}>{settings?.landing_tagline || 'KADUNA STATE, NIGERIA'}</p>
+                <div style={{ display: 'inline-block', padding: '4px 12px', backgroundColor: '#f3f4f6', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '700', letterSpacing: '0.5px', color: '#000' }}>
+                  OFFICIAL PAYMENT RECEIPT
+                </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
-                <div><strong>RECEIPT NO:</strong> {activeReceipt.receipt_number}</div>
-                <div><strong>DATE:</strong> {activeReceipt.payment_date}</div>
-                <div><strong>STUDENT:</strong> {user.full_name}</div>
-                <div><strong>ADM NO:</strong> {user.admission_number}</div>
-                <div><strong>FEE DESCRIPTION:</strong> {activeReceipt.title}</div>
-                <div style={{ borderBottom: '1px dashed #000', margin: '5px 0' }}></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.05rem', fontWeight: 'bold' }}>
-                  <span>AMOUNT PAID:</span>
-                  <span>₦{Number(activeReceipt.amount_paid).toLocaleString()}</span>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#000' }}>Receipt No:</span>
+                  <strong style={{ fontFamily: 'monospace' }}>{activeReceipt.receipt_number || 'N/A'}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                  <span>METHOD:</span>
-                  <span>{activeReceipt.payment_method}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#000' }}>Date:</span>
+                  <strong>{activeReceipt.payment_date || new Date().toLocaleDateString()}</strong>
                 </div>
-                <div style={{ borderBottom: '1px dashed #000', margin: '5px 0' }}></div>
-                <div style={{ fontSize: '0.75rem', textAlign: 'center', fontStyle: 'italic', marginTop: '10px' }}>
-                  Logged by: {activeReceipt.logged_by_name || 'Finance Desk'}<br />
-                  ~ Thank you for your payment ~
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#000' }}>Student Name:</span>
+                  <strong>{user?.full_name || 'N/A'}</strong>
                 </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#000' }}>Admission No:</span>
+                  <strong style={{ fontFamily: 'monospace' }}>{user?.admission_number || 'N/A'}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#000' }}>Class:</span>
+                  <strong>{user?.class_name || 'N/A'}</strong>
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', padding: '15px', marginBottom: '20px' }}>
+                <div style={{ fontSize: '0.8rem', color: '#000', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Fee Description</div>
+                <div style={{ fontSize: '1.05rem', fontWeight: '700', color: '#000', borderBottom: '1px solid #e5e7eb', paddingBottom: '12px', marginBottom: '12px' }}>
+                  {activeReceipt.title || 'School Fee'}
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.85rem' }}>
+                  {activeReceipt.true_amount_due !== undefined && activeReceipt.true_amount_due !== null && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#000' }}>Total Billed:</span>
+                      <span style={{ fontFamily: 'monospace', fontWeight: '600' }}>₦{Number(activeReceipt.true_amount_due).toLocaleString()}</span>
+                    </div>
+                  )}
+                  {activeReceipt.true_amount_paid !== undefined && activeReceipt.true_amount_paid !== null && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#000' }}>Cumulative Paid To Date:</span>
+                      <span style={{ fontFamily: 'monospace', fontWeight: '600' }}>₦{Number(activeReceipt.true_amount_paid).toLocaleString()}</span>
+                    </div>
+                  )}
+                  {activeReceipt.true_amount_due !== undefined && activeReceipt.true_amount_due !== null && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ef4444' }}>
+                      <span>Current Balance Owed:</span>
+                      <span style={{ fontFamily: 'monospace', fontWeight: '700' }}>₦{Math.max(0, Number(activeReceipt.true_amount_due) - Number(activeReceipt.true_amount_paid)).toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '15px', marginBottom: '20px' }}>
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: '#2563eb', textTransform: 'uppercase', fontWeight: '700', letterSpacing: '0.5px' }}>This Payment</div>
+                  <div style={{ fontSize: '0.8rem', color: '#3b82f6', marginTop: '2px' }}>via {activeReceipt.payment_method || 'Cash'}</div>
+                </div>
+                <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1d4ed8', fontFamily: 'monospace' }}>
+                  ₦{Number(activeReceipt.amount_paid).toLocaleString()}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px' }}>
+                {activeReceipt.status === 'paid' ? (
+                  <div style={{ border: '2px solid #10b981', color: '#10b981', padding: '6px 16px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: '800', letterSpacing: '1px', textTransform: 'uppercase', transform: 'rotate(-5deg)' }}>
+                    PAID IN FULL
+                  </div>
+                ) : (
+                  <div style={{ border: '2px solid #f59e0b', color: '#d97706', padding: '6px 16px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: '800', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                    PARTIAL PAYMENT
+                  </div>
+                )}
+              </div>
+
+              <div style={{ textAlign: 'center', paddingTop: '15px', borderTop: '2px solid #e5e7eb', fontSize: '0.75rem', color: '#000' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '10px' }}>
+                  {settings?.principal_signature ? (
+                    <img src={settings.principal_signature} alt="Authorized Signature" style={{ height: '40px', objectFit: 'contain', marginBottom: '2px' }} />
+                  ) : (
+                    <div style={{ width: '120px', borderBottom: '1px solid #000', margin: '20px auto 5px auto' }}></div>
+                  )}
+                  <div style={{ fontSize: '0.65rem', color: '#000' }}>Authorized Signature</div>
+                </div>
+                <p style={{ margin: '0 0 4px 0', fontWeight: '500', color: '#000' }}>~ Thank you for your payment! ~</p>
+                <p style={{ margin: '0' }}>Logged by: {activeReceipt.logged_by_name || 'Accounts Office'}</p>
               </div>
             </div>
 
