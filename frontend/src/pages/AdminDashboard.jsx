@@ -2479,7 +2479,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                     <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.85rem', margin: '4px 0 0 0' }}>View, add, edit, or delete subjects in the school curriculum.</p>
                   </div>
                 </div>
-                <button className="btn btn-primary" onClick={() => { setSubjectForm({ name: '', tier: 'universal', class_ids: [] }); setShowSubjectModal(true); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(5px)', color: 'white', padding: '8px 16px', fontSize: '0.85rem', borderRadius: '20px' }}>
+                <button className="btn btn-primary" onClick={() => { setSubjectForm({ name: '', tier: 'primary', class_ids: [] }); setShowSubjectModal(true); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(5px)', color: 'white', padding: '8px 16px', fontSize: '0.85rem', borderRadius: '20px' }}>
                   <Plus size={16} /> Add Subject
                 </button>
               </div>
@@ -2501,7 +2501,6 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                   onChange={(e) => setSubjectTierFilter(e.target.value)}
                 >
                   <option value="all">All Tiers</option>
-                  <option value="universal">Universal (All Tiers)</option>
                   <option value="nursery">Nursery School</option>
                   <option value="primary">Primary School</option>
                   <option value="jss">Junior Secondary (JSS)</option>
@@ -5827,7 +5826,6 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
               <div className="form-group">
                 <label>School Level</label>
                 <select className="form-control" value={subjectForm.tier} onChange={(e) => setSubjectForm({ ...subjectForm, tier: e.target.value })}>
-                  <option value="universal">Universal (All Tiers)</option>
                   <option value="nursery">Nursery School (Nursery 1-3)</option>
                   <option value="primary">Primary School (Primary 1-6)</option>
                   <option value="jss">Junior Secondary (JSS)</option>
@@ -6197,7 +6195,6 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                   value={subjectEditForm.tier} 
                   onChange={(e) => setSubjectEditForm({ ...subjectEditForm, tier: e.target.value })}
                 >
-                  <option value="universal">Universal (All Tiers)</option>
                   <option value="nursery">Nursery School (Nursery 1-3)</option>
                   <option value="primary">Primary School (Primary 1-6)</option>
                   <option value="jss">Junior Secondary (JSS)</option>

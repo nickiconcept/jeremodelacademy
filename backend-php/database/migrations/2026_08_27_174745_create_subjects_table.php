@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name')->unique();
             $table->string('category')->nullable();
-            $table->enum('tier', ['nursery', 'primary', 'jss', 'sss']);
+            $table->enum('tier', ['nursery', 'primary', 'jss', 'sss', 'universal']);
             $table->timestamps();
         });
     }
