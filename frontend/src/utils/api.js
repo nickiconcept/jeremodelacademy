@@ -380,7 +380,7 @@ const api = {
 
   // Report Card
   getReportCard: async (studentId, term, year) => {
-    const res = await fetch(`${API_BASE}/report-card/${studentId}?term=${encodeURIComponent(term)}&year=${encodeURIComponent(year)}`, { headers: getHeaders() });
+    const res = await fetch(`${API_BASE}/report-card/${studentId}?term=${encodeURIComponent(term)}&year=${encodeURIComponent(year)}&t=${Date.now()}`, { headers: getHeaders() });
     return handleResponse(res);
   },
 
@@ -390,7 +390,7 @@ const api = {
   },
 
   getStudentTimeline: async (studentId) => {
-    const res = await fetch(`${API_BASE}/student/timeline/${studentId}`, { headers: getHeaders() });
+    const res = await fetch(`${API_BASE}/student/timeline/${studentId}?t=${Date.now()}`, { headers: getHeaders() });
     return handleResponse(res);
   },
 

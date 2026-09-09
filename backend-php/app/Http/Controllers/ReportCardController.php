@@ -264,6 +264,9 @@ class ReportCardController extends Controller
                     ->where('student_id', $studentId)
                     ->where('term', $term)
                     ->where('academic_year', $year)
+                    ->where('status', 'active')
+                    ->where('usage_count', '<', 5)
+                    ->orderByDesc('id')
                     ->first();
 
                 if (!$boundPin) {
@@ -636,7 +639,10 @@ class ReportCardController extends Controller
 
             $unlockedPins = DB::table('result_pins')
                 ->where('student_id', $studentId)
+                ->where('usage_count', '<', 5)
+                ->where('status', 'active')
                 ->select('term', 'academic_year', 'usage_count')
+                ->orderByDesc('id')
                 ->get();
 
             return response()->json([

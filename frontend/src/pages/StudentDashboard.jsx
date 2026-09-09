@@ -6,6 +6,7 @@ import { ArrowLeft, Award, CreditCard, FileText, ShieldCheck, CheckCircle, Lock,
 import html2pdf from 'html2pdf.js';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useGlobalUI } from '../contexts/GlobalUIContext';
+import Swal from 'sweetalert2';
 
 export default function StudentDashboard({ user, settings, activeTab, subTab }) {
   const { showAlert } = useGlobalUI();
@@ -170,7 +171,13 @@ export default function StudentDashboard({ user, settings, activeTab, subTab }) 
       await loadStudentData(); // Update PIN usage count in the UI
     } catch (err) {
       if (err.message && err.message.includes('Outstanding school fees')) {
-        showAlert('Outstanding school fees must be cleared first.', 'error', 'Access Denied');
+        Swal.fire({
+          title: 'Access Denied',
+          text: 'Outstanding school fees must be cleared first.',
+          icon: 'error',
+          confirmButtonColor: 'var(--primary)',
+          confirmButtonText: 'OK'
+        });
       } else {
         showAlert(err.message, 'error', 'Failed to load report card');
       }

@@ -49,7 +49,7 @@ class ActivityLog extends Model
         array $extras = []
     ): self {
         $request = request();
-        $user = auth()->user();
+        $user = auth('api')->user() ?? auth()->user();
 
         return self::create(array_merge([
             'user_id'     => $user?->id,
