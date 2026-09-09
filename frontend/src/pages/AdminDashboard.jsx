@@ -1650,10 +1650,10 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
   }, [activeSubTab, adminAttendanceClass, adminAttendanceDate]);
 
   useEffect(() => {
-    if (activeSubTab === 'schemes' && adminSchemeClass && adminSchemeSubject) {
+    if (subjectsSubTab === 'schemes' && adminSchemeClass && adminSchemeSubject) {
       loadAdminSchemes();
     }
-  }, [activeSubTab, adminSchemeClass, adminSchemeSubject, adminSchemeTerm]);
+  }, [subjectsSubTab, adminSchemeClass, adminSchemeSubject, adminSchemeTerm]);
 
   useEffect(() => {
     if (adminGradesClass) {
