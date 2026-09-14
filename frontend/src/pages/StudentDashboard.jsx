@@ -7,6 +7,7 @@ import html2pdf from 'html2pdf.js';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useGlobalUI } from '../contexts/GlobalUIContext';
 import Swal from 'sweetalert2';
+import StudentSowTab from '../components/StudentSowTab';
 
 export default function StudentDashboard({ user, settings, activeTab, subTab }) {
   const { showAlert } = useGlobalUI();
@@ -781,130 +782,13 @@ export default function StudentDashboard({ user, settings, activeTab, subTab }) 
           TAB 5: SCHEME OF WORK VIEW (READ-ONLY)
           ========================================== */}
       {activeSubTab === 'schemes' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-
-          {/* Hero Header */}
-          <div style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            flexWrap: 'wrap', gap: '15px',
-            background: 'linear-gradient(135deg, var(--primary) 0%, #1e3a8a 100%)',
-            padding: '24px', color: 'white',
-            boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-            borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid rgba(255,255,255,0.4)' }}>
-                <BookOpen size={24} color="white" />
-              </div>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '700' }}>Scheme of Work</h3>
-                <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.85rem', margin: '4px 0 0 0' }}>
-                  12-week course outline for your class — {settings?.active_term || '3rd Term'}
-                </p>
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: '20px', padding: '8px 16px', fontSize: '0.82rem', fontWeight: '600' }}>
-              <FileText size={14} /> {studentSubjects.length} Subject{studentSubjects.length !== 1 ? 's' : ''} Available
-            </div>
-          </div>
-
-          {/* Subject selector */}
-          <div className="glass-panel" style={{ padding: '20px', backgroundColor: 'var(--bg-surface)', borderRadius: '0', borderTop: 'none' }}>
-            <div className="form-group" style={{ margin: 0, maxWidth: '360px' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Select Subject</label>
-              <select
-                className="form-control"
-                value={selectedSubjectId}
-                onChange={(e) => setSelectedSubjectId(e.target.value)}
-              >
-                <option value="">Choose subject...</option>
-                {studentSubjects.map((sub, idx) => (
-                  <option key={idx} value={sub.subject_id}>{sub.subject_name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Scheme table */}
-          {!selectedSubjectId ? (
-            <div className="glass-panel" style={{ padding: '40px', backgroundColor: 'var(--bg-surface)', textAlign: 'center', borderRadius: '0 0 var(--radius-lg) var(--radius-lg)' }}>
-              <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'rgba(59,130,246,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                <BookOpen size={32} style={{ color: 'var(--primary)' }} />
-              </div>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: 0 }}>No subjects mapped to your class or none selected.</p>
-            </div>
-          ) : (
-            <div className="glass-panel" style={{ backgroundColor: 'var(--bg-surface)', overflow: 'hidden', borderRadius: '0 0 var(--radius-lg) var(--radius-lg)', borderTop: 'none' }}>
-              {/* Subject sub-header */}
-              <div style={{
-                padding: '14px 22px', borderBottom: '1px solid var(--border-color)',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px',
-                background: 'linear-gradient(135deg, rgba(59,130,246,0.06) 0%, rgba(30,58,138,0.04) 100%)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <BookOpen size={18} />
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: '700', fontSize: '0.95rem', color: 'var(--primary)' }}>
-                      {studentSubjects.find(s => s.subject_id === parseInt(selectedSubjectId) || s.subject_id === selectedSubjectId)?.subject_name || 'Subject'}
-                    </div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                      {settings?.active_term || '3rd Term'} · {settings?.active_session || 'Current Session'}
-                    </div>
-                  </div>
-                </div>
-                <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: '600', backgroundColor: 'rgba(22,163,74,0.1)', color: 'var(--success)', border: '1px solid rgba(22,163,74,0.2)' }}>
-                  {schemeWeeks.filter(w => w.topic).length} / 12 Weeks Filled
-                </span>
-              </div>
-
-              <div className="table-container" style={{ margin: 0, borderRadius: 0 }}>
-                <table className="school-table" style={{ margin: 0 }}>
-                  <thead style={{ backgroundColor: '#f8fafc' }}>
-                    <tr>
-                      <th style={{ width: '70px', textAlign: 'center', padding: '14px' }}>Week</th>
-                      <th style={{ width: '38%', padding: '14px' }}>Title & Subtitle</th>
-                      <th style={{ padding: '14px' }}>Content / Objectives</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {schemeWeeks.map((w, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                        <td style={{ textAlign: 'center', verticalAlign: 'top', paddingTop: '14px' }}>
-                          <span style={{
-                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                            width: '32px', height: '32px', borderRadius: '50%',
-                            backgroundColor: w.topic ? 'var(--primary)' : 'var(--border-color)',
-                            color: w.topic ? '#fff' : 'var(--text-muted)',
-                            fontWeight: '700', fontSize: '0.8rem'
-                          }}>{w.week}</span>
-                        </td>
-                        <td style={{ padding: '12px 14px', verticalAlign: 'top' }}>
-                          {w.topic ? (
-                            <div>
-                              <div style={{ fontWeight: '700', fontSize: '0.92rem', color: 'var(--text-primary)' }}>{w.topic}</div>
-                              {w.subtitle && (
-                                <div style={{ fontSize: '0.8rem', color: 'var(--primary)', marginTop: '3px', fontWeight: '500' }}>
-                                  📌 {w.subtitle}
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <em style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No topic defined yet</em>
-                          )}
-                        </td>
-                        <td style={{ color: w.objectives ? 'var(--text-primary)' : 'var(--text-muted)', fontSize: '0.88rem', verticalAlign: 'top', whiteSpace: 'pre-line', padding: '12px 14px' }}>
-                          {w.objectives || <em>—</em>}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
+        <StudentSowTab 
+          studentId={user?.id}
+          classId={user?.class_id}
+          activeSession={settings?.active_session}
+          activeTerm={settings?.active_term}
+          subjects={studentSubjects}
+        />
       )}
 
       {/* ==========================================

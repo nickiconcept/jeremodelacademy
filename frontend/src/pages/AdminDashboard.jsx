@@ -12,6 +12,7 @@ import ClassBroadsheet from '../components/ClassBroadsheet';
 import ReportCard from '../components/ReportCard';
 import ManageGraduatesModal from '../components/ManageGraduatesModal';
 import ActivityLogsTab from '../components/ActivityLogsTab';
+import AdminSowProgress from '../components/AdminSowProgress';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Toast from '../components/Toast';
 import StatCard from '../components/StatCard';
@@ -475,6 +476,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
     allow_past_attendance: 0,
     allow_fm_register_student: 0,
     allow_fm_edit_student: 0,
+    allow_students_view_sow_status: 0,
     max_ca_count: 4,
     landing_school_name: '',
     landing_tagline: '',
@@ -670,6 +672,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
         allow_past_attendance: settings.allow_past_attendance || 0,
         allow_fm_register_student: settings.allow_fm_register_student || 0,
         allow_fm_edit_student: settings.allow_fm_edit_student || 0,
+        allow_students_view_sow_status: settings.allow_students_view_sow_status || 0,
         max_ca_count: settings.max_ca_count || 4
       });
     }
@@ -4674,12 +4677,15 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
 
 
                   <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
-                    <button type="submit" className="btn btn-primary" style={{ padding: '12px 28px', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Save size={18} />
-                      Save Academic Settings
+                    <button type="submit" className="btn btn-primary" style={{ padding: '12px 30px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1rem', fontWeight: '600' }} disabled={settingsLoading}>
+                      <Save size={18} /> {settingsLoading ? 'Saving Changes...' : 'Save Academic Settings'}
                     </button>
                   </div>
               </form>
+
+              {/* Admin Scheme of Work Progress */}
+              <AdminSowProgress activeSession={settings?.active_session} />
+              
             </div>
           )}
 

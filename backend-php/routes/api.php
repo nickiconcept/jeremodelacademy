@@ -127,9 +127,10 @@ Route::group(['middleware' => ['auth:api', 'throttle:60,1']], function () {
     Route::post('/sessions/set-active', [\App\Http\Controllers\SystemController::class, 'setActiveSession']);
 
     // Schemes of Work
-    Route::get('/schemes', [\App\Http\Controllers\SystemController::class, 'getSchemes']);
-    Route::post('/schemes', [\App\Http\Controllers\SystemController::class, 'saveScheme']);
-    Route::delete('/schemes/{id}', [\App\Http\Controllers\SystemController::class, 'deleteScheme']);
+    Route::get('/schemes', [\App\Http\Controllers\SchemeOfWorkController::class, 'index']);
+    Route::post('/sow/mark-treated', [\App\Http\Controllers\SchemeOfWorkController::class, 'markTreated']);
+    Route::get('/sow/student', [\App\Http\Controllers\SchemeOfWorkController::class, 'studentIndex']);
+    Route::get('/sow/admin-overview', [\App\Http\Controllers\SchemeOfWorkController::class, 'adminProgressOverview']);
 
     // PINs & Security
     Route::get('/pins', [\App\Http\Controllers\PinController::class, 'getPins']);

@@ -34,7 +34,7 @@ class SystemController extends Controller
                 'next_term_fee', 'next_term_begins', 'next_term_ends',
                 'max_ca_count',
                 'allow_fm_edit_student', 'allow_fm_register_student', 'allow_past_attendance',
-                'remark_generation_mode', 'allow_offline_debt'
+                'remark_generation_mode', 'allow_offline_debt', 'allow_students_view_sow_status'
             ]);
 
             DB::table('system_settings')->insert($data);
