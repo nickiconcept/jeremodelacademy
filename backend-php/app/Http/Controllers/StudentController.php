@@ -223,7 +223,8 @@ class StudentController extends Controller
             if (str_contains($e->getMessage(), 'Duplicate entry')) {
                 return response()->json(['error' => 'Username or Admission Number already exists'], 400);
             }
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -275,7 +276,8 @@ class StudentController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -290,7 +292,8 @@ class StudentController extends Controller
                 ->get();
             return response()->json($averages);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
     private function getValidTargets($sourceName)
@@ -396,7 +399,8 @@ class StudentController extends Controller
             return response()->json(['message' => "Successfully updated " . count($studentIdsToPromote) . " students' class status."]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -441,7 +445,8 @@ class StudentController extends Controller
             }
             return response()->json(['message' => 'Student promotion/status updated successfully.']);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -455,7 +460,8 @@ class StudentController extends Controller
             $rows = DB::table('promoted_classes')->where('session_name', $targetSession)->pluck('class_id')->toArray();
             return response()->json($rows);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -469,7 +475,8 @@ class StudentController extends Controller
             DB::table('promoted_classes')->where('session_name', $targetSession)->delete();
             return response()->json(['message' => 'Promotion tracking reset for session.']);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -493,7 +500,8 @@ class StudentController extends Controller
             }
             return response()->json(['error' => 'Student not found.'], 404);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -512,7 +520,8 @@ class StudentController extends Controller
             return response()->json(['message' => 'Status updated successfully.']);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -531,7 +540,8 @@ class StudentController extends Controller
             return response()->json(['message' => 'Class updated successfully.']);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 

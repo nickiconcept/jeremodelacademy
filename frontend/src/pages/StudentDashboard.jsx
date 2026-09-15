@@ -89,7 +89,8 @@ export default function StudentDashboard({ user, settings, activeTab, subTab }) 
       const data = await api.getSchemes({
         class_id: user.class_id,
         subject_id: subId,
-        term: settings?.active_term || '3rd Term'
+        term: settings?.active_term || '3rd Term',
+        academic_session: settings?.active_session
       });
       const newWeeks = Array.from({ length: 12 }, (_, i) => {
         const wkNum = i + 1;

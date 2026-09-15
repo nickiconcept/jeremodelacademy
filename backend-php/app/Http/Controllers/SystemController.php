@@ -13,7 +13,8 @@ class SystemController extends Controller
             $settings = DB::table('system_settings')->orderByDesc('id')->first();
             return response()->json($settings);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -41,7 +42,8 @@ class SystemController extends Controller
 
             return response()->json(['message' => 'Settings updated successfully']);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -51,7 +53,8 @@ class SystemController extends Controller
             $sessions = DB::table('academic_sessions')->orderByDesc('session_name')->get();
             return response()->json($sessions);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -73,7 +76,8 @@ class SystemController extends Controller
             if (str_contains($e->getMessage(), 'UNIQUE constraint')) {
                 return response()->json(['error' => 'Session already exists'], 400);
             }
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -103,7 +107,8 @@ class SystemController extends Controller
 
             return response()->json(['message' => "Session {$session->session_name} is now the active current session."]);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -142,7 +147,8 @@ class SystemController extends Controller
             $schemes = $query->orderBy('s.week')->get();
             return response()->json($schemes);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -177,7 +183,8 @@ class SystemController extends Controller
 
             return response()->json(['message' => 'Scheme of work entry saved successfully']);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -190,7 +197,8 @@ class SystemController extends Controller
             DB::table('scheme_of_work')->where('id', $id)->delete();
             return response()->json(['message' => 'Scheme deleted successfully']);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 }

@@ -53,7 +53,8 @@ export default function Sidebar({ role, activeTab, subTab, onSelectTab, onLogout
         subItems: [
           { id: 'list', label: 'All Subjects', icon: Book },
           { id: 'assignments', label: 'Assign to Teacher', icon: Users },
-          { id: 'schemes', label: 'Scheme of Work', icon: FileText }
+          { id: 'schemes', label: 'Scheme of Work', icon: FileText },
+          { id: 'tracker', label: 'SOW Tracker', icon: CheckSquare }
         ]
       },
       {

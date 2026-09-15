@@ -661,6 +661,26 @@ const api = {
       body: JSON.stringify({ oldPassword, newPassword })
     });
     return handleResponse(res);
+  },
+
+  // Generic methods for one-off endpoints
+  get: async (endpoint, config = {}) => {
+    let url = `${API_BASE}${endpoint}`;
+    if (config.params) {
+      const qs = new URLSearchParams(config.params).toString();
+      if (qs) url += `?${qs}`;
+    }
+    const res = await fetch(url, { headers: getHeaders() });
+    return { data: await handleResponse(res) };
+  },
+  
+  post: async (endpoint, data = {}) => {
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return { data: await handleResponse(res) };
   }
 };
 

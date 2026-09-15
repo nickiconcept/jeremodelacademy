@@ -24,7 +24,8 @@ class AttendanceController extends Controller
                 ->get();
             return response()->json($attendance);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -102,7 +103,8 @@ class AttendanceController extends Controller
             $report = $query->get();
             return response()->json($report);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -131,7 +133,8 @@ class AttendanceController extends Controller
 
             return response()->json($roster);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -140,6 +143,8 @@ class AttendanceController extends Controller
         $class_id = $request->input('class_id');
         $date = $request->input('date');
         $records = $request->input('records'); // array of {student_id, status}
+        $userLat = $request->input('lat');
+        $userLng = $request->input('lng');
         $user = auth('api')->user();
 
         try {
@@ -147,6 +152,45 @@ class AttendanceController extends Controller
                 $cls = DB::table('classes')->where('id', $class_id)->first();
                 if (!$cls || $cls->form_master_id != $user->id) {
                     return response()->json(['error' => 'Access denied: You are not the Form Master of this class'], 403);
+                }
+
+                // Geofencing Check (Only enforce for teachers)
+                $settings = DB::table('system_settings')->first();
+                if ($settings) {
+                    $loc1Lat = $settings->attendance_location1_lat;
+                    $loc1Lng = $settings->attendance_location1_lng;
+                    $loc2Lat = $settings->attendance_location2_lat;
+                    $loc2Lng = $settings->attendance_location2_lng;
+                    $radius = $settings->attendance_radius ?: 100;
+                    
+                    $geofencingEnabled = ($loc1Lat && $loc1Lng) || ($loc2Lat && $loc2Lng);
+                    
+                    if ($geofencingEnabled) {
+                        if (!$userLat || !$userLng) {
+                            return response()->json(['error' => 'Geofencing is enabled. You must grant location access to take attendance.'], 403);
+                        }
+                        
+                        $withinLoc1 = false;
+                        $withinLoc2 = false;
+                        
+                        if ($loc1Lat && $loc1Lng) {
+                            $dist1 = $this->calculateDistance($userLat, $userLng, $loc1Lat, $loc1Lng);
+                            if ($dist1 <= $radius) {
+                                $withinLoc1 = true;
+                            }
+                        }
+                        
+                        if ($loc2Lat && $loc2Lng) {
+                            $dist2 = $this->calculateDistance($userLat, $userLng, $loc2Lat, $loc2Lng);
+                            if ($dist2 <= $radius) {
+                                $withinLoc2 = true;
+                            }
+                        }
+                        
+                        if (!$withinLoc1 && !$withinLoc2) {
+                            return response()->json(['error' => 'Geofence Error: You must be physically on school premises to take attendance.'], 403);
+                        }
+                    }
                 }
             }
 
@@ -180,7 +224,29 @@ class AttendanceController extends Controller
             return response()->json(['message' => 'Attendance records updated successfully']);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
+    }
+
+    private function calculateDistance($lat1, $lon1, $lat2, $lon2)
+    {
+        $earthRadius = 6371000; // in meters
+
+        $lat1 = deg2rad($lat1);
+        $lon1 = deg2rad($lon1);
+        $lat2 = deg2rad($lat2);
+        $lon2 = deg2rad($lon2);
+
+        $latDelta = $lat2 - $lat1;
+        $lonDelta = $lon2 - $lon1;
+
+        $a = sin($latDelta / 2) * sin($latDelta / 2) +
+             cos($lat1) * cos($lat2) *
+             sin($lonDelta / 2) * sin($lonDelta / 2);
+        
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return $earthRadius * $c;
     }
 }

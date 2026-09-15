@@ -105,7 +105,7 @@ class SchemeOfWorkController extends Controller
     public function adminProgressOverview(Request $request)
     {
         $session = $request->input('academic_session');
-        
+
         $progress = DB::table('sow_progress')
             ->join('scheme_of_works', 'sow_progress.scheme_of_work_id', '=', 'scheme_of_works.id')
             ->join('users', 'sow_progress.teacher_id', '=', 'users.id')
@@ -117,12 +117,95 @@ class SchemeOfWorkController extends Controller
                 'users.full_name as teacher_name',
                 'classes.name as class_name',
                 'subjects.name as subject_name',
-                DB::raw('COUNT(sow_progress.id) as completed_topics')
+                'scheme_of_works.topic',
+                'scheme_of_works.sub_topic as subtitle',
+                'scheme_of_works.week',
+                'sow_progress.completed_at'
             )
-            ->groupBy('users.id', 'users.full_name', 'classes.name', 'subjects.name')
             ->get();
-            
-        return response()->json($progress);
+
+        $grouped = $progress->groupBy(function ($item) {
+            return $item->teacher_id . '-' . $item->class_name . '-' . $item->subject_name;
+        })->map(function ($items) {
+            $first = $items->first();
+            return [
+                'teacher_id' => $first->teacher_id,
+                'teacher_name' => $first->teacher_name,
+                'class_name' => $first->class_name,
+                'subject_name' => $first->subject_name,
+                'completed_topics' => $items->count(),
+                'treated_topics_list' => $items->map(function ($item) {
+                    return [
+                        'topic' => $item->topic,
+                        'subtitle' => $item->subtitle,
+                        'week' => $item->week,
+                        'completed_at' => $item->completed_at
+                    ];
+                })->values()->toArray()
+            ];
+        })->values();
+
+        return response()->json($grouped);
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'class_id' => 'required|integer',
+            'subject_id' => 'required|integer',
+            'term' => 'required|string',
+            'week' => 'required|integer',
+            'topic' => 'required|string',
+            'subtitle' => 'nullable|string',
+            'objectives' => 'nullable|string',
+        ]);
+
+        $classId = $request->input('class_id');
+        $subjectId = $request->input('subject_id');
+        $term = $request->input('term');
+        $week = $request->input('week');
+        
+        $class = DB::table('classes')->where('id', $classId)->first();
+        if (!$class) return response()->json(['error' => 'Class not found'], 404);
+        
+        $tier = $this->determineTier($class->name);
+
+        $exists = DB::table('scheme_of_works')
+            ->where('subject_id', $subjectId)
+            ->where('tier', $tier)
+            ->where('term', $term)
+            ->where('week', $week)
+            ->first();
+
+        if ($exists) {
+            DB::table('scheme_of_works')->where('id', $exists->id)->update([
+                'topic' => $request->input('topic'),
+                'sub_topic' => $request->input('subtitle'),
+                'objectives' => $request->input('objectives'),
+                'updated_at' => now()
+            ]);
+            $schemeId = $exists->id;
+        } else {
+            $schemeId = DB::table('scheme_of_works')->insertGetId([
+                'subject_id' => $subjectId,
+                'tier' => $tier,
+                'term' => $term,
+                'week' => $week,
+                'topic' => $request->input('topic'),
+                'sub_topic' => $request->input('subtitle'),
+                'objectives' => $request->input('objectives'),
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+        }
+
+        return response()->json(['message' => 'Scheme of work saved', 'id' => $schemeId]);
+    }
+
+    public function destroy($id)
+    {
+        DB::table('scheme_of_works')->where('id', $id)->delete();
+        return response()->json(['message' => 'Scheme of work deleted']);
     }
 
     private function determineTier($className)

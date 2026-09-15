@@ -86,7 +86,8 @@ class FeeController extends Controller
                 'count' => $generatedCount
             ], 201);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -143,7 +144,8 @@ class FeeController extends Controller
 
             return response()->json(['message' => 'Custom fee added successfully.']);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -185,7 +187,8 @@ class FeeController extends Controller
                 'receipt_number' => $receiptNum
             ]);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -211,7 +214,8 @@ class FeeController extends Controller
                 'receipts' => $receipts
             ]);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -221,7 +225,8 @@ class FeeController extends Controller
             $structures = DB::table('fee_structures')->orderBy('tier')->get();
             return response()->json($structures);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -248,7 +253,8 @@ class FeeController extends Controller
             ]);
             return response()->json(['message' => 'Fee structure created successfully'], 201);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -278,7 +284,8 @@ class FeeController extends Controller
             ]);
             return response()->json(['message' => 'Fee structure updated successfully']);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -291,7 +298,8 @@ class FeeController extends Controller
             DB::table('fee_structures')->where('id', $id)->delete();
             return response()->json(['message' => 'Fee structure deleted successfully']);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -318,7 +326,8 @@ class FeeController extends Controller
                 ->get();
             return response()->json($data);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -371,7 +380,8 @@ class FeeController extends Controller
 
             return response()->json($receipts);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -402,7 +412,8 @@ class FeeController extends Controller
                 ->get();
             return response()->json($data);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -438,7 +449,8 @@ class FeeController extends Controller
 
             return response()->json(['message' => 'Custom invoice group deleted successfully']);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -487,7 +499,8 @@ class FeeController extends Controller
 
             return response()->json(['message' => 'Custom invoice group updated successfully']);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 }

@@ -3,7 +3,7 @@ import api from '../utils/api';
 import ClassBroadsheet from '../components/ClassBroadsheet';
 import Toast from '../components/Toast';
 import Pagination from '../components/Pagination';
-import TeacherSowTab from '../components/TeacherSowTab';
+
 import { useGlobalUI } from '../contexts/GlobalUIContext';
 import { ArrowLeft, Pencil, CheckSquare, BarChart2, FileSpreadsheet, FileText, Save, Search, Users, Award, CheckCircle, XCircle, Plus, Lock, Printer, BookOpen, Clock, UploadCloud, CircleCheck, Hourglass, Eye, Sparkles } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
@@ -293,21 +293,41 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab }) 
 
   const handleSaveAttendance = async () => {
     if (!assignments.formClass) return;
-    setNotify('');
-    setErrorMsg('');
-    try {
-      const records = attendanceRoster.map(r => ({
-        student_id: r.student_id,
-        status: r.status || 'present'
-      }));
-      await api.saveAttendance({
-        class_id: assignments.formClass.id,
-        date: attendanceDate,
-        records
-      });
-      setNotify(`Attendance successfully registered for ${attendanceDate}!`);
-    } catch (err) {
-      setErrorMsg(err.message);
+
+    const submitAttendance = async (lat = null, lng = null) => {
+      try {
+        const records = attendanceRoster.map(r => ({
+          student_id: r.student_id,
+          status: r.status || 'present'
+        }));
+        await api.saveAttendance({
+          class_id: assignments.formClass.id,
+          date: attendanceDate,
+          records,
+          lat,
+          lng
+        });
+        setNotify(`Attendance successfully registered for ${attendanceDate}!`);
+      } catch (err) {
+        setErrorMsg(err.message);
+      }
+    };
+
+    if (navigator.geolocation) {
+      setNotify("Verifying your location...");
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          submitAttendance(position.coords.latitude, position.coords.longitude);
+        },
+        (error) => {
+          // If user denies or error occurs, try submitting anyway.
+          // The backend will reject it if geofencing is strictly configured.
+          submitAttendance(null, null);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      submitAttendance(null, null);
     }
   };
 
@@ -416,7 +436,8 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab }) 
       const data = await api.getSchemes({
         class_id: assign.class_id,
         subject_id: assign.subject_id,
-        term: teacherSchemeTerm
+        term: teacherSchemeTerm,
+        academic_session: settings?.active_session
       });
 
       const newWeeks = Array.from({ length: 12 }, (_, i) => {
@@ -469,6 +490,27 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab }) 
       loadTeacherSchemes();
     } catch (err) {
       setErrorMsg(`Failed to save Week ${weekObj.week}: ` + err.message);
+    }
+  };
+
+  const handleMarkTreated = async (schemeId) => {
+    if (!schemeId) return;
+    try {
+      await api.post('/sow/mark-treated', {
+        scheme_of_work_id: schemeId,
+        class_id: assignments.subjects[teacherSchemeAssignIdx]?.class_id,
+        academic_session: settings?.active_session
+      });
+      // Update local state to reflect change immediately
+      setTeacherSchemeWeeks(prev => prev.map(s =>
+        s.id === schemeId
+          ? { ...s, progress: { status: 'completed', completed_at: new Date().toISOString() } }
+          : s
+      ));
+      setNotify("Topic marked as successfully treated!");
+    } catch (err) {
+      console.error(err);
+      setErrorMsg("Failed to mark topic as treated.");
     }
   };
 
@@ -1355,11 +1397,172 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab }) 
           TAB 5: TEACHER SCHEME OF WORK
           ========================================== */}
       {activeSubTab === 'schemes' && (
-        <TeacherSowTab 
-          activeSession={activeSettings?.active_session} 
-          activeTerm={activeSettings?.active_term} 
-          teacherClasses={assignments.subjects} 
-        />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+          {/* Premium Hero Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', background: 'linear-gradient(135deg, var(--primary) 0%, #1e3a8a 100%)', padding: '24px', color: 'white', boxShadow: '0 4px 15px rgba(0,0,0,0.1)', borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid rgba(255,255,255,0.4)' }}>
+                <BookOpen size={24} color="white" />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '700' }}>Scheme of Work</h3>
+                <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.85rem', margin: '4px 0 0 0' }}>Review and update the weekly course outline for your assigned subjects.</p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              {teacherSchemeAssignIdx !== '' && (
+                <button
+                  className="btn no-print"
+                  onClick={handleDownloadSchemePDF}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(5px)', border: '1.5px solid rgba(255,255,255,0.5)', color: 'white', padding: '10px 20px', borderRadius: '20px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)'}
+                >
+                  <Download size={15} /> Download PDF
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Filter Bar */}
+          <div className="glass-panel" style={{ padding: '20px', backgroundColor: 'var(--bg-surface)', borderRadius: '0', borderTop: 'none' }}>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <div className="form-group" style={{ margin: 0, flex: '1 1 200px' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Select Subject</label>
+                <select
+                  className="form-control"
+                  value={teacherSchemeAssignIdx}
+                  onChange={(e) => setTeacherSchemeAssignIdx(e.target.value)}
+                >
+                  <option value="">Choose assigned subject...</option>
+                  {assignments.subjects.map((assign, idx) => (
+                    <option key={idx} value={idx}>{assign.subject_name} - {assign.class_name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group" style={{ margin: 0, flex: '1 1 150px' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Term</label>
+                <select
+                  className="form-control"
+                  value={teacherSchemeTerm}
+                  onChange={(e) => setTeacherSchemeTerm(e.target.value)}
+                >
+                  <option value="1st Term">1st Term</option>
+                  <option value="2nd Term">2nd Term</option>
+                  <option value="3rd Term">3rd Term</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Scheme Table */}
+          {teacherSchemeAssignIdx === '' ? (
+            <div className="glass-panel" style={{ padding: '40px', backgroundColor: 'var(--bg-surface)', textAlign: 'center', borderRadius: '0 0 var(--radius-lg) var(--radius-lg)' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'rgba(99,102,241,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <BookOpen size={32} style={{ color: '#6366f1' }} />
+              </div>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: 0 }}>Select a subject above to load the scheme of work.</p>
+            </div>
+          ) : (
+            <div ref={schemeReportRef} className="glass-panel" style={{ backgroundColor: '#fff', overflow: 'hidden', borderRadius: '0 0 var(--radius-lg) var(--radius-lg)', borderTop: 'none', padding: '10px' }}>
+              {/* Subject Info Sub-Header */}
+              <div style={{
+                padding: '16px 24px',
+                borderBottom: '1px solid var(--border-color)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '8px',
+                background: 'linear-gradient(135deg, rgba(59,130,246,0.06) 0%, rgba(30,58,138,0.04) 100%)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '36px', height: '36px', borderRadius: '50%',
+                    backgroundColor: 'var(--primary)', color: '#fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <BookOpen size={18} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: '700', fontSize: '0.95rem', color: 'var(--primary)' }}>
+                      {assignments.subjects[teacherSchemeAssignIdx]?.subject_name || 'Subject'}
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                      {assignments.subjects[teacherSchemeAssignIdx]?.class_name || 'Class'} · {teacherSchemeTerm}
+                    </div>
+                  </div>
+                </div>
+                <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: '600', backgroundColor: 'var(--success-light)', color: 'var(--success)' }}>
+                  {teacherSchemeWeeks.filter(w => w.topic).length} / 12 Weeks Filled
+                </span>
+              </div>
+
+              {/* Table */}
+              <div className="table-container" style={{ margin: 0, borderRadius: 0 }}>
+                <table className="school-table" style={{ margin: 0 }}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: '70px', textAlign: 'center' }}>Week</th>
+                      <th style={{ width: '30%' }}>Title & Subtitle</th>
+                      <th>Content / Objectives</th>
+                      <th style={{ width: '120px', textAlign: 'center' }}>Progress</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teacherSchemeWeeks.map((w, idx) => (
+                      <tr key={idx} style={{ backgroundColor: w.topic ? 'transparent' : 'rgba(255,59,48,0.03)' }}>
+                        <td style={{ textAlign: 'center', verticalAlign: 'top', paddingTop: '14px' }}>
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                            width: '32px', height: '32px', borderRadius: '50%',
+                            backgroundColor: w.topic ? 'var(--primary)' : 'var(--border-color)',
+                            color: w.topic ? '#fff' : 'var(--text-muted)',
+                            fontWeight: '700', fontSize: '0.8rem'
+                          }}>{w.week}</span>
+                        </td>
+                        <td style={{ padding: '12px 14px', verticalAlign: 'top' }}>
+                          {w.topic ? (
+                            <div>
+                              <div style={{ fontWeight: '700', fontSize: '0.92rem', color: 'var(--text-primary)' }}>{w.topic}</div>
+                              {w.subtitle && (
+                                <div style={{ fontSize: '0.8rem', color: 'var(--primary)', marginTop: '3px', fontWeight: '500' }}>
+                                  📌 {w.subtitle}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)' }}>Not specified</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '12px 14px', fontSize: '0.88rem', verticalAlign: 'top', whiteSpace: 'pre-line' }}>
+                          {w.objectives || <span style={{ color: 'var(--text-muted)' }}>Not specified</span>}
+                        </td>
+                        <td style={{ textAlign: 'center', verticalAlign: 'top', paddingTop: '12px' }}>
+                          {w.topic ? (
+                            w.progress?.status === 'completed' ? (
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', backgroundColor: 'var(--success-light)', color: 'var(--success)', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '700' }}>
+                                <CheckCircle size={14} /> Treated
+                              </span>
+                            ) : (
+                              <button 
+                                className="btn btn-primary"
+                                style={{ fontSize: '0.75rem', padding: '6px 12px', borderRadius: '20px' }}
+                                onClick={() => handleMarkTreated(w.id)}
+                              >
+                                Mark Treated
+                              </button>
+                            )
+                          ) : null}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
       )}
       {/* ==========================================
           MY STUDENTS TAB (FORM MASTER)

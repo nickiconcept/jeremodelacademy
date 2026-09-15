@@ -102,7 +102,8 @@ class UserController extends Controller
             if (str_contains($e->getMessage(), 'Duplicate entry')) {
                 return response()->json(['error' => 'Username already exists'], 400);
             }
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -165,7 +166,8 @@ class UserController extends Controller
             return response()->json(['message' => 'Teacher updated successfully']);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -205,7 +207,8 @@ class UserController extends Controller
             return response()->json(['message' => 'User status updated successfully']);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 }

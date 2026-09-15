@@ -96,7 +96,8 @@ class ClassController extends Controller
             DB::table('classes')->where('id', $class_id)->update(['form_master_id' => $teacher_id ?: null]);
             return response()->json(['message' => 'Form master assigned successfully']);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 }

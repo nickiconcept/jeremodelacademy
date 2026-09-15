@@ -128,6 +128,8 @@ Route::group(['middleware' => ['auth:api', 'throttle:60,1']], function () {
 
     // Schemes of Work
     Route::get('/schemes', [\App\Http\Controllers\SchemeOfWorkController::class, 'index']);
+    Route::post('/schemes', [\App\Http\Controllers\SchemeOfWorkController::class, 'store']);
+    Route::delete('/schemes/{id}', [\App\Http\Controllers\SchemeOfWorkController::class, 'destroy']);
     Route::post('/sow/mark-treated', [\App\Http\Controllers\SchemeOfWorkController::class, 'markTreated']);
     Route::get('/sow/student', [\App\Http\Controllers\SchemeOfWorkController::class, 'studentIndex']);
     Route::get('/sow/admin-overview', [\App\Http\Controllers\SchemeOfWorkController::class, 'adminProgressOverview']);

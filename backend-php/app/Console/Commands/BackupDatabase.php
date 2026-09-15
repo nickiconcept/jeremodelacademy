@@ -25,9 +25,19 @@ class BackupDatabase extends Command
         }
 
         $dumpPath = env('MYSQLDUMP_PATH', 'mysqldump');
-        $command = "\"{$dumpPath}\" --user={$username} --password={$password} --host={$host} {$database} > \"{$path}/{$filename}\"";
+        
+        putenv("MYSQL_PWD={$password}");
+        $command = sprintf(
+            '"%s" --user=%s --host=%s %s > "%s"',
+            $dumpPath,
+            escapeshellarg($username),
+            escapeshellarg($host),
+            escapeshellarg($database),
+            $path . '/' . $filename
+        );
         
         exec($command, $output, $returnVar);
+        putenv("MYSQL_PWD"); // Unset after execution
 
         if ($returnVar === 0) {
             $this->info("Database backup created successfully: {$filename}");

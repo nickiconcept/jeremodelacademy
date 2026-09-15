@@ -32,7 +32,8 @@ class PinController extends Controller
             DB::table('result_pins')->insert($pinsToInsert);
             return response()->json(['message' => "Successfully generated {$count} universal PINs"], 201);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -50,7 +51,8 @@ class PinController extends Controller
                 ->get();
             return response()->json($pins);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
@@ -99,7 +101,8 @@ class PinController extends Controller
                 'pin' => $updatedPin
             ]);
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 }
