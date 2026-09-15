@@ -57,6 +57,7 @@ export default function Sidebar({ role, activeTab, subTab, onSelectTab, onLogout
           { id: 'tracker', label: 'SOW Tracker', icon: CheckSquare }
         ]
       },
+      { id: 'timetable', label: 'Timetable Manager', icon: Calendar },
       {
         id: 'attendance',
         label: 'Attendance',
@@ -99,7 +100,7 @@ export default function Sidebar({ role, activeTab, subTab, onSelectTab, onLogout
         icon: Settings,
         subItems: [
           { id: 'academic', label: 'Academic Settings', icon: Sliders },
-          { id: 'website', label: 'Portal Landing Settings', icon: Globe },
+          { id: 'website', label: 'Website CMS', icon: Globe },
           { id: 'reports', label: 'Grading & Reports', icon: Award },
           { id: 'skills', label: 'Behavioral Domains', icon: Sparkles }
         ]
@@ -108,6 +109,7 @@ export default function Sidebar({ role, activeTab, subTab, onSelectTab, onLogout
     ],
     teacher: [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { id: 'timetable', label: 'My Timetable', icon: Calendar },
       { id: 'students', label: 'My Students', icon: Users },
       { id: 'grades', label: 'Enter Marks', icon: Pencil },
       {
@@ -125,6 +127,7 @@ export default function Sidebar({ role, activeTab, subTab, onSelectTab, onLogout
     ],
     student: [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { id: 'timetable', label: 'Class Timetable', icon: Calendar },
       { id: 'attendance', label: 'My Attendance', icon: Calendar },
       { id: 'results', label: 'My Results', icon: Award },
       { id: 'schemes', label: 'Scheme of Work', icon: FileText },
@@ -190,16 +193,20 @@ export default function Sidebar({ role, activeTab, subTab, onSelectTab, onLogout
         background: 'linear-gradient(135deg, var(--bg-surface) 0%, var(--primary-light) 100%)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '38px', height: '38px', borderRadius: '10px',
-            background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', fontWeight: 'bold',
-            boxShadow: '0 4px 14px var(--primary-glow)',
-            flexShrink: 0,
-          }}>
-            <School size={19} />
-          </div>
+          {settings?.school_logo_url ? (
+            <img src={settings?.school_logo_url} alt="Logo" style={{ width: '56px', height: '56px', objectFit: 'contain', borderRadius: '8px', backgroundColor: '#ffffff', padding: '4px' }} />
+          ) : (
+            <div style={{
+              width: '40px', height: '40px', borderRadius: '10px',
+              background: 'linear-gradient(135deg, var(--primary) 0%, #1e3a8a 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', fontWeight: 'bold',
+              boxShadow: '0 4px 14px var(--primary-glow)',
+              flexShrink: 0,
+            }}>
+              <School size={19} />
+            </div>
+          )}
           <div>
             <h2 style={{
               fontSize: '0.875rem', fontWeight: '800', color: 'var(--text-primary)',

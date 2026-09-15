@@ -24,6 +24,7 @@ use App\Http\Controllers\StudentController;
 
 Route::get('/settings', [SettingsController::class, 'index']);
 Route::post('/settings', [SettingsController::class, 'store'])->middleware('auth:api');
+Route::post('/settings/logo', [SettingsController::class, 'uploadLogo'])->middleware('auth:api');
 
 Route::group(['middleware' => ['auth:api', 'throttle:60,1']], function () {
     Route::get('/students', [StudentController::class, 'index']);
@@ -155,5 +156,22 @@ Route::group(['middleware' => ['auth:api', 'throttle:60,1']], function () {
     Route::get('/activity-logs', [\App\Http\Controllers\ActivityLogController::class, 'index']);
     Route::get('/activity-logs/stats', [\App\Http\Controllers\ActivityLogController::class, 'stats']);
     Route::delete('/activity-logs/purge', [\App\Http\Controllers\ActivityLogController::class, 'purge']);
+
+    /* ================================================================
+       WEBSITE MANAGEMENT & TIMETABLE
+       ================================================================ */
+    Route::get('/website/public', [\App\Http\Controllers\WebsiteController::class, 'getPublicData']);
+    Route::get('/website/slides', [\App\Http\Controllers\WebsiteController::class, 'getSlides']);
+    Route::post('/website/slides', [\App\Http\Controllers\WebsiteController::class, 'storeSlide']);
+    Route::delete('/website/slides/{id}', [\App\Http\Controllers\WebsiteController::class, 'deleteSlide']);
+    Route::post('/website/about', [\App\Http\Controllers\WebsiteController::class, 'updateAboutUs']);
+    Route::post('/website/social', [\App\Http\Controllers\WebsiteController::class, 'updateSocialLinks']);
+    Route::post('/website/school-info', [\App\Http\Controllers\WebsiteController::class, 'updateSchoolInfo']);
+    
+    Route::apiResource('events', \App\Http\Controllers\EventController::class);
+    
+    Route::get('/timetables', [\App\Http\Controllers\TimetableController::class, 'index']);
+    Route::post('/timetables', [\App\Http\Controllers\TimetableController::class, 'store']);
+    Route::delete('/timetables/{id}', [\App\Http\Controllers\TimetableController::class, 'destroy']);
 });
 

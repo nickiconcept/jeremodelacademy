@@ -1,3 +1,4 @@
+import TimetableViewer from '../components/TimetableViewer';
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import ClassBroadsheet from '../components/ClassBroadsheet';
@@ -536,7 +537,18 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab }) 
       {/* ==========================================
           TAB 1: ASSIGNED SUBJECTS INDEX
           ========================================== */}
-      {activeSubTab === 'overview' && (
+      
+      {activeSubTab === 'timetable' && (
+        <div className="card shadow-sm border-0 mb-4">
+          <div className="card-header bg-white py-3 border-0">
+            <h5 className="mb-0 text-primary fw-bold">My Timetable</h5>
+          </div>
+          <div className="card-body">
+            <TimetableViewer timetables={timetables} role="teacher" />
+          </div>
+        </div>
+      )}
+{activeSubTab === 'overview' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
           
           {/* RESULT UPLOAD PROGRESS WIDGET */}

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { GraduationCap, ArrowLeft, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import api from '../utils/api';
 
-export default function Login({ onLoginSuccess, onBack }) {
+export default function Login({ onLoginSuccess, onBack, settings }) {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -73,20 +73,30 @@ export default function Login({ onLoginSuccess, onBack }) {
           animation: 'fadeSlideUp 0.5s ease both',
         }}>
           <div style={{
-            position: 'absolute', inset: '-12px',
-            borderRadius: '50%',
-            border: '2px solid rgba(14,165,233,0.35)',
-            animation: 'pulseRing 2.5s ease infinite',
+            position: 'absolute',
+            width: '130px',
+            height: '130px',
+            borderRadius: '26px',
+            border: '2px solid rgba(14,165,233,0.4)',
+            animation: 'pulseRing 2s ease infinite',
           }} />
-          <div style={{
-            width: '90px', height: '90px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 12px 36px rgba(14,165,233,0.45)',
-            color: '#fff',
-          }}>
-            <GraduationCap size={42} />
-          </div>
+          {settings?.school_logo_url ? (
+            <img src={settings?.school_logo_url} alt="Logo" style={{
+              width: '110px', height: '110px', borderRadius: '20px', objectFit: 'contain',
+              backgroundColor: '#ffffff', padding: '6px',
+              boxShadow: '0 12px 36px rgba(14,165,233,0.35)'
+            }} />
+          ) : (
+            <div style={{
+              width: '90px', height: '90px', borderRadius: '50%',
+              background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 12px 36px rgba(14,165,233,0.45)',
+              color: '#fff',
+            }}>
+              <GraduationCap size={42} />
+            </div>
+          )}
         </div>
 
         {/* School name */}

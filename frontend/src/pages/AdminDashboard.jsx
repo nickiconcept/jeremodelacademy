@@ -18,6 +18,8 @@ import Toast from '../components/Toast';
 import StatCard from '../components/StatCard';
 import Pagination from '../components/Pagination';
 import { useGlobalUI } from '../contexts/GlobalUIContext';
+import AdminWebsiteTab from './AdminWebsiteTab';
+import AdminTimetableTab from './AdminTimetableTab';
 import AdminSettingsTab from '../components/admin/AdminSettingsTab';
 import {
   ArrowLeft,
@@ -4481,7 +4483,14 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
       {/* =======================================================
           TAB 7: SYSTEM PORTAL SETTINGS
           ======================================================= */}
+      
+      {activeSubTab === 'timetable' && (
+        <AdminTimetableTab classes={classes} subjects={subjects} teachers={teachers} />
+      )}
       {activeSubTab === 'settings' && (
+        settingsSubTab === 'website' ? (
+          <AdminWebsiteTab settings={settings} fetchSettings={fetchSettings} />
+        ) : (
         <AdminSettingsTab 
           settingsSubTab={settingsSubTab}
           sessions={sessions}
@@ -4506,6 +4515,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
           getValidTargets={getValidTargets}
           classes={classes}
         />
+        )
       )}
 
       {/* =======================================================
@@ -5365,7 +5375,17 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                 <label>Teacher</label>
                 <select className="form-control" required value={assignForm.teacher_id} onChange={(e) => setAssignForm({ ...assignForm, teacher_id: e.target.value })}>
                   <option value="">Select Teacher...</option>
-                  {teachers.map((t, idx) => (
+                  {teachers.filter(t => {
+                    if (isEditingAssignment && t.id === parseInt(assignForm.teacher_id)) return true;
+                    if (!assignForm.subject_id) return true;
+                    // Exclude teacher if already assigned to this subject in any of the selected classes
+                    const isAlreadyAssigned = classSubjects.some(cs => 
+                      assignForm.class_ids.includes(cs.class_id) && 
+                      cs.subject_id === parseInt(assignForm.subject_id) && 
+                      cs.teacher_id === t.id
+                    );
+                    return !isAlreadyAssigned;
+                  }).map((t, idx) => (
                     <option key={idx} value={t.id}>{t.full_name}</option>
                   ))}
                 </select>

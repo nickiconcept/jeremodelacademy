@@ -192,27 +192,35 @@ function AppContent() {
             position: 'absolute',
             width: '90px',
             height: '90px',
-            borderRadius: '50%',
+            borderRadius: '22px',
             border: '2px solid rgba(14,165,233,0.4)',
             animation: 'pulseRing 1.8s ease infinite',
           }} />
-          <div style={{
-            width: '68px',
-            height: '68px',
-            borderRadius: '18px',
-            background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 10px 32px var(--primary-glow)',
-            color: '#fff',
-            fontSize: '1.35rem',
-            fontWeight: '900',
-            fontFamily: 'var(--font-heading)',
-            letterSpacing: '-0.02em',
-          }}>
-            JMA
-          </div>
+          {settings?.school_logo_url ? (
+            <img src={settings?.school_logo_url} alt="Logo" style={{
+              width: '68px', height: '68px', borderRadius: '18px', objectFit: 'contain',
+              backgroundColor: '#ffffff', padding: '5px',
+              boxShadow: '0 10px 32px var(--primary-glow)',
+            }} />
+          ) : (
+            <div style={{
+              width: '68px',
+              height: '68px',
+              borderRadius: '18px',
+              background: 'linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 10px 32px var(--primary-glow)',
+              color: '#fff',
+              fontSize: '1.35rem',
+              fontWeight: '900',
+              fontFamily: 'var(--font-heading)',
+              letterSpacing: '-0.02em',
+            }}>
+              JMA
+            </div>
+          )}
         </div>
 
         <div style={{ textAlign: 'center' }}>
@@ -243,7 +251,7 @@ function AppContent() {
     if (!showLogin) {
       return <LandingPage settings={settings} onEnterPortal={() => setShowLogin(true)} />;
     }
-    return <Login onLoginSuccess={handleLoginSuccess} onBack={() => setShowLogin(false)} />;
+    return <Login onLoginSuccess={handleLoginSuccess} onBack={() => setShowLogin(false)} settings={settings} />;
   }
 
   // Logged-in view selection based on role

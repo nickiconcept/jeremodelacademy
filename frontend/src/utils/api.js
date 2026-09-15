@@ -681,7 +681,80 @@ const api = {
       body: JSON.stringify(data)
     });
     return { data: await handleResponse(res) };
-  }
+  },
+
+  // Upload School Logo
+  uploadLogo: async (file) => {
+    const formData = new FormData();
+    formData.append('logo', file);
+    
+    // We cannot use getHeaders() directly because it sets 'Content-Type': 'application/json'
+    const token = localStorage.getItem('jma_token');
+    const headers = {
+      'Accept': 'application/json'
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${API_BASE}/settings/logo`, {
+      method: 'POST',
+      headers: headers,
+      body: formData
+    });
+    return handleResponse(res);
+  },
+
+  // -------------------------------------------------------------
+  // WEBSITE MANAGEMENT & TIMETABLE
+  // -------------------------------------------------------------
+  getWebsitePublicData: () => fetchAPI('/website/public'),
+  getSlides: () => fetchAPI('/website/slides'),
+  addSlide: (data) => fetchAPI('/website/slides', {
+      method: 'POST',
+      body: data // FormData
+  }),
+  deleteSlide: (id) => fetchAPI(`/website/slides/${id}`, { method: 'DELETE' }),
+  updateAboutUs: (content) => fetchAPI('/website/about', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ about_us_content: content })
+  }),
+  updateSocialLinks: (links) => fetchAPI('/website/social', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(links)
+  }),
+  updateSchoolInfo: (data) => fetchAPI('/website/school-info', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+  }),
+
+  getEvents: () => fetchAPI('/events'),
+  createEvent: (data) => fetchAPI('/events', {
+      method: 'POST',
+      body: data // FormData
+  }),
+  updateEvent: (id, data) => {
+      data.append('_method', 'PUT'); // For Laravel FormData PUT spoofing
+      return fetchAPI(`/events/${id}`, {
+          method: 'POST',
+          body: data // FormData
+      });
+  },
+  deleteEvent: (id) => fetchAPI(`/events/${id}`, { method: 'DELETE' }),
+
+  getTimetables: (filters = {}) => {
+      const params = new URLSearchParams(filters).toString();
+      return fetchAPI(`/timetables?${params}`);
+  },
+  addTimetable: (data) => fetchAPI('/timetables', {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+  }),
+  deleteTimetable: (id) => fetchAPI(`/timetables/${id}`, { method: 'DELETE' }),
 };
 
 export default api;

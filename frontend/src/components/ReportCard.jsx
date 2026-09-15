@@ -173,7 +173,11 @@ export default function ReportCard({ data, settings, onClose, closeLabel, isBulk
           {/* HEADER BANNER */}
           <div className="m-header">
             <div className="m-header-brand">
-              <div className="m-logo-box">JMA</div>
+              {settings?.school_logo_url ? (
+                <img src={settings?.school_logo_url} alt="Logo" style={{ width: '80px', height: '80px', objectFit: 'contain', borderRadius: '12px', border: '3px solid rgba(255,255,255,0.2)', backgroundColor: '#ffffff', padding: '6px' }} />
+              ) : (
+                <div className="m-logo-box">JMA</div>
+              )}
               <div>
                 <h1 className="m-school-title">{schoolName}</h1>
                 <p className="m-school-subtitle">{schoolTagline}</p>

@@ -1,7 +1,8 @@
-import React from 'react';
-import { CalendarCheck, Lock, Clock, UserPlus, Pencil, Award, BarChart2, BookOpen, Save, FileText, Sparkles, Globe, LayoutDashboard, GraduationCap, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { CalendarCheck, Lock, Clock, UserPlus, Pencil, Award, BarChart2, BookOpen, Save, FileText, Sparkles, Globe, LayoutDashboard, GraduationCap, Trash2, Image } from 'lucide-react';
 
 import SignaturePad from '../SignaturePad';
+import api from '../../utils/api';
 
 const AdminSettingsTab = ({ settingsSubTab, sessions, settings, settingsForm, setSettingsForm, handleSetActiveSession, setShowSessionModal, handleUpdateSettings, settingsLoading = false, skillForm, setSkillForm, handleSkillCreate, skills, setSkillEditForm, setShowEditSkillModal, handleSkillDelete, promoSource, setPromoSource, promoTarget, setPromoTarget, handlePromotionBulk, getValidTargets, classes }) => {
   return (
@@ -453,7 +454,49 @@ const AdminSettingsTab = ({ settingsSubTab, sessions, settings, settingsForm, se
                 </div>
               </div>
 
-              <form onSubmit={handleUpdateSettings}>
+              <div style={{ paddingTop: '24px' }}>
+                <div style={{ marginBottom: '32px', display: 'flex', alignItems: 'center', gap: '20px' }}>
+                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'var(--bg-surface)', border: '2px dashed var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                    {settingsForm.school_logo_url ? (
+                      <img src={settingsForm.school_logo_url} alt="School Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <Image size={32} style={{ color: 'var(--text-secondary)' }} />
+                    )}
+                  </div>
+                  <div>
+                    <h5 style={{ margin: '0 0 8px 0', color: 'var(--text-primary)' }}>School Logo</h5>
+                    <input 
+                      type="file" 
+                      accept=".jpg,.jpeg,.png"
+                      onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        
+                        if (file.size > 250 * 1024) {
+                          alert('Error: The logo image must not exceed 250KB in size.');
+                          e.target.value = null;
+                          return;
+                        }
+                        if (file.type !== 'image/jpeg' && file.type !== 'image/jpg' && file.type !== 'image/png') {
+                          alert('Error: Only JPG/JPEG and PNG images are allowed.');
+                          e.target.value = null;
+                          return;
+                        }
+                        
+                        try {
+                          const res = await api.uploadLogo(file);
+                          setSettingsForm({...settingsForm, school_logo_url: res.school_logo_url});
+                          alert('Logo uploaded successfully!');
+                        } catch (err) {
+                          alert('Failed to upload logo: ' + err.message);
+                        }
+                      }}
+                      style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}
+                    />
+                  </div>
+                </div>
+
+                <form onSubmit={handleUpdateSettings}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', marginBottom: '32px' }}>
                   <div className="form-group" style={{ margin: 0, padding: '20px', background: 'var(--bg-primary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)', marginBottom: '16px', fontSize: '0.95rem' }}>
@@ -645,6 +688,7 @@ const AdminSettingsTab = ({ settingsSubTab, sessions, settings, settingsForm, se
                   </button>
                 </div>
               </form>
+              </div>
             </div>
           )}
 

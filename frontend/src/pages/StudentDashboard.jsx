@@ -1,3 +1,4 @@
+import TimetableViewer from '../components/TimetableViewer';
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import ReportCard from '../components/ReportCard';
@@ -264,7 +265,18 @@ export default function StudentDashboard({ user, settings, activeTab, subTab }) 
       {/* ==========================================
           TAB 1: OVERVIEW & ALERTS
           ========================================== */}
-      {activeSubTab === 'overview' && (
+      
+      {activeSubTab === 'timetable' && (
+        <div className="card shadow-sm border-0 mb-4">
+          <div className="card-header bg-white py-3 border-0">
+            <h5 className="mb-0 text-primary fw-bold">Class Timetable</h5>
+          </div>
+          <div className="card-body">
+            <TimetableViewer timetables={timetables} role="student" />
+          </div>
+        </div>
+      )}
+{activeSubTab === 'overview' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
           {/* Hero Welcome Banner */}
