@@ -28,7 +28,7 @@ export default function AdminTimetableTab({ classes, subjects, teachers }) {
   const [filterClass, setFilterClass] = useState('');
 
   const [form, setForm] = useState({
-    class_id: '', subject_id: '', teacher_id: '',
+    class_id: '', subject_id: '', teacher_id: '', type: 'class', activity: '',
     day_of_week: 'Monday', start_time: '', end_time: '',
   });
 
@@ -82,7 +82,14 @@ export default function AdminTimetableTab({ classes, subjects, teachers }) {
 
   // Grouped by day for timetable view
   const grouped = DAYS
-    .map(day => ({ day, entries: filtered.filter(t => t.day_of_week === day).sort((a, b) => a.start_time.localeCompare(b.start_time)) }))
+    .map(day => ({
+      day,
+      entries: filtered.filter(t => t.day_of_week === day).sort((a, b) => {
+        const timeA = a.start_time.split(':').map(Number);
+        const timeB = b.start_time.split(':').map(Number);
+        return (timeA[0] * 60 + timeA[1]) - (timeB[0] * 60 + timeB[1]);
+      })
+    }))
     .filter(g => filterDay === 'All' || g.day === filterDay);
 
   // ── Shared input style ────────────────────────────────────────────
@@ -139,21 +146,39 @@ export default function AdminTimetableTab({ classes, subjects, teachers }) {
                 </div>
 
                 <div style={{ marginBottom: '13px' }}>
-                  <label style={lbl}><BookOpen size={11} style={{ marginRight: 4, verticalAlign: 'middle' }} />Subject *</label>
-                  <select size={1} style={{ ...inp, appearance: 'auto', WebkitAppearance: 'menulist', height: '38px' }} required value={form.subject_id} onChange={e => setForm({ ...form, subject_id: e.target.value })}>
-                    <option value="">Select Subject</option>
-                    {subjects?.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  <label style={lbl}><BookOpen size={11} style={{ marginRight: 4, verticalAlign: 'middle' }} />Type *</label>
+                  <select size={1} style={{ ...inp, appearance: 'auto', WebkitAppearance: 'menulist', height: '38px' }} required value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
+                    <option value="class">Regular Class</option>
+                    <option value="short_break">Short Break</option>
+                    <option value="long_break">Long Break</option>
                   </select>
                 </div>
 
-                <div style={{ marginBottom: '13px' }}>
-                  <label style={lbl}><User size={11} style={{ marginRight: 4, verticalAlign: 'middle' }} />Teacher</label>
-                  <select size={1} style={{ ...inp, appearance: 'auto', WebkitAppearance: 'menulist', height: '38px', overflow: 'hidden' }}
-                    value={form.teacher_id} onChange={e => setForm({ ...form, teacher_id: e.target.value })}>
-                    <option value="">Unassigned</option>
-                    {teachers?.map(t => <option key={t.id} value={t.id}>{t.full_name || t.name}</option>)}
-                  </select>
-                </div>
+                {form.type === 'class' ? (
+                  <>
+                    <div style={{ marginBottom: '13px' }}>
+                      <label style={lbl}><BookOpen size={11} style={{ marginRight: 4, verticalAlign: 'middle' }} />Subject *</label>
+                      <select size={1} style={{ ...inp, appearance: 'auto', WebkitAppearance: 'menulist', height: '38px' }} required value={form.subject_id} onChange={e => setForm({ ...form, subject_id: e.target.value })}>
+                        <option value="">Select Subject</option>
+                        {subjects?.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                    </div>
+
+                    <div style={{ marginBottom: '13px' }}>
+                      <label style={lbl}><User size={11} style={{ marginRight: 4, verticalAlign: 'middle' }} />Teacher</label>
+                      <select size={1} style={{ ...inp, appearance: 'auto', WebkitAppearance: 'menulist', height: '38px', overflow: 'hidden' }}
+                        value={form.teacher_id} onChange={e => setForm({ ...form, teacher_id: e.target.value })}>
+                        <option value="">Unassigned</option>
+                        {teachers?.map(t => <option key={t.id} value={t.id}>{t.full_name || t.name}</option>)}
+                      </select>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ marginBottom: '13px' }}>
+                    <label style={lbl}><BookOpen size={11} style={{ marginRight: 4, verticalAlign: 'middle' }} />Activity Note (Optional)</label>
+                    <input type="text" style={inp} placeholder="e.g. Lunch Time" value={form.activity} onChange={e => setForm({ ...form, activity: e.target.value })} />
+                  </div>
+                )}
 
                 <div style={{ marginBottom: '13px' }}>
                   <label style={lbl}><Calendar size={11} style={{ marginRight: 4, verticalAlign: 'middle' }} />Day *</label>
@@ -248,9 +273,17 @@ export default function AdminTimetableTab({ classes, subjects, teachers }) {
                               <Clock size={12} />{t.start_time} – {t.end_time}
                             </span>
                           </td>
-                          <td style={{ padding: '11px 14px', fontWeight: 600, color: '#0D1829' }}>{t.subject?.name || '—'}</td>
+                          <td style={{ padding: '11px 14px', fontWeight: 600, color: '#0D1829' }}>
+                            {t.type !== 'class' ? (
+                              <span style={{ color: '#0EA5E9', fontStyle: 'italic' }}>
+                                {t.type === 'short_break' ? 'Short Break' : 'Long Break'} {t.activity ? `(${t.activity})` : ''}
+                              </span>
+                            ) : (
+                              t.subject?.name || '—'
+                            )}
+                          </td>
                           <td style={{ padding: '11px 14px', color: '#475569' }}>
-                            {t.teacher?.full_name || t.teacher?.name || <em style={{ color: '#94a3b8', fontStyle: 'normal' }}>Unassigned</em>}
+                            {t.type !== 'class' ? '—' : (t.teacher?.full_name || t.teacher?.name || <em style={{ color: '#94a3b8', fontStyle: 'normal' }}>Unassigned</em>)}
                           </td>
                           <td style={{ padding: '11px 14px' }}>
                             <span style={{ background: '#E0F2FE', color: '#0284C7', padding: '3px 10px', borderRadius: '99px', fontSize: '0.78rem', fontWeight: 600 }}>

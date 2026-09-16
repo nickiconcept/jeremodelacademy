@@ -32,6 +32,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab }) 
   const [invoices, setInvoices] = useState([]);
   const [receipts, setReceipts] = useState([]);
   const [attendance, setAttendance] = useState([]);
+  const [timetables, setTimetables] = useState([]);
 
   // Result check PIN prompts
   const [showPinModal, setShowPinModal] = useState(false);
@@ -123,16 +124,18 @@ export default function StudentDashboard({ user, settings, activeTab, subTab }) 
   const loadStudentData = async () => {
     if (!user?.id) return;
     try {
-      const [tlRes, feeData, att] = await Promise.all([
+      const [tlRes, feeData, att, timetableRes] = await Promise.all([
         api.getStudentTimeline(user.id),
         api.getStudentFees(user.id),
-        api.getStudentAttendance(user.id)
+        api.getStudentAttendance(user.id),
+        api.getTimetables({ class_id: user.class_id })
       ]);
       setTimeline(tlRes.timeline || []);
       setUnlockedPins(tlRes.unlockedPins || []);
       setInvoices(feeData.invoices || []);
       setReceipts(feeData.receipts || []);
       setAttendance(att);
+      setTimetables(timetableRes.data || []);
     } catch (err) {
       setErrorMsg('Failed to load data: ' + err.message);
     } finally {

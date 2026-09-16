@@ -45,8 +45,16 @@ export default function TimetableViewer({ timetables, role }) {
                         </div>
                         
                         <div className="d-flex align-items-center gap-2 flex-grow-1">
-                          <BookOpen size={16} className="text-info" />
-                          <span className="fs-5 fw-semibold">{t.subject?.name || 'Unknown Subject'}</span>
+                          <BookOpen size={16} className={t.type !== 'class' ? "text-primary" : "text-info"} />
+                          <span className="fs-5 fw-semibold">
+                            {t.type !== 'class' ? (
+                              <span style={{ color: '#0EA5E9', fontStyle: 'italic' }}>
+                                {t.type === 'short_break' ? 'Short Break' : 'Long Break'} {t.activity ? `(${t.activity})` : ''}
+                              </span>
+                            ) : (
+                              t.subject?.name || 'Unknown Subject'
+                            )}
+                          </span>
                         </div>
 
                         <div className="d-flex align-items-center gap-3 text-muted">
@@ -55,10 +63,12 @@ export default function TimetableViewer({ timetables, role }) {
                               Class: {t.class?.name || 'Unknown'}
                             </span>
                           ) : (
-                            <div className="d-flex align-items-center gap-2">
-                              <User size={14} />
-                              <span>{t.teacher?.name || 'Unassigned'}</span>
-                            </div>
+                            t.type === 'class' ? (
+                              <div className="d-flex align-items-center gap-2">
+                                <User size={14} />
+                                <span>{t.teacher?.full_name || t.teacher?.name || 'Unassigned'}</span>
+                              </div>
+                            ) : null
                           )}
                         </div>
                       </div>

@@ -14,7 +14,9 @@ async function handleResponse(response) {
   if (contentType && contentType.includes('application/json')) {
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.error || data.message || 'Something went wrong');
+      const error = new Error(data.error || data.message || 'Something went wrong');
+      error.response = { data };
+      throw error;
     }
     // Auto-cast Laravel decimal strings to Numbers to prevent string concatenation math bugs in React
     const numericKeys = ['amount_due', 'amount_paid', 'amount', 'score', 'total_billed', 'total_paid', 'balance', 'fee_amount'];
@@ -42,6 +44,23 @@ async function handleResponse(response) {
     }
     throw new Error('Server returned non-JSON response');
   }
+}
+
+async function fetchAPI(endpoint, options = {}) {
+  const headers = options.headers || {};
+  if (!(options.body instanceof FormData) && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+  headers['Accept'] = 'application/json';
+  const token = localStorage.getItem('jma_token');
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
+    headers
+  });
+  const data = await handleResponse(res);
+  return { data: data?.data || data };
 }
 
 const api = {
@@ -698,6 +717,26 @@ const api = {
     }
 
     const res = await fetch(`${API_BASE}/settings/logo`, {
+      method: 'POST',
+      headers: headers,
+      body: formData
+    });
+    return handleResponse(res);
+  },
+
+  uploadAboutImage: async (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    const token = localStorage.getItem('jma_token');
+    const headers = {
+      'Accept': 'application/json'
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const res = await fetch(`${API_BASE}/settings/about-image`, {
       method: 'POST',
       headers: headers,
       body: formData

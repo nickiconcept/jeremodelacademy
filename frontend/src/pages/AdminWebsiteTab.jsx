@@ -15,6 +15,7 @@ const HERO_STYLE = {
 
 const TABS = [
   { key: 'school',  label: 'School Info',   icon: <School size={15} /> },
+  { key: 'features',label: 'What We Offer', icon: <Info size={15} /> },
   { key: 'slider',  label: 'Hero Slider',   icon: <Image size={15} /> },
   { key: 'about',   label: 'About Us',      icon: <Info size={15} /> },
   { key: 'social',  label: 'Social Media',  icon: <Link2 size={15} /> },
@@ -26,10 +27,17 @@ export default function AdminWebsiteTab({ settings, fetchSettings }) {
   const [events, setEvents]   = useState([]);
   const [schoolInfo, setSchoolInfo] = useState({
     landing_school_name: '', landing_tagline: '', landing_address: '',
-    landing_phone: '', landing_email: '', landing_hero_desc: '',
+    contact_phone: '', contact_email: '', landing_hero_desc: '',
+    ticker_text: '', ticker_speed: 'normal'
   });
   const [aboutUs, setAboutUs] = useState('');
   const [social, setSocial]   = useState({ facebook_url: '', twitter_url: '', instagram_url: '' });
+  const [features, setFeatures] = useState({
+    feature1_title: '', feature1_desc: '',
+    feature2_title: '', feature2_desc: '',
+    feature3_title: '', feature3_desc: '',
+    feature4_title: '', feature4_desc: '',
+  });
   const [newSlide, setNewSlide]   = useState({ image: null, caption: '' });
   const [slidePreview, setSlidePreview] = useState(null);
   const [eventForm, setEventForm] = useState({ id: null, title: '', description: '', event_date: '', image: null });
@@ -45,15 +53,23 @@ export default function AdminWebsiteTab({ settings, fetchSettings }) {
         landing_school_name: settings.landing_school_name || '',
         landing_tagline:     settings.landing_tagline     || '',
         landing_address:     settings.landing_address     || '',
-        landing_phone:       settings.landing_phone       || '',
-        landing_email:       settings.landing_email       || '',
+        contact_phone:       settings.contact_phone       || '',
+        contact_email:       settings.contact_email       || '',
         landing_hero_desc:   settings.landing_hero_desc   || '',
+        ticker_text:         settings.ticker_text         || '',
+        ticker_speed:        settings.ticker_speed        || 'normal',
       });
       setAboutUs(settings.about_us_content || '');
       setSocial({
         facebook_url:  settings.facebook_url  || '',
         twitter_url:   settings.twitter_url   || '',
         instagram_url: settings.instagram_url || '',
+      });
+      setFeatures({
+        feature1_title: settings.feature1_title || '', feature1_desc: settings.feature1_desc || '',
+        feature2_title: settings.feature2_title || '', feature2_desc: settings.feature2_desc || '',
+        feature3_title: settings.feature3_title || '', feature3_desc: settings.feature3_desc || '',
+        feature4_title: settings.feature4_title || '', feature4_desc: settings.feature4_desc || '',
       });
     }
   }, [settings]);
@@ -86,8 +102,39 @@ export default function AdminWebsiteTab({ settings, fetchSettings }) {
   const toast = (msg) => Swal.fire({ icon: 'success', title: msg, timer: 1600, showConfirmButton: false, toast: true, position: 'top-end' });
 
   const handleSaveSchoolInfo = () => save('school', () => api.updateSchoolInfo(schoolInfo));
+  const handleSaveFeatures   = () => save('features', () => api.updateSchoolInfo(features));
   const handleSaveAbout      = () => save('about',  () => api.updateAboutUs(aboutUs));
   const handleSaveSocial     = () => save('social', () => api.updateSocialLinks(social));
+
+  const handleUploadLogo = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      setSaving('school');
+      await api.uploadLogo(file);
+      if (fetchSettings) await fetchSettings();
+      toast('Logo uploaded successfully!');
+    } catch (err) {
+      Swal.fire('Error', 'Failed to upload logo', 'error');
+    } finally {
+      setSaving('');
+    }
+  };
+
+  const handleUploadAboutImage = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      setSaving('about');
+      await api.uploadAboutImage(file);
+      if (fetchSettings) await fetchSettings();
+      toast('About Us image uploaded!');
+    } catch (err) {
+      Swal.fire('Error', 'Failed to upload image', 'error');
+    } finally {
+      setSaving('');
+    }
+  };
 
   // ── Slides ──────────────────────────────────────────────────────
   const handleSlideImageChange = (e) => {
@@ -163,7 +210,7 @@ export default function AdminWebsiteTab({ settings, fetchSettings }) {
 
   const SaveBtn = ({ skey, label }) => (
     <button
-      onClick={() => { if (skey === 'school') handleSaveSchoolInfo(); else if (skey === 'about') handleSaveAbout(); else if (skey === 'social') handleSaveSocial(); }}
+      onClick={() => { if (skey === 'school') handleSaveSchoolInfo(); else if (skey === 'features') handleSaveFeatures(); else if (skey === 'about') handleSaveAbout(); else if (skey === 'social') handleSaveSocial(); }}
       disabled={isBusy(skey)}
       style={{ display:'inline-flex', alignItems:'center', gap:'6px', padding:'9px 22px', background:'white', color:'var(--primary)', border:'2px solid rgba(255,255,255,0.5)', borderRadius:'8px', fontWeight:700, fontSize:'0.88rem', cursor:'pointer' }}
     >
@@ -195,6 +242,7 @@ export default function AdminWebsiteTab({ settings, fetchSettings }) {
           </div>
           {/* Active tab save button in hero */}
           {activeTab === 'school' && <SaveBtn skey="school" label="Save School Info" />}
+          {activeTab === 'features' && <SaveBtn skey="features" label="Save Features" />}
           {activeTab === 'about'  && <SaveBtn skey="about"  label="Save About Us" />}
           {activeTab === 'social' && <SaveBtn skey="social" label="Save Social Links" />}
           {activeTab === 'slider' && (
@@ -225,15 +273,77 @@ export default function AdminWebsiteTab({ settings, fetchSettings }) {
               { key: 'landing_tagline', label: 'Tagline / Motto', placeholder: 'e.g. Inspiring Excellence…', full: false },
               { key: 'landing_hero_desc', label: 'Hero Description', placeholder: 'Short text shown on hero', full: true },
               { key: 'landing_address', label: 'Address', placeholder: 'e.g. No 1 School Road, Kaduna State', full: true },
-              { key: 'landing_phone', label: 'Phone Number', placeholder: '+234 (0) 123 456 7890', full: false },
-              { key: 'landing_email', label: 'Email Address', placeholder: 'info@school.edu', full: false },
+              { key: 'contact_phone', label: 'Phone Number', placeholder: '+234 (0) 123 456 7890', full: false },
+              { key: 'contact_email', label: 'Email Address', placeholder: 'info@school.edu', full: false },
             ].map(f => (
               <div key={f.key} style={{ gridColumn: f.full ? '1 / -1' : 'auto' }}>
                 <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px', color: '#334155' }}>{f.label}</label>
-                <input type={f.key === 'landing_email' ? 'email' : 'text'}
+                <input type={f.key === 'contact_email' ? 'email' : 'text'}
                   value={schoolInfo[f.key]} placeholder={f.placeholder}
                   onChange={e => setSchoolInfo({ ...schoolInfo, [f.key]: e.target.value })}
                   style={{ width: '100%', padding: '10px 14px', border: '1px solid #dde5f0', borderRadius: '8px', fontSize: '0.92rem', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+            ))}
+            {/* Ticker Settings */}
+            <div style={{ gridColumn: '1 / -1', marginTop: '10px', paddingTop: '16px', borderTop: '1px solid #e2e8f0' }}>
+              <h6 style={{ fontWeight: 700, marginBottom: '12px', color: '#1e293b' }}>Scrolling Announcement Ticker</h6>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px', color: '#334155' }}>Ticker Announcement Text</label>
+                  <input type="text" value={schoolInfo.ticker_text} placeholder="Leave blank to hide the ticker..."
+                    onChange={e => setSchoolInfo({ ...schoolInfo, ticker_text: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', border: '1px solid #dde5f0', borderRadius: '8px', fontSize: '0.92rem', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px', color: '#334155' }}>Ticker Speed</label>
+                  <select value={schoolInfo.ticker_speed} onChange={e => setSchoolInfo({ ...schoolInfo, ticker_speed: e.target.value })}
+                    style={{ width: '100%', padding: '10px 14px', border: '1px solid #dde5f0', borderRadius: '8px', fontSize: '0.92rem', outline: 'none', boxSizing: 'border-box', backgroundColor: '#fff' }}>
+                    <option value="slow">Slow</option>
+                    <option value="normal">Normal</option>
+                    <option value="fast">Fast</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            {/* Logo Settings */}
+            <div style={{ gridColumn: '1 / -1', marginTop: '10px', paddingTop: '16px', borderTop: '1px solid #e2e8f0' }}>
+              <h6 style={{ fontWeight: 700, marginBottom: '12px', color: '#1e293b' }}>School Logo</h6>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                {settings?.school_logo_url && (
+                  <img src={settings.school_logo_url} alt="Logo" style={{ height: '60px', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                )}
+                <div>
+                  <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px', color: '#334155' }}>Upload New Logo (JPG/PNG)</label>
+                  <input type="file" accept="image/jpeg,image/jpg,image/png" onChange={handleUploadLogo} disabled={isBusy('school')}
+                    style={{ padding: '6px 12px', border: '1px solid #dde5f0', borderRadius: '8px', fontSize: '0.9rem', backgroundColor: '#fff' }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── WHAT WE OFFER (FEATURES) ─────────────────────────────────── */}
+        {activeTab === 'features' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
+            <p style={{ color: '#555', fontSize: '0.9rem', marginBottom: '0' }}>Configure the 4 info cards displayed on the landing page.</p>
+            {[1, 2, 3, 4].map(num => (
+              <div key={num} style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <h6 style={{ fontWeight: 700, marginBottom: '12px', color: '#0EA5E9' }}>Feature Card {num}</h6>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px', color: '#334155' }}>Title</label>
+                    <input type="text" value={features[`feature${num}_title`]} placeholder="e.g. Qualified Teachers"
+                      onChange={e => setFeatures({ ...features, [`feature${num}_title`]: e.target.value })}
+                      style={{ width: '100%', padding: '10px 14px', border: '1px solid #dde5f0', borderRadius: '8px', fontSize: '0.92rem', outline: 'none' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px', color: '#334155' }}>Short Description</label>
+                    <input type="text" value={features[`feature${num}_desc`]} placeholder="A short descriptive sentence..."
+                      onChange={e => setFeatures({ ...features, [`feature${num}_desc`]: e.target.value })}
+                      style={{ width: '100%', padding: '10px 14px', border: '1px solid #dde5f0', borderRadius: '8px', fontSize: '0.92rem', outline: 'none' }} />
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -294,7 +404,21 @@ export default function AdminWebsiteTab({ settings, fetchSettings }) {
             <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '12px' }}>This text appears in the "About Us" section of the landing page. Use new lines to separate paragraphs.</p>
             <textarea value={aboutUs} onChange={e => setAboutUs(e.target.value)}
               rows={12} placeholder="Write your school's About Us content here…"
-              style={{ width: '100%', padding: '12px 16px', border: '1px solid #dde5f0', borderRadius: '10px', fontSize: '0.93rem', lineHeight: 1.7, outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '12px 16px', border: '1px solid #dde5f0', borderRadius: '10px', fontSize: '0.93rem', lineHeight: 1.7, outline: 'none', resize: 'vertical', boxSizing: 'border-box', marginBottom: '20px' }} />
+              
+            <div style={{ paddingTop: '16px', borderTop: '1px solid #e2e8f0' }}>
+              <h6 style={{ fontWeight: 700, marginBottom: '12px', color: '#1e293b' }}>About Us Image</h6>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                {settings?.about_us_image_url && (
+                  <img src={settings.about_us_image_url} alt="About Us" style={{ height: '80px', borderRadius: '8px', border: '1px solid #e2e8f0', objectFit: 'cover' }} />
+                )}
+                <div>
+                  <label style={{ display: 'block', fontWeight: 600, fontSize: '0.85rem', marginBottom: '6px', color: '#334155' }}>Upload Image (JPG/PNG/WEBP)</label>
+                  <input type="file" accept="image/jpeg,image/jpg,image/png,image/webp" onChange={handleUploadAboutImage} disabled={isBusy('about')}
+                    style={{ padding: '6px 12px', border: '1px solid #dde5f0', borderRadius: '8px', fontSize: '0.9rem', backgroundColor: '#fff' }} />
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

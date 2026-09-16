@@ -94,6 +94,9 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab }) 
   // Status banners
   const [notify, setNotify] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  
+  // Timetables
+  const [timetables, setTimetables] = useState([]);
 
   useEffect(() => {
     Promise.all([
@@ -154,6 +157,11 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab }) 
         // Automatically fetch broadsheet and attendance for form class initially
         fetchBroadsheet(info.formClass.id);
         fetchAttendance(info.formClass.id, attendanceDate);
+      }
+      // Fetch teacher's timetable
+      if (user?.id) {
+        const timetableRes = await api.getTimetables({ teacher_id: user.id });
+        setTimetables(timetableRes.data || []);
       }
     } catch (err) {
       setErrorMsg('Failed to sync teacher assignments: ' + err.message);

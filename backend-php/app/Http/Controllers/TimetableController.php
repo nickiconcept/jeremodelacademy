@@ -25,12 +25,39 @@ class TimetableController extends Controller
     {
         $request->validate([
             'class_id' => 'required|exists:classes,id',
-            'subject_id' => 'required|exists:subjects,id',
+            'type' => 'nullable|string|in:class,short_break,long_break',
+            'activity' => 'nullable|string',
+            'subject_id' => 'required_if:type,class|nullable|exists:subjects,id',
             'teacher_id' => 'nullable|exists:users,id',
             'day_of_week' => 'required|string',
-            'start_time' => 'required|string',
-            'end_time' => 'required|string'
+            'start_time' => ['required', 'regex:/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/'],
+            'end_time' => ['required', 'regex:/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/']
         ]);
+
+        // Normalize time to HH:mm
+        $request->merge([
+            'start_time' => substr($request->start_time, 0, 5),
+            'end_time' => substr($request->end_time, 0, 5),
+        ]);
+
+        if (strtotime($request->end_time) <= strtotime($request->start_time)) {
+            return response()->json(['errors' => ['end_time' => ['The end time must be after the start time.']]], 422);
+        }
+
+        // Check for double booking
+        $conflict = Timetable::where('day_of_week', $request->day_of_week)
+            ->where('start_time', '<', $request->end_time)
+            ->where('end_time', '>', $request->start_time)
+            ->where(function ($query) use ($request) {
+                $query->where('class_id', $request->class_id);
+                if ($request->teacher_id) {
+                    $query->orWhere('teacher_id', $request->teacher_id);
+                }
+            })->exists();
+
+        if ($conflict) {
+            return response()->json(['message' => 'This time slot overlaps with an existing class or teacher schedule.'], 422);
+        }
 
         $timetable = Timetable::create($request->all());
         

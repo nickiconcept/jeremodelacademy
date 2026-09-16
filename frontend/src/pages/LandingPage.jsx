@@ -7,29 +7,7 @@ import {
 import api from '../utils/api';
 import './LandingPage.css';
 
-// ─── Feature Cards Data ────────────────────────────────────────────────────
-const FEATURES = [
-  {
-    icon: <GraduationCap size={28} />,
-    title: 'Academic Excellence',
-    desc: 'Rigorous, world-class curriculum designed to prepare every student for higher education and life.',
-  },
-  {
-    icon: <Award size={28} />,
-    title: 'Leadership & Character',
-    desc: 'We nurture confident, responsible leaders grounded in strong moral and ethical values.',
-  },
-  {
-    icon: <BookOpen size={28} />,
-    title: 'Modern Curriculum',
-    desc: 'Continuously updated syllabi that blend global best practices with the Nigerian educational standard.',
-  },
-  {
-    icon: <ShieldCheck size={28} />,
-    title: 'Safe Environment',
-    desc: 'A secure, supportive campus where every child can thrive without fear or distraction.',
-  },
-];
+
 
 // ─── Animated Counter Hook ────────────────────────────────────────────────
 function useCountUp(target, duration = 1800, started = false) {
@@ -65,9 +43,10 @@ export default function LandingPage({ settings, onEnterPortal }) {
   const chatEndRef = useRef(null);
 
   // Stat counters
-  const years = useCountUp(25, 1500, statsVisible);
+  const teachers = useCountUp(45, 1500, statsVisible);
   const students = useCountUp(1200, 1800, statsVisible);
-  const teachers = useCountUp(150, 1600, statsVisible);
+  const subjects = useCountUp(30, 1600, statsVisible);
+  const portals = useCountUp(100, 1500, statsVisible);
 
   // ─── Data & Scroll Setup ────────────────────────────────────────────────
   useEffect(() => {
@@ -131,6 +110,29 @@ export default function LandingPage({ settings, onEnterPortal }) {
   const nextSlide = () => setCurrentSlide(prev => (prev + 1) % slides.length);
   const prevSlide = () => setCurrentSlide(prev => (prev - 1 + slides.length) % slides.length);
 
+  const dynamicFeatures = [
+    {
+      icon: <GraduationCap size={28} />,
+      title: settings?.feature1_title || 'Academic Excellence',
+      desc: settings?.feature1_desc || 'Rigorous, world-class curriculum designed to prepare every student for higher education and life.',
+    },
+    {
+      icon: <Award size={28} />,
+      title: settings?.feature2_title || 'Leadership & Character',
+      desc: settings?.feature2_desc || 'We nurture confident, responsible leaders grounded in strong moral and ethical values.',
+    },
+    {
+      icon: <BookOpen size={28} />,
+      title: settings?.feature3_title || 'Modern Curriculum',
+      desc: settings?.feature3_desc || 'Continuously updated syllabi that blend global best practices with the Nigerian educational standard.',
+    },
+    {
+      icon: <ShieldCheck size={28} />,
+      title: settings?.feature4_title || 'Safe Environment',
+      desc: settings?.feature4_desc || 'A secure, supportive campus where every child can thrive without fear or distraction.',
+    },
+  ];
+
   const handleChatSubmit = (e) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
@@ -140,7 +142,7 @@ export default function LandingPage({ settings, onEnterPortal }) {
     setTimeout(() => {
       setChatMessages(prev => [
         ...prev,
-        { text: `Thank you for your message! An administrator will get back to you shortly. You can also reach us at ${settings?.landing_email || 'info@school.edu'}.`, isBot: true },
+        { text: `Thank you for your message! An administrator will get back to you shortly. You can also reach us at ${settings?.contact_email || 'info@school.edu'}.`, isBot: true },
       ]);
     }, 900);
   };
@@ -161,7 +163,7 @@ export default function LandingPage({ settings, onEnterPortal }) {
     <div className="lp-root">
 
       {/* ── NAVBAR ── */}
-      <nav className={`lp-nav ${scrolled ? 'lp-nav--scrolled' : ''}`}>
+      <nav className="lp-nav lp-nav--solid">
         <div className="lp-nav__inner">
           <button className="lp-nav__brand" onClick={() => scrollTo('home')}>
             {settings?.landing_logo && (
@@ -187,18 +189,19 @@ export default function LandingPage({ settings, onEnterPortal }) {
         </div>
       </nav>
 
-      {/* ── HERO ── */}
-      <section id="home" className="lp-hero">
-        {/* Geometric background decorations */}
-        <div className="lp-hero__decor">
-          <div className="lp-hero__circle lp-hero__circle--1" />
-          <div className="lp-hero__circle lp-hero__circle--2" />
-          <div className="lp-hero__circle lp-hero__circle--3" />
-          <div className="lp-hero__line lp-hero__line--1" />
-          <div className="lp-hero__line lp-hero__line--2" />
+      {/* ── TICKER ── */}
+      {settings?.ticker_text && (
+        <div className={`lp-ticker lp-ticker--${settings?.ticker_speed || 'normal'}`}>
+          <div className="lp-ticker__scroll">
+            <span>{settings.ticker_text}</span>
+            <span>{settings.ticker_text}</span>
+          </div>
         </div>
+      )}
 
-        {/* Slider images (right panel) */}
+      {/* ── HERO ── */}
+      <section id="home" className="lp-hero lp-hero--centered">
+        {/* Slider images (Full Background) */}
         <div className="lp-hero__slider">
           {slides.length > 0 ? (
             slides.map((slide, idx) => (
@@ -211,21 +214,17 @@ export default function LandingPage({ settings, onEnterPortal }) {
           ) : (
             <div className="lp-hero__slide lp-hero__slide--active lp-hero__slide--default" />
           )}
-          <div className="lp-hero__slider-overlay" />
+          <div className="lp-hero__slider-overlay-full" />
         </div>
 
         {/* Content overlay */}
-        <div className="lp-hero__content">
-          <p className="lp-hero__eyebrow">Welcome to</p>
+        <div className="lp-hero__content-centered">
           <h1 className="lp-hero__title">
-            {schoolName.split(' ').map((word, i) => (
-              <span key={i} className={i === 1 ? 'lp-hero__title--accent' : ''}>{word} </span>
-            ))}
+            {slides[currentSlide]?.caption ? slides[currentSlide].caption : (
+              settings?.landing_hero_desc ? settings.landing_hero_desc : 
+              <>{schoolName} is committed to the Production of World Class Graduates for the Pursuit of all round Excellence.</>
+            )}
           </h1>
-          <p className="lp-hero__tagline">{tagline}</p>
-          <button className="lp-hero__cta" onClick={onEnterPortal}>
-            Access Student Portal <ChevronRight size={20} />
-          </button>
         </div>
 
         {/* Slider controls */}
@@ -259,13 +258,49 @@ export default function LandingPage({ settings, onEnterPortal }) {
             <div className="lp-section-bar" />
           </div>
           <div className="lp-features__grid">
-            {FEATURES.map((f, i) => (
+            {dynamicFeatures.map((f, i) => (
               <div key={i} className="lp-feature-card">
                 <div className="lp-feature-card__icon">{f.icon}</div>
                 <h3 className="lp-feature-card__title">{f.title}</h3>
                 <p className="lp-feature-card__desc">{f.desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── STATISTICS STRIP ── */}
+      <section className="lp-stats-strip" ref={statsRef}>
+        <div className="lp-container">
+          <div className="lp-stats-grid">
+            <div className="lp-stat-box">
+              <div className="lp-stat-icon"><GraduationCap size={24} /></div>
+              <div className="lp-stat-info">
+                <span className="lp-stat-num">{students.toLocaleString()}</span>
+                <span className="lp-stat-label">Students</span>
+              </div>
+            </div>
+            <div className="lp-stat-box">
+              <div className="lp-stat-icon"><Award size={24} /></div>
+              <div className="lp-stat-info">
+                <span className="lp-stat-num">{teachers}</span>
+                <span className="lp-stat-label">Teachers</span>
+              </div>
+            </div>
+            <div className="lp-stat-box">
+              <div className="lp-stat-icon"><BookOpen size={24} /></div>
+              <div className="lp-stat-info">
+                <span className="lp-stat-num">{subjects}</span>
+                <span className="lp-stat-label">Subjects</span>
+              </div>
+            </div>
+            <div className="lp-stat-box">
+              <div className="lp-stat-icon"><ShieldCheck size={24} /></div>
+              <div className="lp-stat-info">
+                <span className="lp-stat-num">{portals}%</span>
+                <span className="lp-stat-label">Standard Portal</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -314,6 +349,7 @@ export default function LandingPage({ settings, onEnterPortal }) {
         </div>
       </section>
 
+
       {/* ── ABOUT US ── */}
       <section id="about" className="lp-about">
         <div className="lp-container">
@@ -321,9 +357,12 @@ export default function LandingPage({ settings, onEnterPortal }) {
             {/* Image side */}
             <div className="lp-about__img-wrap">
               <div className="lp-about__img-frame">
-                {settings?.landing_logo
-                  ? <img src={settings.landing_logo} alt="About" className="lp-about__img" />
-                  : <div className="lp-about__img-placeholder"><GraduationCap size={72} /></div>
+                {settings?.about_us_image_url
+                  ? <img src={settings.about_us_image_url} alt="About" className="lp-about__img" />
+                  : (settings?.landing_logo
+                      ? <img src={settings.landing_logo} alt="About" className="lp-about__img" />
+                      : <div className="lp-about__img-placeholder"><GraduationCap size={72} /></div>
+                    )
                 }
               </div>
               <div className="lp-about__badge">
@@ -340,23 +379,7 @@ export default function LandingPage({ settings, onEnterPortal }) {
                 {aboutContent.split('\n').map((p, i) => <p key={i}>{p}</p>)}
               </div>
 
-              {/* Stats */}
-              <div className="lp-stats" ref={statsRef}>
-                <div className="lp-stat">
-                  <span className="lp-stat__number">{years}+</span>
-                  <span className="lp-stat__label">Years of Excellence</span>
-                </div>
-                <div className="lp-stat__divider" />
-                <div className="lp-stat">
-                  <span className="lp-stat__number">{students.toLocaleString()}+</span>
-                  <span className="lp-stat__label">Dedicated Students</span>
-                </div>
-                <div className="lp-stat__divider" />
-                <div className="lp-stat">
-                  <span className="lp-stat__number">{teachers}+</span>
-                  <span className="lp-stat__label">Qualified Teachers</span>
-                </div>
-              </div>
+              {/* Removed original stats block */}
             </div>
           </div>
         </div>
@@ -390,8 +413,8 @@ export default function LandingPage({ settings, onEnterPortal }) {
               <h4 className="lp-footer__heading">Contact Us</h4>
               <ul className="lp-footer__contact">
                 <li><MapPin size={15} /><span>{settings?.landing_address || 'Kaduna State, Nigeria'}</span></li>
-                <li><Phone size={15} /><span>{settings?.landing_phone || '+234 (0) 123 456 7890'}</span></li>
-                <li><Mail size={15} /><span>{settings?.landing_email || 'info@school.edu'}</span></li>
+                <li><Phone size={15} /><span>{settings?.contact_phone || '+234 (0) 123 456 7890'}</span></li>
+                <li><Mail size={15} /><span>{settings?.contact_email || 'info@school.edu'}</span></li>
               </ul>
             </div>
 

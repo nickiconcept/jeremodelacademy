@@ -12,6 +12,7 @@ class SettingsController extends Controller
         $settings = SystemSetting::latest('id')->first();
         if ($settings) {
             $settings->school_logo_url = $settings->school_logo_path ? url('storage/' . $settings->school_logo_path) : null;
+            $settings->about_us_image_url = $settings->about_us_image_path ? url('storage/' . $settings->about_us_image_path) : null;
         }
         return response()->json($settings);
     }
@@ -32,8 +33,7 @@ class SettingsController extends Controller
             'attendance_location1_lng',
             'attendance_location2_lat',
             'attendance_location2_lng',
-            'attendance_radius',
-            'landing_school_name'
+            'attendance_radius'
         ]);
         
         $data = $request->only($validColumns);
@@ -74,6 +74,34 @@ class SettingsController extends Controller
             return response()->json([
                 'message' => 'Logo uploaded successfully',
                 'school_logo_url' => url('storage/' . $path)
+            ]);
+        }
+
+        return response()->json(['error' => 'No file uploaded'], 400);
+    }
+
+    public function uploadAboutUsImage(Request $request)
+    {
+        $request->validate([
+            'image' => 'required|image|mimes:jpeg,jpg,png,webp|max:2048',
+        ], [
+            'image.max' => 'The about us image must not be greater than 2MB.',
+            'image.mimes' => 'The about us image must be a file of type: jpeg, jpg, png, webp.',
+        ]);
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('landing', 'public');
+            
+            $settings = SystemSetting::latest('id')->first();
+            if (!$settings) {
+                $settings = new SystemSetting();
+            }
+            $settings->about_us_image_path = $path;
+            $settings->save();
+
+            return response()->json([
+                'message' => 'Image uploaded successfully',
+                'about_us_image_url' => url('storage/' . $path)
             ]);
         }
 

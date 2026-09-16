@@ -25,6 +25,15 @@ use App\Http\Controllers\StudentController;
 Route::get('/settings', [SettingsController::class, 'index']);
 Route::post('/settings', [SettingsController::class, 'store'])->middleware('auth:api');
 Route::post('/settings/logo', [SettingsController::class, 'uploadLogo'])->middleware('auth:api');
+Route::post('/settings/about-image', [SettingsController::class, 'uploadAboutUsImage'])->middleware('auth:api');
+
+/* ================================================================
+   PUBLIC WEBSITE ENDPOINTS (No Auth Required)
+   ================================================================ */
+Route::get('/website/public', [\App\Http\Controllers\WebsiteController::class, 'getPublicData']);
+Route::get('/website/slides', [\App\Http\Controllers\WebsiteController::class, 'getSlides']);
+Route::get('/events', [\App\Http\Controllers\EventController::class, 'index']);
+Route::get('/events/{event}', [\App\Http\Controllers\EventController::class, 'show']);
 
 Route::group(['middleware' => ['auth:api', 'throttle:60,1']], function () {
     Route::get('/students', [StudentController::class, 'index']);
@@ -158,17 +167,15 @@ Route::group(['middleware' => ['auth:api', 'throttle:60,1']], function () {
     Route::delete('/activity-logs/purge', [\App\Http\Controllers\ActivityLogController::class, 'purge']);
 
     /* ================================================================
-       WEBSITE MANAGEMENT & TIMETABLE
+       WEBSITE MANAGEMENT & TIMETABLE (Admin Only)
        ================================================================ */
-    Route::get('/website/public', [\App\Http\Controllers\WebsiteController::class, 'getPublicData']);
-    Route::get('/website/slides', [\App\Http\Controllers\WebsiteController::class, 'getSlides']);
     Route::post('/website/slides', [\App\Http\Controllers\WebsiteController::class, 'storeSlide']);
     Route::delete('/website/slides/{id}', [\App\Http\Controllers\WebsiteController::class, 'deleteSlide']);
     Route::post('/website/about', [\App\Http\Controllers\WebsiteController::class, 'updateAboutUs']);
     Route::post('/website/social', [\App\Http\Controllers\WebsiteController::class, 'updateSocialLinks']);
     Route::post('/website/school-info', [\App\Http\Controllers\WebsiteController::class, 'updateSchoolInfo']);
     
-    Route::apiResource('events', \App\Http\Controllers\EventController::class);
+    Route::apiResource('events', \App\Http\Controllers\EventController::class)->except(['index', 'show']);
     
     Route::get('/timetables', [\App\Http\Controllers\TimetableController::class, 'index']);
     Route::post('/timetables', [\App\Http\Controllers\TimetableController::class, 'store']);

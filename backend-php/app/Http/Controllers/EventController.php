@@ -18,14 +18,33 @@ class EventController extends Controller
         $request->validate([
             'title' => 'required|string',
             'description' => 'required|string',
-            'event_date' => 'required|date',
-            'image' => 'nullable|file|max:1024'
+            'event_date' => 'required|date'
         ]);
+
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            
+            if (!$file->isValid()) {
+                return response()->json(['errors' => ['image' => ['The image failed to upload.']]], 422);
+            }
+            if ($file->getSize() > 1024 * 1024) {
+                return response()->json(['errors' => ['image' => ['The image must not be greater than 1024 kilobytes.']]], 422);
+            }
+
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            $extension = strtolower($file->getClientOriginalExtension());
+            if (!in_array($extension, $allowedExtensions)) {
+                return response()->json(['errors' => ['image' => ['The uploaded file must be a valid image.']]], 422);
+            }
+        }
 
         $data = $request->only(['title', 'description', 'event_date']);
 
         if ($request->hasFile('image')) {
-            $data['image_url'] = url('storage/' . $request->file('image')->store('events', 'public'));
+            $file = $request->file('image');
+            $filename = uniqid('event_') . '.' . strtolower($file->getClientOriginalExtension());
+            $path = $file->storeAs('events', $filename, 'public');
+            $data['image_url'] = url('storage/' . $path);
         }
 
         $event = Event::create($data);
@@ -39,19 +58,37 @@ class EventController extends Controller
         $request->validate([
             'title' => 'required|string',
             'description' => 'required|string',
-            'event_date' => 'required|date',
-            'image' => 'nullable|file|max:1024'
+            'event_date' => 'required|date'
         ]);
+
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            
+            if (!$file->isValid()) {
+                return response()->json(['errors' => ['image' => ['The image failed to upload.']]], 422);
+            }
+            if ($file->getSize() > 1024 * 1024) {
+                return response()->json(['errors' => ['image' => ['The image must not be greater than 1024 kilobytes.']]], 422);
+            }
+
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            $extension = strtolower($file->getClientOriginalExtension());
+            if (!in_array($extension, $allowedExtensions)) {
+                return response()->json(['errors' => ['image' => ['The uploaded file must be a valid image.']]], 422);
+            }
+        }
 
         $data = $request->only(['title', 'description', 'event_date']);
 
         if ($request->hasFile('image')) {
-            // Delete old
             if ($event->image_url) {
-                $path = str_replace(url('storage') . '/', '', $event->image_url);
-                Storage::disk('public')->delete($path);
+                $oldPath = str_replace(url('storage') . '/', '', $event->image_url);
+                Storage::disk('public')->delete($oldPath);
             }
-            $data['image_url'] = url('storage/' . $request->file('image')->store('events', 'public'));
+            $file = $request->file('image');
+            $filename = uniqid('event_') . '.' . strtolower($file->getClientOriginalExtension());
+            $path = $file->storeAs('events', $filename, 'public');
+            $data['image_url'] = url('storage/' . $path);
         }
 
         $event->update($data);
