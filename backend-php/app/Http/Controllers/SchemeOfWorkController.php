@@ -21,7 +21,7 @@ class SchemeOfWorkController extends Controller
         $subjectId = $request->input('subject_id');
         $classId = $request->input('class_id');
         $session = $request->input('academic_session');
-        $term = $request->input('term');
+        $term = $this->mapTermToInteger($request->input('term'));
 
         // Get the tier of the class
         $class = DB::table('classes')->where('id', $classId)->first();
@@ -45,6 +45,7 @@ class SchemeOfWorkController extends Controller
 
         $schemes->transform(function ($scheme) use ($progress) {
             $scheme->progress = $progress->get($scheme->id) ?: null;
+            $scheme->subtitle = $scheme->sub_topic;
             return $scheme;
         });
 
@@ -162,7 +163,7 @@ class SchemeOfWorkController extends Controller
 
         $classId = $request->input('class_id');
         $subjectId = $request->input('subject_id');
-        $term = $request->input('term');
+        $term = $this->mapTermToInteger($request->input('term'));
         $week = $request->input('week');
         
         $class = DB::table('classes')->where('id', $classId)->first();
@@ -210,11 +211,30 @@ class SchemeOfWorkController extends Controller
 
     private function determineTier($className)
     {
-        $className = strtolower($className);
-        if (strpos($className, 'jss') !== false) return 'jss';
-        if (strpos($className, 'ss') !== false || strpos($className, 'sss') !== false) return 'sss';
+        $className = strtolower(trim($className));
+        
+        // Extract grade number if present (e.g. JSS 1A -> 1, JSS 2B -> 2)
+        preg_match('/(jss|ss|sss)\s*(\d)/', $className, $matches);
+        
+        if (strpos($className, 'jss') !== false) {
+            $num = isset($matches[2]) ? $matches[2] : '';
+            return 'jss' . $num;
+        }
+        if (strpos($className, 'ss') !== false || strpos($className, 'sss') !== false) {
+            $num = isset($matches[2]) ? $matches[2] : '';
+            return 'sss' . $num;
+        }
         if (strpos($className, 'primary') !== false) return 'primary';
         if (strpos($className, 'nursery') !== false) return 'nursery';
         return 'universal';
+    }
+
+    private function mapTermToInteger($termStr)
+    {
+        $termStr = strtolower($termStr);
+        if (strpos($termStr, '1') !== false || strpos($termStr, 'first') !== false) return 1;
+        if (strpos($termStr, '2') !== false || strpos($termStr, 'second') !== false) return 2;
+        if (strpos($termStr, '3') !== false || strpos($termStr, 'third') !== false) return 3;
+        return $termStr;
     }
 }
