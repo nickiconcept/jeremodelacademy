@@ -5961,51 +5961,8 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                   onChange={(e) => setSubjectEditForm({ ...subjectEditForm, name: e.target.value })} 
                 />
               </div>
-              <div className="form-group">
-                <label>School Level</label>
-                <select 
-                  className="form-control" 
-                  value={subjectEditForm.tier} 
-                  onChange={(e) => setSubjectEditForm({ ...subjectEditForm, tier: e.target.value })}
-                >
-                  <option value="nursery">Nursery School (Nursery 1-3)</option>
-                  <option value="primary">Primary School (Primary 1-6)</option>
-                  <option value="jss">Junior Secondary (JSS)</option>
-                  <option value="sss">Senior Secondary (SSS)</option>
-                </select>
-              </div>
               
-              <div className="form-group">
-                <label>Map to Classes (Optional)</label>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                  <button type="button" className="btn btn-sm btn-outline" onClick={() => handleBulkSubjectClassSelect('all', true)}>All Classes</button>
-                  <button type="button" className="btn btn-sm btn-outline" onClick={() => handleBulkSubjectClassSelect('nursery', true)}>All Nursery</button>
-                  <button type="button" className="btn btn-sm btn-outline" onClick={() => handleBulkSubjectClassSelect('primary', true)}>All Primary</button>
-                  <button type="button" className="btn btn-sm btn-outline" onClick={() => handleBulkSubjectClassSelect('jss', true)}>All JSS</button>
-                  <button type="button" className="btn btn-sm btn-outline" onClick={() => handleBulkSubjectClassSelect('sss', true)}>All SSS</button>
-                  <button type="button" className="btn btn-sm btn-outline" onClick={() => setSubjectEditForm(prev => ({ ...prev, class_ids: [] }))}>Clear</button>
-                </div>
-                <div className="checkbox-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', maxHeight: '150px', overflowY: 'auto', border: '1px solid var(--border-color)', padding: '10px', borderRadius: '4px' }}>
-                  {classes.map(c => (
-                    <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={subjectEditForm.class_ids && subjectEditForm.class_ids.includes(c.id)}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
-                          setSubjectEditForm(prev => {
-                            const newIds = checked 
-                              ? [...(prev.class_ids || []), c.id]
-                              : (prev.class_ids || []).filter(id => id !== c.id);
-                            return { ...prev, class_ids: newIds };
-                          });
-                        }} 
-                      />
-                      {c.name}
-                    </label>
-                  ))}
-                </div>
-              </div>
+
               
               <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Save Changes</button>
             </form>
