@@ -391,6 +391,18 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
   const [showClassModal, setShowClassModal] = useState(false);
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showClassSubjectsModal, setShowClassSubjectsModal] = useState(false);
+  const [selectedClassForSubjects, setSelectedClassForSubjects] = useState(null);
+  const [classSubjectSelection, setClassSubjectSelection] = useState([]);
+  
+  const [showTierSubjectsModal, setShowTierSubjectsModal] = useState(false);
+  const [selectedTierForSubjects, setSelectedTierForSubjects] = useState('primary');
+  const [tierSubjectSelection, setTierSubjectSelection] = useState([]);
+  
+  const [showGlobalClassSubjectsModal, setShowGlobalClassSubjectsModal] = useState(false);
+  const [globalSelectedClassForSubjects, setGlobalSelectedClassForSubjects] = useState('');
+  const [globalClassSubjectSelection, setGlobalClassSubjectSelection] = useState([]);
+  
   const [showFeeModal, setShowFeeModal] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
   const [showEditSkillModal, setShowEditSkillModal] = useState(false);
@@ -423,7 +435,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
     phone_number: '', date_of_birth: '', qualification: '', discipline: '', employment_category: ''
   });
   const [classForm, setClassForm] = useState({ name: '', tier: 'jss' });
-  const [subjectForm, setSubjectForm] = useState({ name: '', tier: 'jss', class_ids: [] });
+  const [subjectForm, setSubjectForm] = useState({ name: '' });
   const [assignForm, setAssignForm] = useState({ class_ids: [], subject_id: '', teacher_id: '' });
   const [feeForm, setFeeForm] = useState({ title: '', category: 'School Fees', amount: '', class_id: '', tier: '' });
   const [showIndividualFeeModal, setShowIndividualFeeModal] = useState(false);
@@ -1047,7 +1059,10 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
   const handleSubjectCreate = async (e) => {
     e.preventDefault();
     try {
-      await api.createSubject(subjectForm);
+      const payload = {
+        name: subjectForm.name
+      };
+      await api.createSubject(payload);
       setNotify('Curriculum Subject seeded successfully!');
       setShowSubjectModal(false);
       loadAllData();
@@ -1060,8 +1075,45 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
     e.preventDefault();
     try {
       await api.assignSubjectTeacher(assignForm.class_ids, assignForm.subject_id, assignForm.teacher_id, isEditingAssignment);
-      setNotify('Subject Teacher mapped successfully!');
+      setNotify(isEditingAssignment ? 'Teacher assignment updated!' : 'Teacher assigned successfully!');
       setShowAssignModal(false);
+      loadAllData();
+    } catch (err) {
+      setErrorMsg(err.message);
+    }
+  };
+
+  const handleSyncClassSubjects = async (e) => {
+    e.preventDefault();
+    try {
+      await api.syncClassSubjects(selectedClassForSubjects.id, classSubjectSelection);
+      setNotify('Class subjects synchronized successfully!');
+      setShowClassSubjectsModal(false);
+      loadAllData();
+    } catch (err) {
+      setErrorMsg(err.message);
+    }
+  };
+
+  const handleSyncTierSubjects = async (e) => {
+    e.preventDefault();
+    try {
+      await api.syncTierSubjects(selectedTierForSubjects, tierSubjectSelection);
+      setNotify('Tier subjects synchronized successfully!');
+      setShowTierSubjectsModal(false);
+      loadAllData();
+    } catch (err) {
+      setErrorMsg(err.message);
+    }
+  };
+
+  const handleSyncGlobalClassSubjects = async (e) => {
+    e.preventDefault();
+    if (!globalSelectedClassForSubjects) return;
+    try {
+      await api.syncClassSubjects(globalSelectedClassForSubjects, globalClassSubjectSelection);
+      setNotify('Class subjects synchronized successfully!');
+      setShowGlobalClassSubjectsModal(false);
       loadAllData();
     } catch (err) {
       setErrorMsg(err.message);
@@ -2417,9 +2469,11 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                   <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '700', letterSpacing: '0.5px' }}>Class Streams</h3>
                 </div>
               </div>
-              <button className="btn btn-primary" onClick={() => setShowClassModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(5px)', color: 'white', padding: '8px 16px', fontSize: '0.85rem', borderRadius: '20px' }}>
-                <Plus size={16} /> Create Class
-              </button>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button className="btn btn-primary" onClick={() => setShowClassModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(5px)', color: 'white', padding: '8px 16px', fontSize: '0.85rem', borderRadius: '20px' }}>
+                  <Plus size={16} /> Create Class
+                </button>
+              </div>
             </div>
 
             {/* Search & Filter Controls */}
@@ -2509,6 +2563,19 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                           <Pencil size={16} />
                         </button>
                         <button
+                          className="btn btn-primary btn-sm"
+                          style={{ padding: '6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginRight: '6px', backgroundColor: 'var(--primary)', borderColor: 'var(--primary)', color: 'white' }}
+                          title="Manage Subjects"
+                          onClick={() => {
+                            setSelectedClassForSubjects(c);
+                            const assigned = classSubjects.filter(cs => cs.class_id === c.id).map(cs => cs.subject_id);
+                            setClassSubjectSelection(assigned);
+                            setShowClassSubjectsModal(true);
+                          }}
+                        >
+                          <BookOpen size={16} />
+                        </button>
+                        <button
                           className="btn btn-danger btn-sm"
                           style={{ padding: '6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                           title="Delete"
@@ -2557,9 +2624,22 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                     <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.85rem', margin: '4px 0 0 0' }}>View, add, edit, or delete subjects in the school curriculum.</p>
                   </div>
                 </div>
-                <button className="btn btn-primary" onClick={() => { setSubjectForm({ name: '', tier: 'primary', class_ids: [] }); setShowSubjectModal(true); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(5px)', color: 'white', padding: '8px 16px', fontSize: '0.85rem', borderRadius: '20px' }}>
-                  <Plus size={16} /> Add Subject
-                </button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button className="btn btn-primary" onClick={() => { setSubjectForm({ name: '' }); setShowSubjectModal(true); }} style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(5px)', color: 'white', padding: '8px 16px', fontSize: '0.85rem', borderRadius: '20px' }}>
+                    <Plus size={16} /> Add Subject
+                  </button>
+                  <button className="btn btn-primary" onClick={async () => { 
+                    setSelectedTierForSubjects('primary');
+                    const res = await api.getTierSubjects('primary');
+                    setTierSubjectSelection(res || []); 
+                    setShowTierSubjectsModal(true); 
+                  }} style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(5px)', color: 'white', padding: '8px 16px', fontSize: '0.85rem', borderRadius: '20px' }}>
+                    <BookOpen size={16} /> Manage Tier Subjects
+                  </button>
+                  <button className="btn btn-primary" onClick={() => setShowGlobalClassSubjectsModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(5px)', color: 'white', padding: '8px 16px', fontSize: '0.85rem', borderRadius: '20px' }}>
+                    <BookOpen size={16} /> Manage Class Subjects
+                  </button>
+                </div>
               </div>
 
               {/* Search & Filter Controls */}
@@ -2572,26 +2652,12 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                   value={subjectSearch}
                   onChange={(e) => setSubjectSearch(e.target.value)}
                 />
-                <select
-                  className="form-control"
-                  style={{ width: '200px', padding: '10px' }}
-                  value={subjectTierFilter}
-                  onChange={(e) => setSubjectTierFilter(e.target.value)}
-                >
-                  <option value="all">All Tiers</option>
-                  <option value="nursery">Nursery School</option>
-                  <option value="primary">Primary School</option>
-                  <option value="jss">Junior Secondary (JSS)</option>
-                  <option value="sss">Senior Secondary (SSS)</option>
-                </select>
               </div>
 
           {(() => {
             const filteredSubjects = subjects.filter(sub => {
               const query = subjectSearch.toLowerCase();
-              const matchesSearch = sub.name.toLowerCase().includes(query);
-              const matchesTier = subjectTierFilter === 'all' || sub.tier === subjectTierFilter;
-              return matchesSearch && matchesTier;
+              return sub.name.toLowerCase().includes(query);
             });
             const paginatedSubjects = filteredSubjects.slice((subjectPage - 1) * subjectPageSize, subjectPage * subjectPageSize);
             return (
@@ -2600,20 +2666,18 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                   <thead>
                     <tr>
                       <th>Subject Name</th>
-                      <th>Tier Level</th>
                       <th style={{ textAlign: 'right' }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {paginatedSubjects.length === 0 ? (
                       <tr>
-                        <td colSpan="3" style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>No subjects found on this page.</td>
+                        <td colSpan="2" style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>No subjects found on this page.</td>
                       </tr>
                     ) : (
                       paginatedSubjects.map((sub, idx) => (
                     <tr key={idx}>
                       <td style={{ fontWeight: '600' }}>{sub.name}</td>
-                      <td style={{ textTransform: 'uppercase', fontWeight: 'bold', fontSize: '0.8rem', color: 'var(--primary)' }}>{sub.tier}</td>
                       <td style={{ textAlign: 'right' }}>
                         <button
                           className="btn btn-secondary btn-sm"
@@ -5419,9 +5483,64 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                 <label>Subject Name</label>
                 <input type="text" className="form-control" placeholder="e.g. Basic Science" required value={subjectForm.name} onChange={(e) => setSubjectForm({ ...subjectForm, name: e.target.value })} />
               </div>
+              <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Save Subject</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* =======================================================
+          MODAL: MANAGE CLASS SUBJECTS
+          ======================================================= */}
+      {showClassSubjectsModal && selectedClassForSubjects && (
+        <div className="modal-overlay">
+          <div className="modal-content glass-panel" style={{ backgroundColor: 'var(--bg-surface)' }}>
+            <button className="modal-close" onClick={() => setShowClassSubjectsModal(false)}>✕</button>
+            <h3>Manage Subjects for {selectedClassForSubjects.name}</h3>
+            <form onSubmit={handleSyncClassSubjects} style={{ marginTop: '20px' }}>
               <div className="form-group">
-                <label>School Level</label>
-                <select className="form-control" value={subjectForm.tier} onChange={(e) => setSubjectForm({ ...subjectForm, tier: e.target.value })}>
+                <label>Select Subjects</label>
+                <div className="checkbox-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', maxHeight: '300px', overflowY: 'auto', border: '1px solid var(--border-color)', padding: '10px', borderRadius: '4px' }}>
+                  {subjects.map(s => (
+                    <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={classSubjectSelection.map(String).includes(String(s.id))}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setClassSubjectSelection(prev => {
+                            const ids = prev.map(String);
+                            return checked ? [...ids, String(s.id)] : ids.filter(id => id !== String(s.id));
+                          });
+                        }} 
+                      />
+                      {s.name}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Save Subjects</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* =======================================================
+          MODAL: MANAGE TIER SUBJECTS
+          ======================================================= */}
+      {showTierSubjectsModal && (
+        <div className="modal-overlay">
+          <div className="modal-content glass-panel" style={{ backgroundColor: 'var(--bg-surface)' }}>
+            <button className="modal-close" onClick={() => setShowTierSubjectsModal(false)}>✕</button>
+            <h3>Manage Core Tier Subjects</h3>
+            <form onSubmit={handleSyncTierSubjects} style={{ marginTop: '20px' }}>
+              <div className="form-group">
+                <label>Select Tier (Section)</label>
+                <select className="form-control" value={selectedTierForSubjects} onChange={async (e) => {
+                  setSelectedTierForSubjects(e.target.value);
+                  const res = await api.getTierSubjects(e.target.value);
+                  setTierSubjectSelection(res || []);
+                }}>
                   <option value="nursery">Nursery School (Nursery 1-3)</option>
                   <option value="primary">Primary School (Primary 1-6)</option>
                   <option value="jss">Junior Secondary (JSS)</option>
@@ -5429,37 +5548,85 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                 </select>
               </div>
               <div className="form-group">
-                <label>Map to Classes (Optional)</label>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                  <button type="button" className="btn btn-sm btn-outline" onClick={() => handleBulkSubjectClassSelect('all')}>All Classes</button>
-                  <button type="button" className="btn btn-sm btn-outline" onClick={() => handleBulkSubjectClassSelect('nursery')}>All Nursery</button>
-                  <button type="button" className="btn btn-sm btn-outline" onClick={() => handleBulkSubjectClassSelect('primary')}>All Primary</button>
-                  <button type="button" className="btn btn-sm btn-outline" onClick={() => handleBulkSubjectClassSelect('jss')}>All JSS</button>
-                  <button type="button" className="btn btn-sm btn-outline" onClick={() => handleBulkSubjectClassSelect('sss')}>All SSS</button>
-                  <button type="button" className="btn btn-sm btn-outline" onClick={() => setSubjectForm(prev => ({ ...prev, class_ids: [] }))}>Clear</button>
-                </div>
-                <div className="checkbox-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', maxHeight: '150px', overflowY: 'auto', border: '1px solid var(--border-color)', padding: '10px', borderRadius: '4px' }}>
-                  {classes.map(c => (
-                    <label key={c.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
+                <label>Select Core Subjects (Auto-assigned to new classes in this tier)</label>
+                <div className="checkbox-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', maxHeight: '250px', overflowY: 'auto', border: '1px solid var(--border-color)', padding: '10px', borderRadius: '4px' }}>
+                  {subjects.map(s => (
+                    <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
                       <input 
                         type="checkbox" 
-                        checked={subjectForm.class_ids.includes(c.id)}
+                        checked={tierSubjectSelection.map(String).includes(String(s.id))}
                         onChange={(e) => {
                           const checked = e.target.checked;
-                          setSubjectForm(prev => {
-                            const newIds = checked 
-                              ? [...prev.class_ids, c.id]
-                              : prev.class_ids.filter(id => id !== c.id);
-                            return { ...prev, class_ids: newIds };
+                          setTierSubjectSelection(prev => {
+                            const ids = prev.map(String);
+                            return checked ? [...ids, String(s.id)] : ids.filter(id => id !== String(s.id));
                           });
                         }} 
                       />
-                      {c.name}
+                      {s.name}
                     </label>
                   ))}
                 </div>
               </div>
-              <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Save Subject</button>
+              <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Sync Tier Subjects</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* =======================================================
+          MODAL: MANAGE CLASS SUBJECTS (GLOBAL)
+          ======================================================= */}
+      {showGlobalClassSubjectsModal && (
+        <div className="modal-overlay">
+          <div className="modal-content glass-panel" style={{ backgroundColor: 'var(--bg-surface)' }}>
+            <button className="modal-close" onClick={() => setShowGlobalClassSubjectsModal(false)}>×</button>
+            <h3>Manage Class Subjects</h3>
+            <form onSubmit={handleSyncGlobalClassSubjects} style={{ marginTop: '20px' }}>
+              <div className="form-group">
+                <label>Select Class</label>
+                <select className="form-control" value={globalSelectedClassForSubjects} onChange={(e) => {
+                  const classId = e.target.value;
+                  setGlobalSelectedClassForSubjects(classId);
+                  if (classId) {
+                    const assigned = classSubjects.filter(cs => String(cs.class_id) === String(classId)).map(cs => cs.subject_id);
+                    setGlobalClassSubjectSelection(assigned);
+                  } else {
+                    setGlobalClassSubjectSelection([]);
+                  }
+                }}>
+                  <option value="">-- Select Class --</option>
+                  {classes.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              {globalSelectedClassForSubjects && (
+                <div className="form-group">
+                  <label>Select Subjects for Class</label>
+                  <div className="checkbox-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', maxHeight: '250px', overflowY: 'auto', border: '1px solid var(--border-color)', padding: '10px', borderRadius: '4px' }}>
+                    {subjects.map(s => (
+                      <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={globalClassSubjectSelection.map(String).includes(String(s.id))}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setGlobalClassSubjectSelection(prev => {
+                              const ids = prev.map(String);
+                              return checked ? [...ids, String(s.id)] : ids.filter(id => id !== String(s.id));
+                            });
+                          }} 
+                        />
+                        {s.name}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={!globalSelectedClassForSubjects}>Save Class Subjects</button>
             </form>
           </div>
         </div>

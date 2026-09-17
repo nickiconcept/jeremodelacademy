@@ -72,6 +72,9 @@ Route::group(['middleware' => ['auth:api', 'throttle:60,1']], function () {
     Route::put('/subjects/{id}', [\App\Http\Controllers\SubjectController::class, 'update']);
     Route::delete('/subjects/{id}', [\App\Http\Controllers\SubjectController::class, 'destroy']);
     Route::post('/class-subjects/assign', [\App\Http\Controllers\SubjectController::class, 'assign']);
+    Route::post('/class-subjects/sync-class', [\App\Http\Controllers\SubjectController::class, 'syncForClass']);
+    Route::post('/class-subjects/sync-tier', [\App\Http\Controllers\SubjectController::class, 'syncForTier']);
+    Route::get('/tier-subjects/{tier}', [\App\Http\Controllers\SubjectController::class, 'getTierSubjects']);
 
     // Teachers
     Route::get('/teachers', [\App\Http\Controllers\TeacherController::class, 'index']);

@@ -11,7 +11,7 @@ class ClassController extends Controller
     {
         $classes = DB::table('classes')
             ->leftJoin('users', 'classes.form_master_id', '=', 'users.id')
-            ->where('classes.name', 'NOT LIKE', '%Waiting Room%')
+            ->where('classes.is_virtual', false)
             ->select('classes.*', 'users.full_name as form_master_name')
             ->orderBy('classes.name')
             ->get();
@@ -22,7 +22,7 @@ class ClassController extends Controller
     {
         $classes = DB::table('classes')
             ->leftJoin('users', 'classes.form_master_id', '=', 'users.id')
-            ->where('classes.name', 'LIKE', '%Waiting Room%')
+            ->where('classes.is_virtual', true)
             ->select('classes.*', 'users.full_name as form_master_name')
             ->orderBy('classes.name')
             ->get();
@@ -49,6 +49,17 @@ class ClassController extends Controller
             'name' => $request->name,
             'tier' => $request->tier,
         ]);
+
+        $coreSubjects = DB::table('tier_subjects')
+            ->where('tier', $request->tier)
+            ->pluck('subject_id');
+
+        foreach ($coreSubjects as $subjectId) {
+            DB::table('class_subjects')->insert([
+                'class_id' => $id,
+                'subject_id' => $subjectId,
+            ]);
+        }
 
         return response()->json(['message' => 'Class created successfully', 'id' => $id], 201);
     }

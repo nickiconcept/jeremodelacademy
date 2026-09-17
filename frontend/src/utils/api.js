@@ -314,6 +314,29 @@ const api = {
     return handleResponse(res);
   },
 
+  syncClassSubjects: async (class_id, subject_ids) => {
+    const res = await fetch(`${API_BASE}/class-subjects/sync-class`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ class_id, subject_ids })
+    });
+    return handleResponse(res);
+  },
+
+  syncTierSubjects: async (tier, subject_ids) => {
+    const res = await fetch(`${API_BASE}/class-subjects/sync-tier`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ tier, subject_ids })
+    });
+    return handleResponse(res);
+  },
+
+  getTierSubjects: async (tier) => {
+    const res = await fetch(`${API_BASE}/tier-subjects/${tier}`, { headers: getHeaders() });
+    return handleResponse(res);
+  },
+
   assignSubjectTeacher: async (class_ids, subject_id, teacher_id, overwrite = false) => {
     const res = await fetch(`${API_BASE}/class-subjects/assign`, {
       method: 'POST',
