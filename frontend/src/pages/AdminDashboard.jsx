@@ -68,7 +68,8 @@ import {
   UploadCloud,
   Star,
   Trash,
-  Printer
+  Printer,
+  Shield
 } from 'lucide-react';
 
 // Modern Bar Chart Component
@@ -233,6 +234,14 @@ function ModernPieChart({ title, subtitle, data, size = 220 }) {
     }
 
     let filtered = allClasses.filter(c => targetNames.includes(c.name));
+    
+    // Inject virtual waiting room classes since they are filtered out of the API payload
+    targetNames.forEach(tn => {
+      if (tn.includes('Waiting Room') && !filtered.find(c => c.name === tn)) {
+        filtered.push({ id: tn, name: `⏳ ${tn}` });
+      }
+    });
+
     if (isGraduating) {
       filtered.push({ id: 'graduate', name: '🎓 Graduated Alumni (Complete Schooling)' });
     }
@@ -372,6 +381,13 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
   // Registration form states
   const [showStudentModal, setShowStudentModal] = useState(false);
   const [showTeacherModal, setShowTeacherModal] = useState(false);
+  const [showPermissionsModal, setShowPermissionsModal] = useState(false);
+  const [selectedTeacherForPermissions, setSelectedTeacherForPermissions] = useState(null);
+  const [teacherPermissionsForm, setTeacherPermissionsForm] = useState({
+    can_take_past_attendance: false,
+    can_register_students: false,
+    can_edit_students: false
+  });
   const [showClassModal, setShowClassModal] = useState(false);
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -941,6 +957,24 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
       await api.deleteStudent(studentId);
       setNotify("Student deleted successfully!");
       loadAllData();
+    } catch (err) {
+      setErrorMsg(err.message);
+    }
+  };
+
+  const handleUpdateTeacherPermissions = async (e) => {
+    e.preventDefault();
+    if (!selectedTeacherForPermissions) return;
+    const perms = [];
+    if (teacherPermissionsForm.can_take_past_attendance) perms.push('can_take_past_attendance');
+    if (teacherPermissionsForm.can_register_students) perms.push('can_register_students');
+    if (teacherPermissionsForm.can_edit_students) perms.push('can_edit_students');
+    
+    try {
+      await api.updateUserPermissions(selectedTeacherForPermissions.id, perms);
+      setTeachers(teachers.map(t => t.id === selectedTeacherForPermissions.id ? { ...t, permissions: perms } : t));
+      setShowPermissionsModal(false);
+      setNotify('Teacher permissions updated successfully.');
     } catch (err) {
       setErrorMsg(err.message);
     }
@@ -2313,7 +2347,33 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                         <option value="archived">Archived</option>
                       </select>
                     </td>
-                    <td style={{ textAlign: 'center' }}>
+                    <td style={{ textAlign: 'center', display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                      <button
+                        className={teach.permissions && teach.permissions.length > 0 ? "btn btn-primary" : "btn btn-secondary"}
+                        style={{ 
+                          padding: '6px 10px', 
+                          fontSize: '0.8rem', 
+                          display: 'inline-flex', 
+                          alignItems: 'center', 
+                          gap: '4px', 
+                          borderRadius: '8px',
+                          border: teach.permissions && teach.permissions.length > 0 ? 'none' : '1px solid var(--border-color)',
+                          color: teach.permissions && teach.permissions.length > 0 ? 'white' : 'var(--text-secondary)' 
+                        }}
+                        onClick={() => {
+                          setSelectedTeacherForPermissions(teach);
+                          const perms = teach.permissions || [];
+                          setTeacherPermissionsForm({
+                            can_take_past_attendance: perms.includes('can_take_past_attendance'),
+                            can_register_students: perms.includes('can_register_students'),
+                            can_edit_students: perms.includes('can_edit_students')
+                          });
+                          setShowPermissionsModal(true);
+                        }}
+                        title="Manage Permissions"
+                      >
+                        <Shield size={16} fill={teach.permissions && teach.permissions.length > 0 ? "currentColor" : "none"} />
+                      </button>
                       <button
                         className="btn btn-danger"
                         style={{ padding: '6px 10px', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '4px', borderRadius: '8px' }}
@@ -4330,6 +4390,9 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                   {classes.map((c, idx) => (
                     <option key={idx} value={c.id}>{c.name}</option>
                   ))}
+                  <option value="Nursery Graduates Waiting Room">⏳ Nursery Graduates Waiting Room</option>
+                  <option value="Primary Graduates Waiting Room">⏳ Primary Graduates Waiting Room</option>
+                  <option value="JSS Graduates Waiting Room">⏳ JSS Graduates Waiting Room</option>
                   <option value="graduate">🎓 Graduated Alumni (Complete Schooling)</option>
                 </select>
               </div>
@@ -4485,7 +4548,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
           ======================================================= */}
       
       {activeSubTab === 'timetable' && (
-        <AdminTimetableTab classes={classes} subjects={subjects} teachers={teachers} />
+        <AdminTimetableTab classes={classes} subjects={subjects} teachers={teachers} classSubjects={classSubjects} />
       )}
       {activeSubTab === 'settings' && (
         settingsSubTab === 'website' ? (
@@ -4851,6 +4914,76 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
       )}
 
       {/* =======================================================
+          MODAL: TEACHER PERMISSIONS
+          ======================================================= */}
+      {showPermissionsModal && selectedTeacherForPermissions && (
+        <div className="modal-overlay" onClick={() => setShowPermissionsModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '420px', padding: '30px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                  <Shield size={20} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontWeight: '700', fontSize: '1.2rem' }}>Staff Permissions</h3>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{selectedTeacherForPermissions.full_name}</p>
+                </div>
+              </div>
+              <button className="btn-close" onClick={() => setShowPermissionsModal(false)}>&times;</button>
+            </div>
+            
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '25px', lineHeight: '1.5' }}>
+              Toggle specific privileges for this staff member. These will override global settings if enabled.
+            </p>
+            
+            <form onSubmit={handleUpdateTeacherPermissions}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '30px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', padding: '15px', border: '1px solid var(--border-color)', borderRadius: '10px', backgroundColor: 'var(--bg-surface)' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={teacherPermissionsForm.can_take_past_attendance} 
+                    onChange={e => setTeacherPermissionsForm({...teacherPermissionsForm, can_take_past_attendance: e.target.checked})} 
+                    style={{ width: '20px', height: '20px', accentColor: 'var(--primary)' }}
+                  />
+                  <div>
+                    <strong style={{ display: 'block', fontSize: '0.95rem', color: 'var(--text-primary)' }}>Past Attendance</strong>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Allow taking attendance for previous days</span>
+                  </div>
+                </label>
+                
+                <label style={{ display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', padding: '15px', border: '1px solid var(--border-color)', borderRadius: '10px', backgroundColor: 'var(--bg-surface)' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={teacherPermissionsForm.can_register_students} 
+                    onChange={e => setTeacherPermissionsForm({...teacherPermissionsForm, can_register_students: e.target.checked})} 
+                    style={{ width: '20px', height: '20px', accentColor: 'var(--primary)' }}
+                  />
+                  <div>
+                    <strong style={{ display: 'block', fontSize: '0.95rem', color: 'var(--text-primary)' }}>Register Students</strong>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Allow registering new students</span>
+                  </div>
+                </label>
+                
+                <label style={{ display: 'flex', alignItems: 'center', gap: '15px', cursor: 'pointer', padding: '15px', border: '1px solid var(--border-color)', borderRadius: '10px', backgroundColor: 'var(--bg-surface)' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={teacherPermissionsForm.can_edit_students} 
+                    onChange={e => setTeacherPermissionsForm({...teacherPermissionsForm, can_edit_students: e.target.checked})} 
+                    style={{ width: '20px', height: '20px', accentColor: 'var(--primary)' }}
+                  />
+                  <div>
+                    <strong style={{ display: 'block', fontSize: '0.95rem', color: 'var(--text-primary)' }}>Edit Profiles</strong>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Allow editing student profiles</span>
+                  </div>
+                </label>
+              </div>
+              <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px', fontSize: '1rem', fontWeight: '600' }}>Save Permissions</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* =======================================================
           MODAL: BULK PRINT RESULT
           ======================================================= */}
       {/* =======================================================
@@ -4977,9 +5110,14 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                   <label>Class of Entry</label>
                   <select className="form-control" required value={studentForm.class_id} onChange={(e) => handleClassSelectionForRegistration(e.target.value)}>
                     <option value="">Select Class...</option>
-                    {classes.map((c, idx) => (
-                      <option key={idx} value={c.id}>{c.name}</option>
-                    ))}
+                    {classes.map((c, idx) => {
+                      const count = students.filter(s => s.class_id === c.id && s.status === 'active').length;
+                      return (
+                        <option key={idx} value={c.id}>
+                          {c.name} ({count} student{count !== 1 ? 's' : ''})
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
                 <div className="form-group">

@@ -143,6 +143,14 @@ class SubjectController extends Controller
                 }
             }
 
+            // Retroactive timetable update: fill in unassigned periods for these classes/subject
+            if ($teacher_id) {
+                \App\Models\Timetable::whereIn('class_id', $targetClasses)
+                    ->where('subject_id', $subject_id)
+                    ->whereNull('teacher_id')
+                    ->update(['teacher_id' => $teacher_id]);
+            }
+
             DB::commit();
             return response()->json(['message' => 'Subject mapped to selected classes successfully']);
         } catch (\Exception $e) {

@@ -78,7 +78,8 @@ class StudentController extends Controller
         $user = auth('api')->user();
         if ($user->role !== 'admin') {
             $settings = DB::table('system_settings')->latest('id')->first();
-            if (!$settings || !$settings->allow_fm_register_student) {
+            $perms = $user->permissions ?? [];
+            if ((!$settings || !$settings->allow_fm_register_student) && !in_array('can_register_students', $perms)) {
                 return response()->json(['error' => 'Permission denied: Only Admins or permitted Form Masters can register students.'], 403);
             }
         }
@@ -233,7 +234,8 @@ class StudentController extends Controller
         $user = auth('api')->user();
         if ($user->role !== 'admin') {
             $settings = DB::table('system_settings')->latest('id')->first();
-            if (!$settings || !$settings->allow_fm_edit_student) {
+            $perms = $user->permissions ?? [];
+            if ((!$settings || !$settings->allow_fm_edit_student) && !in_array('can_edit_students', $perms)) {
                 return response()->json(['error' => 'Permission denied: Only Admins or permitted Form Masters can edit students.'], 403);
             }
         }
@@ -350,7 +352,14 @@ class StudentController extends Controller
                     if ($target_class_id === 'graduate' && $validTargetsData['isGraduating']) {
                         $isValid = true;
                     } else if ($target_class_id !== 'graduate') {
-                        $targetClass = DB::table('classes')->where('id', $target_class_id)->first();
+                        if (is_string($target_class_id) && stripos($target_class_id, 'Waiting Room') !== false) {
+                            $targetClass = DB::table('classes')->where('name', $target_class_id)->first();
+                            if ($targetClass) {
+                                $target_class_id = $targetClass->id;
+                            }
+                        } else {
+                            $targetClass = DB::table('classes')->where('id', $target_class_id)->first();
+                        }
                         if ($targetClass && in_array($targetClass->name, $validTargetsData['names'])) {
                             $isValid = true;
                         }
@@ -421,7 +430,14 @@ class StudentController extends Controller
                     if ($target_class_id === 'graduate' && $validTargetsData['isGraduating']) {
                         $isValid = true;
                     } else if ($target_class_id !== 'graduate') {
-                        $targetClass = DB::table('classes')->where('id', $target_class_id)->first();
+                        if (is_string($target_class_id) && stripos($target_class_id, 'Waiting Room') !== false) {
+                            $targetClass = DB::table('classes')->where('name', $target_class_id)->first();
+                            if ($targetClass) {
+                                $target_class_id = $targetClass->id;
+                            }
+                        } else {
+                            $targetClass = DB::table('classes')->where('id', $target_class_id)->first();
+                        }
                         if ($targetClass && in_array($targetClass->name, $validTargetsData['names'])) {
                             $isValid = true;
                         }

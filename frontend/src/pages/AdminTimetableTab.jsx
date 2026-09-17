@@ -20,7 +20,7 @@ const HERO_STYLE = {
   color: 'white', boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
 };
 
-export default function AdminTimetableTab({ classes, subjects, teachers }) {
+export default function AdminTimetableTab({ classes, subjects, teachers, classSubjects }) {
   const [timetables, setTimetables] = useState([]);
   const [loading, setLoading]       = useState(true);
   const [adding, setAdding]         = useState(false);
@@ -29,7 +29,7 @@ export default function AdminTimetableTab({ classes, subjects, teachers }) {
 
   const [form, setForm] = useState({
     class_id: '', subject_id: '', teacher_id: '', type: 'class', activity: '',
-    day_of_week: 'Monday', start_time: '', end_time: '',
+    day_of_week: 'Monday', start_time: '', end_time: '', tiers: []
   });
 
   useEffect(() => { loadTimetables(); }, []);
@@ -47,11 +47,14 @@ export default function AdminTimetableTab({ classes, subjects, teachers }) {
     e.preventDefault();
     if (!form.start_time || !form.end_time)
       return Swal.fire('Missing Fields', 'Please enter both start and end time.', 'error');
+    if (form.type !== 'class' && (!form.tiers || form.tiers.length === 0))
+      return Swal.fire('Missing Sections', 'Please select at least one school section for this break.', 'error');
+
     try {
       setAdding(true);
       await api.addTimetable(form);
       loadTimetables();
-      setForm({ ...form, start_time: '', end_time: '', subject_id: '', teacher_id: '' });
+      setForm({ ...form, start_time: '', end_time: '', subject_id: '', teacher_id: '', tiers: [] });
       Swal.fire({ icon: 'success', title: 'Period Added!', timer: 1400, showConfirmButton: false, toast: true, position: 'top-end' });
     } catch (err) {
       console.error(err.response?.data);
@@ -138,14 +141,6 @@ export default function AdminTimetableTab({ classes, subjects, teachers }) {
               <form onSubmit={handleAdd} style={{ padding: '18px' }}>
 
                 <div style={{ marginBottom: '13px' }}>
-                  <label style={lbl}><School size={11} style={{ marginRight: 4, verticalAlign: 'middle' }} />Class *</label>
-                  <select size={1} style={{ ...inp, appearance: 'auto', WebkitAppearance: 'menulist', height: '38px' }} required value={form.class_id} onChange={e => setForm({ ...form, class_id: e.target.value })}>
-                    <option value="">Select Class</option>
-                    {classes?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                </div>
-
-                <div style={{ marginBottom: '13px' }}>
                   <label style={lbl}><BookOpen size={11} style={{ marginRight: 4, verticalAlign: 'middle' }} />Type *</label>
                   <select size={1} style={{ ...inp, appearance: 'auto', WebkitAppearance: 'menulist', height: '38px' }} required value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
                     <option value="class">Regular Class</option>
@@ -155,10 +150,51 @@ export default function AdminTimetableTab({ classes, subjects, teachers }) {
                 </div>
 
                 {form.type === 'class' ? (
+                  <div style={{ marginBottom: '13px' }}>
+                    <label style={lbl}><School size={11} style={{ marginRight: 4, verticalAlign: 'middle' }} />Class *</label>
+                    <select size={1} style={{ ...inp, appearance: 'auto', WebkitAppearance: 'menulist', height: '38px' }} required value={form.class_id} onChange={e => {
+                      const newClassId = e.target.value;
+                      let autoTeacherId = form.teacher_id;
+                      if (newClassId && form.subject_id && classSubjects) {
+                        const mapping = classSubjects.find(cs => String(cs.class_id) === String(newClassId) && String(cs.subject_id) === String(form.subject_id));
+                        if (mapping && mapping.teacher_id) autoTeacherId = mapping.teacher_id;
+                      }
+                      setForm({ ...form, class_id: newClassId, teacher_id: autoTeacherId });
+                    }}>
+                      <option value="">Select Class</option>
+                      {classes?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                ) : (
+                  <div style={{ marginBottom: '13px' }}>
+                    <label style={lbl}><School size={11} style={{ marginRight: 4, verticalAlign: 'middle' }} />Apply to Sections *</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                      {['nursery', 'primary', 'jss', 'sss'].map(tier => (
+                        <label key={tier} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.85rem', cursor: 'pointer', margin: 0 }}>
+                          <input type="checkbox" checked={form.tiers?.includes(tier)} onChange={(e) => {
+                            if (e.target.checked) setForm({ ...form, tiers: [...(form.tiers || []), tier] });
+                            else setForm({ ...form, tiers: (form.tiers || []).filter(t => t !== tier) });
+                          }} />
+                          {tier.toUpperCase()}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {form.type === 'class' ? (
                   <>
                     <div style={{ marginBottom: '13px' }}>
                       <label style={lbl}><BookOpen size={11} style={{ marginRight: 4, verticalAlign: 'middle' }} />Subject *</label>
-                      <select size={1} style={{ ...inp, appearance: 'auto', WebkitAppearance: 'menulist', height: '38px' }} required value={form.subject_id} onChange={e => setForm({ ...form, subject_id: e.target.value })}>
+                      <select size={1} style={{ ...inp, appearance: 'auto', WebkitAppearance: 'menulist', height: '38px' }} required value={form.subject_id} onChange={e => {
+                        const newSubjectId = e.target.value;
+                        let autoTeacherId = form.teacher_id;
+                        if (form.class_id && newSubjectId && classSubjects) {
+                          const mapping = classSubjects.find(cs => String(cs.class_id) === String(form.class_id) && String(cs.subject_id) === String(newSubjectId));
+                          if (mapping && mapping.teacher_id) autoTeacherId = mapping.teacher_id;
+                        }
+                        setForm({ ...form, subject_id: newSubjectId, teacher_id: autoTeacherId });
+                      }}>
                         <option value="">Select Subject</option>
                         {subjects?.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                       </select>

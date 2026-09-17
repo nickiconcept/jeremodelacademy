@@ -154,6 +154,13 @@ class AttendanceController extends Controller
                     return response()->json(['error' => 'Access denied: You are not the Form Master of this class'], 403);
                 }
 
+                $settings = DB::table('system_settings')->first();
+                $today = date('Y-m-d');
+                $perms = $user->permissions ?? [];
+                if ($date < $today && (!$settings || !$settings->allow_past_attendance) && !in_array('can_take_past_attendance', $perms)) {
+                    return response()->json(['error' => 'Access denied: Past attendance is not permitted by global settings.'], 403);
+                }
+
                 // Geofencing Check (Only enforce for teachers)
                 $settings = DB::table('system_settings')->first();
                 if ($settings) {

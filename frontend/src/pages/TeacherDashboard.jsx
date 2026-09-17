@@ -1060,8 +1060,8 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab }) 
                     style={{ width: '170px' }}
                     value={attendanceDate}
                     onChange={(e) => { setAttendanceDate(e.target.value); fetchAttendance(assignments.formClass.id, e.target.value); }}
-                    min={!settings.allow_past_attendance ? new Date().toISOString().split('T')[0] : undefined}
-                    max={!settings.allow_past_attendance ? new Date().toISOString().split('T')[0] : undefined}
+                    min={(!settings.allow_past_attendance && !(user.permissions || []).includes('can_take_past_attendance')) ? new Date().toISOString().split('T')[0] : undefined}
+                    max={(!settings.allow_past_attendance && !(user.permissions || []).includes('can_take_past_attendance')) ? new Date().toISOString().split('T')[0] : undefined}
                   />
                   <button className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }} onClick={handleSaveAttendance}><Save size={15} /> Save Attendance</button>
                 </div>
@@ -1614,8 +1614,8 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab }) 
                 </p>
               </div>
             </div>
-            {/* Register Button — only if admin permits */}
-            {settings.allow_fm_register_student === 1 ? (
+            {/* Register Button — only if admin permits or teacher has specific permission */}
+            {(settings.allow_fm_register_student === 1 || (user.permissions || []).includes('can_register_students')) ? (
               <button
                 className="btn"
                 onClick={() => setShowStudentModal(true)}
@@ -1718,7 +1718,7 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab }) 
                             >
                               <Eye size={14} /> View
                             </button>
-                            {settings.allow_fm_edit_student === 1 && (
+                            {(settings.allow_fm_edit_student === 1 || (user.permissions || []).includes('can_edit_students')) && (
                               <button
                                 onClick={() => setViewingStudent(s)}
                                 title="Edit Student"
@@ -1750,7 +1750,10 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab }) 
               <Plus size={20} style={{ color: 'var(--primary)' }} /> Register New Student
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '20px' }}>
-              Registering into: <strong style={{ color: 'var(--primary)' }}>{assignments.formClass.name}</strong>
+              Registering into: <strong style={{ color: 'var(--primary)' }}>{assignments.formClass.name}</strong> 
+              <span style={{ marginLeft: '8px', padding: '2px 8px', background: 'rgba(0, 0, 0, 0.05)', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                ({formClassStudents.filter(s => s.status === 'active').length} active students)
+              </span>
             </p>
             <form onSubmit={handleRegisterStudent} style={{ marginTop: '20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px' }}>

@@ -566,6 +566,17 @@ const api = {
     return handleResponse(res);
   },
 
+  updateUserPermissions: async (userId, permissions) => {
+    const res = await fetch(`${API_BASE}/users/update-permissions`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ user_id: userId, permissions })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update permissions');
+    return data;
+  },
+
   // User Status Updates
   updateUserStatus: async (userId, status) => {
     const res = await fetch(`${API_BASE}/users/update-status`, {

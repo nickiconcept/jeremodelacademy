@@ -51,6 +51,7 @@ Route::group(['middleware' => ['auth:api', 'throttle:60,1']], function () {
     Route::post('/users/register-teacher', [App\Http\Controllers\UserController::class, 'registerTeacher']);
     Route::put('/users/update-teacher/{id}', [App\Http\Controllers\UserController::class, 'updateTeacher']);
     Route::post('/users/update-status', [App\Http\Controllers\UserController::class, 'updateStatus']);
+    Route::post('/users/update-permissions', [App\Http\Controllers\UserController::class, 'updatePermissions']);
     Route::put('/users/update-student/{id}', [StudentController::class, 'update']);
     Route::delete('/users/delete-student/{id}', [StudentController::class, 'destroy']);
     Route::post('/students/transition', [StudentController::class, 'transition']);

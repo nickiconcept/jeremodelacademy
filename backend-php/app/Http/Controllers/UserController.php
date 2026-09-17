@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\User;
 
 class UserController extends Controller
 {
@@ -168,6 +169,24 @@ class UserController extends Controller
             DB::rollBack();
             \Illuminate\Support\Facades\Log::error($e->getMessage());
             return response()->json(['error' => 'An internal server error occurred.'], 500);
+        }
+    }
+
+    public function updatePermissions(Request $request)
+    {
+        $userId = $request->input('user_id');
+        $permissions = $request->input('permissions', []);
+
+        try {
+            $user = User::find($userId);
+            if ($user) {
+                $user->permissions = $permissions;
+                $user->save();
+                return response()->json(['success' => true]);
+            }
+            return response()->json(['error' => 'User not found'], 404);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 

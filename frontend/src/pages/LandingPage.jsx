@@ -30,6 +30,7 @@ function useCountUp(target, duration = 1800, started = false) {
 export default function LandingPage({ settings, onEnterPortal }) {
   const [slides, setSlides] = useState([]);
   const [events, setEvents] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
@@ -166,8 +167,8 @@ export default function LandingPage({ settings, onEnterPortal }) {
       <nav className="lp-nav lp-nav--solid">
         <div className="lp-nav__inner">
           <button className="lp-nav__brand" onClick={() => scrollTo('home')}>
-            {settings?.landing_logo && (
-              <img src={settings.landing_logo} alt="logo" className="lp-nav__logo" />
+            {settings?.school_logo_url && (
+              <img src={settings.school_logo_url} alt="logo" className="lp-nav__logo" />
             )}
             <span className="lp-nav__name">{schoolName}</span>
           </button>
@@ -315,7 +316,7 @@ export default function LandingPage({ settings, onEnterPortal }) {
 
           {events.length > 0 ? (
             <div className="lp-events__grid">
-              {events.slice(0, 6).map((ev, i) => {
+              {events.slice(0, 8).map((ev, i) => {
                 const { day, month, full } = formatEventDate(ev.event_date);
                 return (
                   <article key={ev.id} className="lp-event-card" style={{ animationDelay: `${i * 0.08}s` }}>
@@ -333,7 +334,7 @@ export default function LandingPage({ settings, onEnterPortal }) {
                       <p className="lp-event-card__date"><Calendar size={13} /> {full}</p>
                       <h3 className="lp-event-card__title">{ev.title}</h3>
                       <p className="lp-event-card__desc">{ev.description}</p>
-                      <span className="lp-event-card__more">Read More <ExternalLink size={13} /></span>
+                      <span className="lp-event-card__more" onClick={() => setSelectedEvent(ev)} style={{ cursor: 'pointer' }}>Read More <ExternalLink size={13} /></span>
                     </div>
                   </article>
                 );
@@ -359,8 +360,8 @@ export default function LandingPage({ settings, onEnterPortal }) {
               <div className="lp-about__img-frame">
                 {settings?.about_us_image_url
                   ? <img src={settings.about_us_image_url} alt="About" className="lp-about__img" />
-                  : (settings?.landing_logo
-                      ? <img src={settings.landing_logo} alt="About" className="lp-about__img" />
+                  : (settings?.school_logo_url
+                      ? <img src={settings.school_logo_url} alt="About" className="lp-about__img" />
                       : <div className="lp-about__img-placeholder"><GraduationCap size={72} /></div>
                     )
                 }
@@ -391,8 +392,8 @@ export default function LandingPage({ settings, onEnterPortal }) {
           <div className="lp-footer__grid">
             {/* Col 1: Brand */}
             <div className="lp-footer__col">
-              {settings?.landing_logo && (
-                <img src={settings.landing_logo} alt="logo" className="lp-footer__logo" />
+              {settings?.school_logo_url && (
+                <img src={settings.school_logo_url} alt="logo" className="lp-footer__logo" />
               )}
               <p className="lp-footer__tagline">{tagline}</p>
               <div className="lp-footer__socials">
@@ -481,6 +482,45 @@ export default function LandingPage({ settings, onEnterPortal }) {
           {showChatbot ? <X size={24} /> : <MessageCircle size={24} />}
         </button>
       </div>
+
+      {/* ── EVENT MODAL ── */}
+      {selectedEvent && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 99999, backgroundColor: 'rgba(0,0,0,0.8)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+        }} onClick={() => setSelectedEvent(null)}>
+          <div style={{
+            background: 'var(--lp-white)', borderRadius: 'var(--lp-radius-lg)', maxWidth: '600px', width: '100%',
+            maxHeight: '90vh', overflowY: 'auto', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
+          }} onClick={e => e.stopPropagation()}>
+            <button onClick={() => setSelectedEvent(null)} style={{
+              position: 'absolute', top: '15px', right: '15px', background: 'rgba(0,0,0,0.5)',
+              color: 'white', border: 'none', borderRadius: '50%', width: '36px', height: '36px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10
+            }}>
+              <X size={20} />
+            </button>
+            
+            {selectedEvent.image_url ? (
+              <img src={selectedEvent.image_url} alt={selectedEvent.title} style={{ width: '100%', height: '300px', objectFit: 'cover' }} />
+            ) : (
+              <div style={{ width: '100%', height: '200px', background: 'var(--lp-navy)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.2)' }}>
+                <Calendar size={64} />
+              </div>
+            )}
+            
+            <div style={{ padding: '30px' }}>
+              <div style={{ color: 'var(--lp-blue)', fontWeight: 'bold', fontSize: '0.9rem', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Calendar size={16} /> {formatEventDate(selectedEvent.event_date).full}
+              </div>
+              <h2 style={{ fontSize: '1.75rem', color: 'var(--lp-navy)', margin: '0 0 16px 0', lineHeight: 1.2 }}>{selectedEvent.title}</h2>
+              <div style={{ fontSize: '1.05rem', color: 'var(--lp-gray)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                {selectedEvent.description}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
