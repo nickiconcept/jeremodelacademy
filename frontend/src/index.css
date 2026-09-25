@@ -1464,6 +1464,31 @@ body.dark .icon-3d {
   .dashboard-profile-button { width: 36px; height: 36px; min-width: 36px; padding: 3px !important; justify-content: center; }
   .dashboard-profile-button img, .dashboard-profile-button > div:first-child { width: 28px !important; height: 28px !important; }
 
+  /* Keep the three Subject actions in view instead of letting the flex row run off-screen. */
+  .subject-page-header {
+    align-items: flex-start !important;
+    padding: 18px !important;
+    margin: -24px -24px 20px -24px !important;
+  }
+  .subject-page-header__actions {
+    display: grid !important;
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px !important;
+  }
+  .subject-page-header__actions .btn {
+    min-width: 0;
+    min-height: 39px;
+    justify-content: center;
+    padding: 7px 8px !important;
+    font-size: .7rem !important;
+    line-height: 1.2;
+    white-space: normal;
+  }
+  .subject-page-header__actions .btn:last-child {
+    grid-column: 1 / -1;
+  }
+
   .portal-page-content {
     animation: mobilePageIn 0.25s ease-out both;
   }
