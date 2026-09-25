@@ -2006,6 +2006,45 @@ body.dark .dashboard-header__brand { border-color: rgba(56, 189, 248, .25); back
   .student-ledger-summary { grid-template-columns: 1fr; gap: 9px; }
   .student-ledger-summary__card { padding: 13px; }
   .student-ledger-summary__copy strong { font-size: clamp(1.05rem, 5vw, 1.22rem); }
+
+  /* Teacher registration: every field remains reachable in the bottom sheet. */
+  .teacher-registration-modal { max-height: 94dvh !important; padding: 18px 14px !important; }
+  .teacher-registration-form__grid { grid-template-columns: minmax(0, 1fr) !important; gap: 0 !important; }
+  .teacher-registration-form__photo { align-items: flex-start !important; flex-wrap: wrap; gap: 8px; }
+  .teacher-registration-form__photo label { width: 100%; margin-right: 0 !important; }
+  .teacher-registration-form__photo input { min-width: 0; flex: 1 1 190px; }
+  .teacher-registration-form__photo > div { margin-left: 0 !important; }
+  .teacher-registration-form canvas { width: 100% !important; max-width: 100% !important; height: auto !important; }
+
+  /* A compact attendance calendar retains date context without swallowing the screen. */
+  .student-attendance-panel { padding: 14px !important; }
+  .student-attendance-panel__heading { align-items: flex-start !important; flex-direction: column; gap: 10px; margin-bottom: 14px !important; }
+  .student-attendance-panel__heading h3 { font-size: .9rem !important; }
+  .student-attendance-panel__heading > div { flex-wrap: wrap; gap: 8px !important; font-size: .7rem !important; }
+  .student-attendance-grid { grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)) !important; gap: 6px !important; }
+  .student-attendance-day { min-height: 62px; padding: 7px 3px !important; gap: 2px !important; border-radius: 8px !important; }
+  .student-attendance-day span:first-child { font-size: .58rem !important; }
+  .student-attendance-day span:nth-child(2) { font-size: .78rem !important; }
+  .student-attendance-day span:last-child { font-size: .55rem !important; }
+
+  /* Make PIN history an intentional, scrollable popup instead of an inline-looking panel. */
+  .history-modal-overlay { align-items: flex-end; }
+  .history-modal { max-height: 82dvh !important; padding: 0 !important; border-radius: 20px 20px 0 0 !important; }
+  .history-modal h3 { font-size: 1rem !important; }
+
+  /* Evaluation choices keep a comfortable tap target and never force horizontal scrolling. */
+  .behavioral-evaluation__body { padding: 14px !important; }
+  .behavioral-evaluation__student-heading { align-items: stretch !important; flex-direction: column; gap: 10px; }
+  .behavioral-evaluation__student-heading .btn { width: 100%; }
+  .behavioral-evaluation__skills { grid-template-columns: minmax(0, 1fr) !important; gap: 10px !important; }
+  .behavioral-evaluation__skill { padding: 12px !important; }
+  .behavioral-evaluation__ratings { padding: 0 !important; gap: 4px; }
+  .behavioral-evaluation__ratings label { min-width: 38px; min-height: 44px; justify-content: center; padding: 4px; border: 1px solid var(--border-color); border-radius: 9px; background: var(--bg-surface); }
+  .behavioral-evaluation__ratings input { width: 16px; height: 16px; }
+
+  /* Catch the remaining fixed three-column form grids in legacy dashboard sections. */
+  div[style*="grid-template-columns: 1fr 1fr 1fr"] { grid-template-columns: minmax(0, 1fr) !important; }
+  .portal-page-content .form-group[style*="min-width"] { min-width: 0 !important; width: 100%; }
 }
 
 @media (max-width: 360px) {

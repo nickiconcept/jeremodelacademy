@@ -85,7 +85,7 @@ export default function SignaturePad({ onSave }) {
         ref={canvasRef}
         width={400}
         height={150}
-        style={{ border: '1px dashed var(--border-color)', borderRadius: '6px', background: '#f8fafc', touchAction: 'none' }}
+        style={{ width: '100%', maxWidth: '400px', height: 'auto', border: '1px dashed var(--border-color)', borderRadius: '6px', background: '#f8fafc', touchAction: 'none' }}
         onMouseDown={startDrawing}
         onMouseMove={draw}
         onMouseUp={stopDrawing}

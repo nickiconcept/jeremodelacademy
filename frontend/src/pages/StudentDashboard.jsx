@@ -42,6 +42,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
 
   // Unlocked Result data
   const [activeReportCardData, setActiveReportCardData] = useState(null);
+  const [downloadReportCard, setDownloadReportCard] = useState(false);
 
   // Selected receipt for printing
   const [activeReceipt, setActiveReceipt] = useState(null);
@@ -174,6 +175,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
     if (!user?.id) return;
     try {
       const data = await api.getReportCard(user.id, term, academic_year);
+      setDownloadReportCard(true);
       setActiveReportCardData(data);
       await loadStudentData(); // Update PIN usage count in the UI
     } catch (err) {
@@ -601,7 +603,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
                         padding: '10px 20px', borderRadius: '20px', fontWeight: '700', cursor: 'pointer'
                       }}
                     >
-                      {isUnlocked ? <><Unlock size={14} /> View Report Card</> : <><Key size={14} /> Enter PIN</>}
+                      {isUnlocked ? <><Download size={14} /> Download Report Card</> : <><Key size={14} /> Enter PIN</>}
                     </button>
                   </div>
                 );
@@ -873,7 +875,8 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
         <ReportCard
           data={activeReportCardData}
           settings={settings}
-          onClose={() => setActiveReportCardData(null)}
+          autoDownload={downloadReportCard}
+          onClose={() => { setActiveReportCardData(null); setDownloadReportCard(false); }}
         />
       )}
 
@@ -1011,8 +1014,8 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
             title="My Attendance"
             subtitle="Track your daily attendance records."
           />
-          <div style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <div className="student-attendance-panel" style={{ padding: '24px' }}>
+            <div className="student-attendance-panel__heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h3 style={{ margin: 0, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Calendar size={18} color="var(--primary)" /> 90-Day Attendance History
               </h3>
@@ -1028,7 +1031,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
                 No attendance records found yet.
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px' }}>
+              <div className="student-attendance-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px' }}>
                 {attendance.map((record, index) => {
                   let bgColor = 'var(--bg-primary)';
                   let color = 'var(--text-secondary)';
@@ -1037,7 +1040,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
                   if (record.status === 'late') { bgColor = '#f59e0b'; color = 'white'; }
                   
                   return (
-                    <div key={index} style={{ 
+                    <div key={index} className="student-attendance-day" style={{
                       backgroundColor: bgColor, color, 
                       padding: '10px 5px', borderRadius: '6px', 
                       textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '4px',
@@ -1057,8 +1060,8 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
 
       {/* PIN History Modal */}
       {showHistoryModal && historyTerm && (
-        <div className="modal-backdrop fade-in" style={{ zIndex: 1050 }}>
-          <div className="modal-content scale-in" style={{ maxWidth: '500px', width: '90%', padding: '0', overflow: 'hidden' }}>
+        <div className="modal-overlay history-modal-overlay" style={{ zIndex: 1050 }}>
+          <div className="modal-content history-modal" style={{ maxWidth: '500px', width: '90%', padding: '0', overflow: 'hidden' }}>
             <div style={{ padding: '20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-secondary)' }}>
               <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <History size={20} /> PIN Usage History

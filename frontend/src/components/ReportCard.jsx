@@ -4,7 +4,7 @@ import { ArrowLeft, Award, X, Download } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import api from '../utils/api';
 
-export default function ReportCard({ data, settings, onClose, closeLabel, isBulk = false }) {
+export default function ReportCard({ data, settings, onClose, closeLabel, isBulk = false, autoDownload = false }) {
   if (!data) return null;
 
   const { student, grades, attendance, term, academic_year, position, total_students, class_average, behavioral } = data;
@@ -24,6 +24,7 @@ export default function ReportCard({ data, settings, onClose, closeLabel, isBulk
   const [localRemarks, setLocalRemarks] = useState(data.remarks || {});
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const reportRef = React.useRef(null);
+  const autoDownloadedRef = React.useRef(false);
   
   // Term Average score
   const activeTermAverage = grades && grades.length > 0 
@@ -88,8 +89,20 @@ export default function ReportCard({ data, settings, onClose, closeLabel, isBulk
       jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
     };
     
-    html2pdf().set(opt).from(element).save();
+    return html2pdf().set(opt).from(element).save();
   };
+
+  // Student result access downloads the official A4 card directly instead of opening it onscreen.
+  useEffect(() => {
+    if (!autoDownload || autoDownloadedRef.current) return undefined;
+    autoDownloadedRef.current = true;
+    const startDownload = window.setTimeout(() => {
+      const download = handleExportPDF();
+      if (download?.then) download.then(() => onClose?.()).catch(() => onClose?.());
+      else onClose?.();
+    }, 120);
+    return () => window.clearTimeout(startDownload);
+  }, [autoDownload, onClose]);
 
   const is3rdTerm = term === '3rd Term';
   const classTier = (student?.tier || 'jss').toLowerCase();

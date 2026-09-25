@@ -1340,9 +1340,9 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
         </div>
       )}
       {activeSubTab === 'behavioral' && assignments.formClass && (
-        <div className="glass-panel" style={{ backgroundColor: 'var(--bg-surface)', overflow: 'hidden' }}>
+        <div className="glass-panel behavioral-evaluation" style={{ backgroundColor: 'var(--bg-surface)', overflow: 'hidden' }}>
           {/* Premium Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', background: 'linear-gradient(135deg, var(--primary) 0%, #1e3a8a 100%)', padding: '24px', color: 'white', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
+          <div className="portal-hero behavioral-evaluation__hero" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', background: 'linear-gradient(135deg, var(--primary) 0%, #1e3a8a 100%)', padding: '24px', color: 'white', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
               <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid rgba(255,255,255,0.4)' }}>
                 <Award size={24} color="white" />
@@ -1353,7 +1353,7 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
               </div>
             </div>
           </div>
-          <div style={{ padding: '24px' }}>
+          <div className="behavioral-evaluation__body" style={{ padding: '24px' }}>
           {!evaluatingStudent ? (
             <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '20px' }}>
               <div style={{ flex: '1 1 300px' }}>
@@ -1388,20 +1388,20 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
             </div>
           ) : (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div className="behavioral-evaluation__student-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h4 style={{ margin: 0 }}>Evaluating: <span style={{ color: 'var(--primary)' }}>{evaluatingStudent.full_name}</span></h4>
                 <button className="btn btn-secondary" style={{ padding: '4px 12px', fontSize: '0.8rem' }} onClick={() => setEvaluatingStudent(null)}>Cancel / Back</button>
               </div>
 
               <form onSubmit={handleSaveSkillEvaluation}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+                <div className="behavioral-evaluation__skills" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
                   {skillsList.map(skill => (
-                    <div key={skill.id} style={{ border: '1px solid var(--border-color)', padding: '12px', borderRadius: '6px', backgroundColor: '#f8fafc' }}>
+                    <div key={skill.id} className="behavioral-evaluation__skill" style={{ border: '1px solid var(--border-color)', padding: '12px', borderRadius: '6px', backgroundColor: '#f8fafc' }}>
                       <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '10px' }}>
                         {skill.name} 
                         <span className="badge" style={{ float: 'right', fontSize: '0.7rem', backgroundColor: skill.category === 'AFFECTIVE' ? '#e0f2fe' : '#fef3c7', color: skill.category === 'AFFECTIVE' ? '#075985' : '#92400e' }}>{skill.category}</span>
                       </label>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 10px' }}>
+                      <div className="behavioral-evaluation__ratings" style={{ display: 'flex', justifyContent: 'space-between', padding: '0 10px' }}>
                         {[1, 2, 3, 4, 5].map(rating => (
                           <label key={rating} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
                             <input

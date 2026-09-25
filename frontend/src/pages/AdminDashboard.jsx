@@ -4945,7 +4945,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
           ======================================================= */}
       {showEditSkillModal && (
         <div className="modal-overlay">
-          <div className="modal-content glass-panel" style={{ backgroundColor: 'var(--bg-surface)' }}>
+          <div className="modal-content glass-panel teacher-registration-modal" style={{ backgroundColor: 'var(--bg-surface)' }}>
             <button className="modal-close" onClick={() => setShowEditSkillModal(false)}>×</button>
             <h3>Edit Behavioral Skill</h3>
             <form onSubmit={handleEditSkillSubmit} style={{ marginTop: '20px' }}>
@@ -5294,8 +5294,8 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
             <button className="modal-close" onClick={() => setShowTeacherModal(false)}>✕</button>
             <h3>Register Teacher</h3>
 
-            <form onSubmit={handleTeacherRegister} style={{ marginTop: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px' }}>
+            <form className="teacher-registration-form" onSubmit={handleTeacherRegister} style={{ marginTop: '20px' }}>
+              <div className="teacher-registration-form__photo" style={{ display: 'flex', alignItems: 'center', marginBottom: '15px' }}>
                 <label style={{ marginRight: '10px', fontWeight: 'bold' }}>Passport Photo:</label>
                 <input type="file" accept="image/*" className="form-control" onChange={(e) => {
                   const file = e.target.files[0];
@@ -5320,7 +5320,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                 )}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
+              <div className="teacher-registration-form__grid teacher-registration-form__grid--three" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
                 <div className="form-group">
                   <label>Surname</label>
                   <input type="text" className="form-control" required value={teacherForm.surname} onChange={(e) => setTeacherForm({ ...teacherForm, surname: e.target.value })} />
@@ -5347,7 +5347,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+              <div className="teacher-registration-form__grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                 <div className="form-group">
                   <label>Email Address</label>
                   <input type="email" className="form-control" required value={teacherForm.email} onChange={(e) => setTeacherForm({ ...teacherForm, email: e.target.value })} />
@@ -5358,7 +5358,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+              <div className="teacher-registration-form__grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                 <div className="form-group">
                   <label>Date of Birth</label>
                   <input type="date" className="form-control" required value={teacherForm.date_of_birth} onChange={(e) => setTeacherForm({ ...teacherForm, date_of_birth: e.target.value })} />
@@ -5369,7 +5369,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+              <div className="teacher-registration-form__grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                 <div className="form-group">
                   <label>Qualification</label>
                   <select className="form-control" required value={teacherForm.qualification} onChange={(e) => setTeacherForm({ ...teacherForm, qualification: e.target.value })}>
@@ -5401,7 +5401,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                 <input type="text" className="form-control" required value={teacherForm.address} onChange={(e) => setTeacherForm({ ...teacherForm, address: e.target.value })} />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+              <div className="teacher-registration-form__grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                 <div className="form-group">
                   <label>State of Residence</label>
                   <input type="text" className="form-control" required value={teacherForm.state_of_residence} onChange={(e) => setTeacherForm({ ...teacherForm, state_of_residence: e.target.value })} />
