@@ -1426,6 +1426,29 @@ body.dark .icon-3d {
 .dashboard-theme-button { width: 38px; min-width: 38px; height: 38px; min-height: 38px; padding: 8px !important; border-radius: 12px !important; }
 body.dark .dashboard-header__brand { border-color: rgba(56, 189, 248, .25); background: rgba(14, 165, 233, .11); }
 
+/* Consistent blue context headers for portal pages such as the timetable. */
+.portal-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  min-height: 96px;
+  padding: 24px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary) 0%, #1e3a8a 100%);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, .1);
+}
+.portal-hero__heading { display: flex; min-width: 0; align-items: center; gap: 15px; }
+.portal-hero__icon { display: grid; width: 48px; height: 48px; flex: 0 0 48px; place-items: center; border: 2px solid rgba(255,255,255,.4); border-radius: 50%; background: rgba(255,255,255,.15); backdrop-filter: blur(10px); }
+.portal-hero h3 { margin: 0; color: #fff; font-size: 1.25rem; font-weight: 700; }
+.portal-hero p { margin: 4px 0 0; color: rgba(255,255,255,.85); font-size: .85rem; }
+.student-timetable-panel__body { padding: 20px; }
+
+.receipt-modal { width: min(450px, calc(100vw - 28px)); max-height: min(760px, calc(100dvh - 28px)); overflow-y: auto !important; }
+.receipt-print-area { overflow-wrap: anywhere; }
+.receipt-meta-row { gap: 14px; }
+.receipt-meta-row > :last-child { min-width: 0; overflow-wrap: anywhere; text-align: right; }
+
 @media (max-width: 768px) {
   .mobile-only {
     display: block !important;
@@ -1497,6 +1520,39 @@ body.dark .dashboard-header__brand { border-color: rgba(56, 189, 248, .25); back
   .dashboard-theme-button { width: 36px; min-width: 36px; height: 36px; min-height: 36px; padding: 7px !important; }
   .dashboard-profile-button { width: 36px; height: 36px; min-width: 36px; padding: 3px !important; justify-content: center; }
   .dashboard-profile-button img, .dashboard-profile-button > div:first-child { width: 28px !important; height: 28px !important; }
+
+  .portal-hero { min-height: 0; padding: 18px !important; align-items: flex-start; flex-wrap: wrap; }
+  .portal-hero__heading { gap: 11px; align-items: flex-start; }
+  .portal-hero__icon { width: 40px; height: 40px; flex-basis: 40px; }
+  .portal-hero__icon svg { width: 20px; height: 20px; }
+  .portal-hero h3 { font-size: 1.04rem !important; }
+  .portal-hero p { font-size: .72rem !important; line-height: 1.4; }
+  .student-timetable-panel__body { padding: 12px; }
+
+  .student-results-panel__body { padding: 14px !important; gap: 10px !important; }
+  .student-result-row { padding: 14px !important; align-items: stretch !important; flex-direction: column; gap: 12px !important; }
+  .student-result-row h4 { font-size: .94rem !important; }
+  .student-result-row p { line-height: 1.45; }
+  .student-result-row p > span { flex-wrap: wrap; }
+  .student-result-row button { width: 100%; justify-content: center; min-height: 40px; padding: 9px 12px !important; font-size: .75rem !important; }
+
+  .student-fees-page { gap: 16px !important; }
+  .student-fees-columns { grid-template-columns: minmax(0, 1fr) !important; gap: 16px !important; }
+  .student-ledger-table, .student-ledger-table tbody, .student-ledger-table tr, .student-ledger-table td { display: block; width: 100%; }
+  .student-ledger-table thead { display: none; }
+  .student-ledger-table tr { margin: 10px 0; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-surface); box-shadow: var(--shadow-sm); }
+  .student-ledger-table td { padding: 5px 0 !important; border: 0 !important; text-align: right !important; }
+  .student-ledger-table td::before { content: attr(data-label); float: left; color: var(--text-muted); font-size: .66rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+  .student-ledger-table td:first-child { text-align: left !important; }
+  .student-ledger-table td:first-child::before { display: block; float: none; margin-bottom: 4px; }
+  .student-ledger-table td[data-label=""] { display: flex; justify-content: flex-end; padding-top: 8px !important; }
+
+  .receipt-modal { width: calc(100vw - 20px) !important; max-height: calc(100dvh - 20px) !important; border-radius: 16px !important; }
+  .receipt-print-area { padding: 16px 14px !important; }
+  .receipt-meta-row { align-items: flex-start; gap: 10px; font-size: .78rem; }
+  .receipt-meta-row > :last-child { max-width: 62%; }
+  .receipt-modal__actions { position: sticky; bottom: 0; z-index: 2; gap: 8px; padding: 10px 14px !important; background: #fff; }
+  .receipt-modal__actions .btn { min-width: 0; flex: 1; justify-content: center; padding: 8px 7px !important; font-size: .72rem !important; }
 
   /* Keep the three Subject actions in view instead of letting the flex row run off-screen. */
   .subject-page-header {

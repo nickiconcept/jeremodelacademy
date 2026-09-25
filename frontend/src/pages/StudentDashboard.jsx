@@ -235,7 +235,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
 
   // Hero header component shared across tabs
   const HeroHeader = ({ icon: Icon, title, subtitle, right }) => (
-    <div style={{
+    <div className="portal-hero" style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       flexWrap: 'wrap', gap: '15px',
       background: 'linear-gradient(135deg, var(--primary) 0%, #1e3a8a 100%)',
@@ -243,8 +243,8 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
       boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
       borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0'
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-        <div style={{
+      <div className="portal-hero__heading" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+        <div className="portal-hero__icon" style={{
           width: '48px', height: '48px', borderRadius: '50%',
           backgroundColor: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -275,11 +275,9 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
           ========================================== */}
       
       {activeSubTab === 'timetable' && (
-        <div className="card shadow-sm border-0 mb-4">
-          <div className="card-header bg-white py-3 border-0">
-            <h5 className="mb-0 text-primary fw-bold">Class Timetable</h5>
-          </div>
-          <div className="card-body">
+        <div className="glass-panel student-timetable-panel" style={{ backgroundColor: 'var(--bg-surface)', overflow: 'hidden' }}>
+          <HeroHeader icon={Calendar} title="Class Timetable" subtitle="Your weekly lessons, breaks, and subject teachers." />
+          <div className="student-timetable-panel__body">
             <TimetableViewer timetables={timetables} role="student" />
           </div>
         </div>
@@ -536,7 +534,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
           TAB 2: REPORT CARDS ACADEMIC TIMELINE
           ========================================== */}
       {activeSubTab === 'results' && (
-        <div className="glass-panel" style={{ backgroundColor: 'var(--bg-surface)', overflow: 'hidden' }}>
+        <div className="glass-panel student-results-panel" style={{ backgroundColor: 'var(--bg-surface)', overflow: 'hidden' }}>
           <HeroHeader
             icon={Award}
             title="My Results"
@@ -548,7 +546,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
             }
           />
 
-          <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div className="student-results-panel__body" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {timeline.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                 <Award size={40} style={{ opacity: 0.3, marginBottom: '12px' }} />
@@ -562,6 +560,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
                 return (
                   <div
                     key={idx}
+                    className="student-result-row"
                     style={{
                       padding: '18px 22px',
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -616,7 +615,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
           TAB 3: INVOICES & RECEIPTS LEDGER
           ========================================== */}
       {activeSubTab === 'fees' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div className="student-fees-page" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
           {/* Summary Cards */}
           <div className="fee-summary-grid">
@@ -640,7 +639,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
             ))}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+          <div className="student-fees-columns" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
             {/* Invoices */}
             <div className="glass-panel" style={{ backgroundColor: 'var(--bg-surface)', overflow: 'hidden' }}>
               <HeroHeader
@@ -650,7 +649,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
               />
               <div style={{ padding: '20px' }}>
                 <div className="table-container" style={{ marginTop: 0 }}>
-                  <table className="school-table">
+                  <table className="school-table student-ledger-table">
                     <thead style={{ backgroundColor: '#f8fafc' }}>
                       <tr>
                         <th style={{ padding: '12px 14px' }}>Fee Name</th>
@@ -664,7 +663,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
                         <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '30px' }}>No invoices on record.</td></tr>
                       ) : invoices.map((inv, idx) => (
                         <tr key={idx}>
-                          <td style={{ padding: '12px 14px', fontWeight: '600' }}>
+                          <td data-label="Fee" style={{ padding: '12px 14px', fontWeight: '600' }}>
                             <div>{inv.title.split(' - ')[0]}</div>
                             {inv.title.split(' - ').length > 1 && (
                               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 'normal', marginTop: '2px' }}>
@@ -675,9 +674,9 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
                               {inv.category || 'School Fees'}
                             </span>
                           </td>
-                          <td style={{ padding: '12px 14px' }}>₦{Number(inv.amount_due).toLocaleString()}</td>
-                          <td style={{ padding: '12px 14px' }}>₦{Number(inv.amount_paid).toLocaleString()}</td>
-                          <td style={{ padding: '12px 14px' }}>
+                          <td data-label="Amount" style={{ padding: '12px 14px' }}>₦{Number(inv.amount_due).toLocaleString()}</td>
+                          <td data-label="Paid" style={{ padding: '12px 14px' }}>₦{Number(inv.amount_paid).toLocaleString()}</td>
+                          <td data-label="Status" style={{ padding: '12px 14px' }}>
                             <span className={`badge ${inv.status === 'paid' ? 'badge-success' : 'badge-danger'}`}>
                               {inv.status === 'paid' ? 'Paid' : inv.status === 'partial' ? 'Partial' : 'Unpaid'}
                             </span>
@@ -699,7 +698,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
               />
               <div style={{ padding: '20px' }}>
                 <div className="table-container" style={{ marginTop: 0 }}>
-                  <table className="school-table">
+                  <table className="school-table student-ledger-table">
                     <thead style={{ backgroundColor: '#f8fafc' }}>
                       <tr>
                         <th style={{ padding: '12px 14px' }}>Receipt No.</th>
@@ -713,8 +712,8 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
                         <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '30px' }}>No payments logged yet.</td></tr>
                       ) : receipts.map((rec, idx) => (
                         <tr key={idx}>
-                          <td style={{ padding: '12px 14px', fontWeight: 'bold' }}>{rec.receipt_number}</td>
-                          <td style={{ padding: '12px 14px' }}>
+                          <td data-label="Receipt no." style={{ padding: '12px 14px', fontWeight: 'bold' }}>{rec.receipt_number}</td>
+                          <td data-label="Fee" style={{ padding: '12px 14px' }}>
                             <div style={{ fontWeight: '600' }}>{rec.title.split(' - ')[0]}</div>
                             {rec.title.split(' - ').length > 1 && (
                               <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '2px' }}>
@@ -722,8 +721,8 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
                               </div>
                             )}
                           </td>
-                          <td style={{ padding: '12px 14px' }}>₦{Number(rec.amount_paid).toLocaleString()}</td>
-                          <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                          <td data-label="Amount paid" style={{ padding: '12px 14px' }}>₦{Number(rec.amount_paid).toLocaleString()}</td>
+                          <td data-label="" style={{ padding: '12px 14px', textAlign: 'center' }}>
                             <button
                               className="btn"
                               style={{ padding: '6px 14px', fontSize: '0.8rem', borderRadius: '8px', border: '1px solid rgba(37,99,235,0.3)', backgroundColor: 'rgba(37,99,235,0.07)', color: '#2563eb', fontWeight: '600', cursor: 'pointer' }}
@@ -883,7 +882,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
           ========================================== */}
       {activeReceipt && (
         <div className="modal-overlay">
-          <div className="modal-content glass-panel" style={{ maxWidth: '450px', backgroundColor: '#fff', color: '#000', overflow: 'hidden', padding: 0 }}>
+          <div className="modal-content glass-panel receipt-modal" style={{ maxWidth: '450px', backgroundColor: '#fff', color: '#000', overflow: 'hidden', padding: 0 }}>
             <div className="no-print" style={{ background: 'linear-gradient(135deg, var(--primary) 0%, #1e3a8a 100%)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'white' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '700' }}>
                 <Receipt size={18} /> Payment Receipt
@@ -891,7 +890,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
               <button className="modal-close" onClick={() => setActiveReceipt(null)} style={{ color: 'white', position: 'static', fontSize: '1.2rem' }}>✕</button>
             </div>
 
-            <div className="print-area" style={{ fontFamily: '"Inter", "Segoe UI", sans-serif', padding: '20px 10px', color: '#000' }} ref={receiptRef}>
+            <div className="print-area receipt-print-area" style={{ fontFamily: '"Inter", "Segoe UI", sans-serif', padding: '20px 10px', color: '#000' }} ref={receiptRef}>
               <div style={{ textAlign: 'center', paddingBottom: '15px', borderBottom: '2px solid #e5e7eb', marginBottom: '20px' }}>
                 <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '50px', height: '50px', borderRadius: '50%', backgroundColor: 'var(--primary)', color: 'white', marginBottom: '10px' }}>
                   <Receipt size={24} />
@@ -904,23 +903,23 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem', marginBottom: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div className="receipt-meta-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: '#000' }}>Receipt No:</span>
                   <strong style={{ fontFamily: 'monospace' }}>{activeReceipt.receipt_number || 'N/A'}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div className="receipt-meta-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: '#000' }}>Date:</span>
                   <strong>{activeReceipt.payment_date || new Date().toLocaleDateString()}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div className="receipt-meta-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: '#000' }}>Student Name:</span>
                   <strong>{user?.full_name || 'N/A'}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div className="receipt-meta-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: '#000' }}>Admission No:</span>
                   <strong style={{ fontFamily: 'monospace' }}>{user?.admission_number || 'N/A'}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div className="receipt-meta-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ color: '#000' }}>Class:</span>
                   <strong>{user?.class_name || 'N/A'}</strong>
                 </div>
@@ -934,19 +933,19 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.85rem' }}>
                   {activeReceipt.true_amount_due !== undefined && activeReceipt.true_amount_due !== null && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div className="receipt-meta-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: '#000' }}>Total Billed:</span>
                       <span style={{ fontFamily: 'monospace', fontWeight: '600' }}>₦{Number(activeReceipt.true_amount_due).toLocaleString()}</span>
                     </div>
                   )}
                   {activeReceipt.true_amount_paid !== undefined && activeReceipt.true_amount_paid !== null && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <div className="receipt-meta-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ color: '#000' }}>Cumulative Paid To Date:</span>
                       <span style={{ fontFamily: 'monospace', fontWeight: '600' }}>₦{Number(activeReceipt.true_amount_paid).toLocaleString()}</span>
                     </div>
                   )}
                   {activeReceipt.true_amount_due !== undefined && activeReceipt.true_amount_due !== null && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#ef4444' }}>
+                    <div className="receipt-meta-row" style={{ display: 'flex', justifyContent: 'space-between', color: '#ef4444' }}>
                       <span>Current Balance Owed:</span>
                       <span style={{ fontFamily: 'monospace', fontWeight: '700' }}>₦{Math.max(0, Number(activeReceipt.true_amount_due) - Number(activeReceipt.true_amount_paid)).toLocaleString()}</span>
                     </div>
@@ -990,7 +989,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
               </div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderTop: '1px solid #eee' }} className="no-print">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderTop: '1px solid #eee' }} className="no-print receipt-modal__actions">
               <button className="btn btn-secondary" onClick={() => setActiveReceipt(null)} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <ArrowLeft size={16} /> Back to Fees
               </button>

@@ -6,7 +6,7 @@ import Toast from '../components/Toast';
 import Pagination from '../components/Pagination';
 
 import { useGlobalUI } from '../contexts/GlobalUIContext';
-import { ArrowLeft, Pencil, CheckSquare, BarChart2, FileSpreadsheet, FileText, Save, Search, Users, Award, CheckCircle, XCircle, Plus, Lock, Printer, BookOpen, Clock, UploadCloud, CircleCheck, Hourglass, Eye, Sparkles } from 'lucide-react';
+import { ArrowLeft, Pencil, CheckSquare, BarChart2, FileSpreadsheet, FileText, Save, Search, Users, Award, CheckCircle, XCircle, Plus, Lock, Printer, BookOpen, Clock, UploadCloud, CircleCheck, Hourglass, Eye, Sparkles, Calendar } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import html2pdf from 'html2pdf.js';
 import { Download } from 'lucide-react';
@@ -557,11 +557,14 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
           ========================================== */}
       
       {activeSubTab === 'timetable' && (
-        <div className="card shadow-sm border-0 mb-4">
-          <div className="card-header bg-white py-3 border-0">
-            <h5 className="mb-0 text-primary fw-bold">My Timetable</h5>
+        <div className="glass-panel teacher-timetable-panel" style={{ backgroundColor: 'var(--bg-surface)', overflow: 'hidden' }}>
+          <div className="portal-hero">
+            <div className="portal-hero__heading">
+              <div className="portal-hero__icon"><Calendar size={24} /></div>
+              <div><h3>My Timetable</h3><p>Your weekly classes and teaching schedule.</p></div>
+            </div>
           </div>
-          <div className="card-body">
+          <div className="student-timetable-panel__body">
             <TimetableViewer timetables={timetables} role="teacher" />
           </div>
         </div>
