@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
+import MobileBottomNav from './MobileBottomNav';
 import api from '../utils/api';
 import { Sun, Moon, User, LogOut, Menu as MenuIcon, ShieldAlert, Bell } from 'lucide-react';
 
@@ -248,10 +249,17 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
         </header>
 
         {/* Dynamic Inner Page View */}
-        <main>
+        <main className="portal-page-content">
           {children}
         </main>
       </div>
+
+      <MobileBottomNav
+        role={user.role}
+        activeTab={activeTab}
+        onSelectTab={handleSidebarSelectTab}
+        onOpenMenu={() => setSidebarOpen(true)}
+      />
 
       {/* ── User Profile Modal ── */}
       {showProfileModal && (

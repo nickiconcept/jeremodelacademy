@@ -1,0 +1,17 @@
+{
+  "name": "Jere Model Academy Portal",
+  "short_name": "JMA Portal",
+  "description": "Jere Model Academy school portal.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F0F4FA",
+  "theme_color": "#0C2A4A",
+  "icons": [
+    {
+      "src": "/jma-app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

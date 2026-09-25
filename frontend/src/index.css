@@ -1206,6 +1206,10 @@ body.dark .icon-3d {
   display: block;
 }
 
+.mobile-bottom-nav {
+  display: none;
+}
+
 /* ==========================================
    MODERN RESULT ENTRY GRADE TABLE (v2)
    ========================================== */
@@ -1355,7 +1359,7 @@ body.dark .icon-3d {
   }
 
   .main-content {
-    padding: 16px !important;
+    padding: 14px 14px calc(92px + env(safe-area-inset-bottom)) !important;
     max-height: none !important;
     overflow-y: visible !important;
   }
@@ -1363,6 +1367,76 @@ body.dark .icon-3d {
   header.glass-panel {
     margin-bottom: 20px !important;
     padding: 12px 16px !important;
+  }
+
+  header.glass-panel h1 {
+    max-width: min(56vw, 240px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .portal-page-content {
+    animation: mobilePageIn 0.25s ease-out both;
+  }
+
+  .mobile-bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1001;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: end;
+    min-height: 72px;
+    padding: 7px 6px calc(7px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--bg-surface) 94%, transparent);
+    border-top: 1px solid var(--border-color);
+    box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.10);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .mobile-bottom-nav__item {
+    min-width: 0;
+    min-height: 56px;
+    padding: 4px 2px;
+    border: 0;
+    border-radius: 14px;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 0.64rem;
+    font-weight: 700;
+    line-height: 1.1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+
+  .mobile-bottom-nav__icon {
+    display: grid;
+    place-items: center;
+    width: 31px;
+    height: 28px;
+    border-radius: 10px;
+  }
+
+  .mobile-bottom-nav__item.is-active {
+    color: var(--primary);
+  }
+
+  .mobile-bottom-nav__item.is-active .mobile-bottom-nav__icon {
+    background: var(--primary-light);
+  }
+
+  .mobile-bottom-nav__item:focus-visible {
+    outline: 3px solid var(--primary-glow);
+    outline-offset: 2px;
   }
 
   .stats-grid {
@@ -1456,6 +1530,11 @@ body.dark .icon-3d {
   .form-group {
     margin-bottom: 15px;
   }
+}
+
+@keyframes mobilePageIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* BLANK SCORESHEET TABLE */

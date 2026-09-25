@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title>Jere Model Academy Portal</title>
+  <rect width="512" height="512" rx="112" fill="#0C2A4A"/>
+  <rect x="54" y="54" width="404" height="404" rx="88" fill="#0EA5E9" opacity=".16"/>
+  <path fill="#fff" d="M256 112 70 206l186 94 151-76v96h38V206L256 112Zm-112 140v74c0 37 50 68 112 68s112-31 112-68v-74l-112 56-112-56Z"/>
+  <text x="256" y="444" fill="#fff" font-family="Arial, sans-serif" font-size="64" font-weight="700" text-anchor="middle">JMA</text>
+</svg>
