@@ -5781,14 +5781,17 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
           ======================================================= */}
       {showPayModal && (
         <div className="modal-overlay">
-          <div className="modal-content glass-panel" style={{ backgroundColor: 'var(--bg-surface)' }}>
+          <div className="modal-content glass-panel payment-modal" style={{ backgroundColor: 'var(--bg-surface)' }}>
             <button className="modal-close" onClick={() => setShowPayModal(false)}>✕</button>
-            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '50px', height: '50px', borderRadius: '50%', backgroundColor: 'var(--primary-light)', color: 'var(--primary)', marginBottom: '10px' }}>
+            <div className="payment-modal__heading">
+              <div className="payment-modal__icon">
                 <CreditCard size={28} />
               </div>
-              <h3 style={{ margin: 0 }}>Record Fee Payment</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: '5px 0 0 0' }}>Lodge a payment against an outstanding invoice.</p>
+              <div>
+                <p className="payment-modal__eyebrow">Offline payment</p>
+                <h3>Record Fee Payment</h3>
+                <p>Lodge a payment against an outstanding invoice.</p>
+              </div>
             </div>
             
             <form onSubmit={handleLogPayment}>
@@ -5799,41 +5802,30 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                 const rem = totalDue - totalPaid;
                 return (
                   <>
-                    <div style={{ padding: '14px', backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', marginBottom: '20px', fontSize: '0.85rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Student Name:</span>
-                        <strong style={{ color: 'var(--text-primary)' }}>{payForm.student_name}</strong>
+                    <section className="payment-modal__invoice-summary">
+                      <div className="payment-modal__identity">
+                        <span>Student</span>
+                        <strong>{payForm.student_name}</strong>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Fee Description:</span>
-                        <strong style={{ color: 'var(--text-primary)' }}>{inv.title || 'N/A'}</strong>
+                      <div className="payment-modal__identity">
+                        <span>Fee item</span>
+                        <strong>{inv.title || 'N/A'}</strong>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Term / Session:</span>
-                        <strong style={{ color: 'var(--primary)' }}>{inv.term || settings?.active_term || '3rd Term'} ({inv.session || settings?.active_session || '2026/2027'})</strong>
+                      <p className="payment-modal__term">{inv.term || settings?.active_term || '3rd Term'} · {inv.session || settings?.active_session || '2026/2027'}</p>
+                      <div className="payment-modal__amounts">
+                        <div><span>Total billed</span><strong>₦{totalDue.toLocaleString()}</strong></div>
+                        <div><span>Previously paid</span><strong>₦{totalPaid.toLocaleString()}</strong></div>
+                        <div className="payment-modal__balance"><span>Balance due</span><strong>₦{rem.toLocaleString()}</strong></div>
                       </div>
-                      <div style={{ borderTop: '1px dashed var(--border-color)', margin: '10px 0' }}></div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Total Billed:</span>
-                        <strong style={{ color: 'var(--text-primary)' }}>₦{totalDue.toLocaleString()}</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                        <span style={{ color: 'var(--text-secondary)' }}>Previously Paid:</span>
-                        <strong style={{ color: 'var(--success)' }}>₦{totalPaid.toLocaleString()}</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: 'var(--text-secondary)', fontWeight: 'bold' }}>Remaining Balance:</span>
-                        <strong style={{ color: 'var(--danger)', fontSize: '1.05rem' }}>₦{rem.toLocaleString()}</strong>
-                      </div>
-                    </div>
+                    </section>
                     
-                    <div className="form-group">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <label style={{ margin: 0 }}>Amount to Pay (₦)</label>
+                    <div className="form-group payment-modal__amount-entry">
+                      <div className="payment-modal__amount-label">
+                        <label>Amount to Pay (₦)</label>
                         <button 
                           type="button" 
                           className="btn btn-secondary btn-sm" 
-                          style={{ fontSize: '0.75rem', padding: '3px 8px', borderRadius: '4px' }}
+                          style={{ fontSize: '0.75rem', padding: '5px 9px', borderRadius: '8px' }}
                           onClick={() => setPayForm({ ...payForm, amount_paid: rem })}
                         >
                           Pay Full Balance
@@ -5841,8 +5833,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                       </div>
                       <input 
                         type="number" 
-                        className="form-control" 
-                        style={{ fontSize: '1.2rem', padding: '12px', fontWeight: 'bold', letterSpacing: '1px' }}
+                        className="form-control payment-modal__amount-input"
                         value={payForm.amount_paid} 
                         onChange={(e) => setPayForm({ ...payForm, amount_paid: e.target.value })} 
                         min="1"
@@ -5854,7 +5845,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                 );
               })()}
 
-              <div className="form-group">
+              <div className="form-group payment-modal__method">
                 <label>Payment Method</label>
                 <select className="form-control" style={{ padding: '10px' }} value={payForm.payment_method} onChange={(e) => setPayForm({ ...payForm, payment_method: e.target.value })}>
                   <option value="Cash">Cash</option>
@@ -5863,7 +5854,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                 </select>
               </div>
 
-              <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '12px', fontSize: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <button type="submit" className="btn btn-primary payment-modal__submit">
                 <CheckCircle size={18} /> Record Payment & Print Receipt
               </button>
             </form>

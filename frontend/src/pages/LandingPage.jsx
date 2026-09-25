@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Calendar, ChevronRight, ChevronLeft, MapPin, Phone, Mail,
   MessageCircle, X, GraduationCap, Award, BookOpen, ShieldCheck,
-  ArrowRight, ExternalLink
+  ArrowRight, ExternalLink, Menu
 } from 'lucide-react';
 import api from '../utils/api';
 import './LandingPage.css';
@@ -36,6 +36,7 @@ export default function LandingPage({ settings, onEnterPortal }) {
   const [activeSection, setActiveSection] = useState('home');
   const [statsVisible, setStatsVisible] = useState(false);
   const [showChatbot, setShowChatbot] = useState(false);
+  const [showMobileNav, setShowMobileNav] = useState(false);
   const [chatMessages, setChatMessages] = useState([
     { text: 'Hello! 👋 How can I help you today?', isBot: true },
   ]);
@@ -187,7 +188,30 @@ export default function LandingPage({ settings, onEnterPortal }) {
               LOGIN <ArrowRight size={15} />
             </button>
           </div>
+          <div className="lp-nav__mobile-actions">
+            <button type="button" className="lp-nav__mobile-login" onClick={onEnterPortal}>Portal</button>
+            <button
+              type="button"
+              className="lp-nav__menu-toggle"
+              aria-label="Open site navigation"
+              aria-expanded={showMobileNav}
+              onClick={() => setShowMobileNav((open) => !open)}
+            >
+              {showMobileNav ? <X size={20} /> : <Menu size={21} />}
+            </button>
+          </div>
         </div>
+        {showMobileNav && (
+          <div className="lp-nav__mobile-menu">
+            {['home', 'events', 'about'].map((section) => (
+              <button key={section} type="button" onClick={() => { scrollTo(section); setShowMobileNav(false); }}>
+                {section === 'about' ? 'About Us' : section[0].toUpperCase() + section.slice(1)}
+                <ChevronRight size={16} />
+              </button>
+            ))}
+            <button type="button" className="lp-nav__mobile-menu-login" onClick={onEnterPortal}>Enter School Portal <ArrowRight size={16} /></button>
+          </div>
+        )}
       </nav>
 
       {/* ── TICKER ── */}
@@ -220,12 +244,18 @@ export default function LandingPage({ settings, onEnterPortal }) {
 
         {/* Content overlay */}
         <div className="lp-hero__content-centered">
+          <p className="lp-hero__eyebrow">Jere Model Academy · Kaduna State</p>
           <h1 className="lp-hero__title">
             {slides[currentSlide]?.caption ? slides[currentSlide].caption : (
               settings?.landing_hero_desc ? settings.landing_hero_desc : 
               <>{schoolName} is committed to the Production of World Class Graduates for the Pursuit of all round Excellence.</>
             )}
           </h1>
+          <p className="lp-hero__support">A purposeful learning community for confident minds, strong character, and lifelong achievement.</p>
+          <div className="lp-hero__actions">
+            <button type="button" className="lp-hero__primary-action" onClick={onEnterPortal}>Enter School Portal <ArrowRight size={17} /></button>
+            <button type="button" className="lp-hero__secondary-action" onClick={() => scrollTo('about')}>Discover our school</button>
+          </div>
         </div>
 
         {/* Slider controls */}
