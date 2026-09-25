@@ -11,8 +11,9 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import html2pdf from 'html2pdf.js';
 import { Download } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
+import MobileTeacherOverview from '../components/MobileTeacherOverview';
 
-export default function TeacherDashboard({ user, settings, activeTab, subTab }) {
+export default function TeacherDashboard({ user, settings, activeTab, subTab, onSelectTab }) {
   const [activeSubTab, setActiveSubTab] = useState('overview');
   
   const attendanceReportRef = React.useRef(null);
@@ -533,6 +534,15 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab }) 
 
   if (isInitialLoad) return <LoadingSpinner />;
 
+  const navigateFromMobileHome = (tab) => {
+    if (onSelectTab) onSelectTab(tab);
+    else setActiveSubTab(tab);
+  };
+
+  const openMobileAssignment = (assignment) => {
+    handleSelectClassSubjectForGrades(assignment);
+  };
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '24px' }}>
       
@@ -557,7 +567,15 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab }) 
         </div>
       )}
 {activeSubTab === 'overview' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+        <div className="teacher-overview-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+          <MobileTeacherOverview
+            user={user}
+            assignments={assignments}
+            timetables={timetables}
+            resultProgress={resultProgress}
+            onNavigate={navigateFromMobileHome}
+            onOpenAssignment={openMobileAssignment}
+          />
           
           {/* RESULT UPLOAD PROGRESS WIDGET */}
           <div className="glass-panel" style={{ padding: '28px', backgroundColor: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', gap: '16px' }}>

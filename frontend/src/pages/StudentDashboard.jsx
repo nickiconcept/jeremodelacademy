@@ -9,8 +9,9 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { useGlobalUI } from '../contexts/GlobalUIContext';
 import Swal from 'sweetalert2';
 import StudentSowTab from '../components/StudentSowTab';
+import MobileStudentOverview from '../components/MobileStudentOverview';
 
-export default function StudentDashboard({ user, settings, activeTab, subTab }) {
+export default function StudentDashboard({ user, settings, activeTab, subTab, onSelectTab }) {
   const { showAlert } = useGlobalUI();
   const [activeSubTab, setActiveSubTab] = useState(() => {
     if (subTab) return subTab;
@@ -227,6 +228,10 @@ export default function StudentDashboard({ user, settings, activeTab, subTab }) 
   const unpaidInvoices = invoices.filter(inv => inv.status !== 'paid');
   const outstandingDebt = unpaidInvoices.reduce((sum, inv) => sum + (inv.amount_due - inv.amount_paid), 0);
   const totalPaid = receipts.reduce((sum, r) => sum + Number(r.amount_paid), 0);
+  const navigateFromMobileHome = (tab) => {
+    if (onSelectTab) onSelectTab(tab);
+    else setActiveSubTab(tab);
+  };
 
   // Hero header component shared across tabs
   const HeroHeader = ({ icon: Icon, title, subtitle, right }) => (
@@ -280,10 +285,20 @@ export default function StudentDashboard({ user, settings, activeTab, subTab }) 
         </div>
       )}
 {activeSubTab === 'overview' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div className="student-overview-layout" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+          <MobileStudentOverview
+            user={user}
+            settings={settings}
+            timetables={timetables}
+            attendance={attendance}
+            timeline={timeline}
+            outstandingDebt={outstandingDebt}
+            onNavigate={navigateFromMobileHome}
+          />
 
           {/* Hero Welcome Banner */}
-          <div className="glass-panel" style={{ backgroundColor: 'var(--bg-surface)', overflow: 'hidden' }}>
+          <div className="glass-panel desktop-student-overview" style={{ backgroundColor: 'var(--bg-surface)', overflow: 'hidden' }}>
             <div style={{
               background: 'linear-gradient(135deg, var(--primary) 0%, #1e3a8a 100%)',
               padding: '28px 28px 20px',

@@ -15,6 +15,7 @@ import ActivityLogsTab from '../components/ActivityLogsTab';
 import AdminSowProgress from '../components/AdminSowProgress';
 import LoadingSpinner from '../components/LoadingSpinner';
 import Toast from '../components/Toast';
+import MobileAdminOverview from '../components/MobileAdminOverview';
 import StatCard from '../components/StatCard';
 import Pagination from '../components/Pagination';
 import { useGlobalUI } from '../contexts/GlobalUIContext';
@@ -1889,7 +1890,18 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
         ];
 
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div className="admin-overview-layout" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <MobileAdminOverview
+              settings={settings}
+              students={students}
+              teachers={teachers}
+              classes={classes}
+              subjects={subjects}
+              feesReport={feesReport}
+              resultProgress={adminResultProgress}
+              onNavigate={(tab, nextSubTab = null) => onSelectTab(tab, nextSubTab)}
+              onRegisterStudent={() => { onSelectTab('students'); setShowStudentModal(true); }}
+            />
             {/* Quick Actions */}
             <div className="glass-panel" style={{ padding: '24px', backgroundColor: 'var(--bg-surface)' }}>
               <h3 style={{ margin: '0 0 16px 0', fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '8px' }}>

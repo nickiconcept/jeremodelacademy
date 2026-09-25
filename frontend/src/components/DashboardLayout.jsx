@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import MobileBottomNav from './MobileBottomNav';
+import MobileMoreSheet from './MobileMoreSheet';
 import api from '../utils/api';
 import { Sun, Moon, User, LogOut, Menu as MenuIcon, ShieldAlert, Bell } from 'lucide-react';
 
 export default function DashboardLayout({ children, user, activeTab, setActiveTab, subTab, onSelectTab, onLogout, settings }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [moreSheetOpen, setMoreSheetOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [isDark, setIsDark] = useState(false);
 
@@ -258,7 +260,14 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
         role={user.role}
         activeTab={activeTab}
         onSelectTab={handleSidebarSelectTab}
-        onOpenMenu={() => setSidebarOpen(true)}
+        onOpenMenu={() => setMoreSheetOpen(true)}
+      />
+
+      <MobileMoreSheet
+        role={user.role}
+        isOpen={moreSheetOpen}
+        onClose={() => setMoreSheetOpen(false)}
+        onSelectTab={handleSidebarSelectTab}
       />
 
       {/* ── User Profile Modal ── */}
