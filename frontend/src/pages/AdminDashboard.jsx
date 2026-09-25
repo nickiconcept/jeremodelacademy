@@ -2646,7 +2646,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                     setTierSubjectSelection(res || []); 
                     setShowTierSubjectsModal(true); 
                   }} style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(5px)', color: 'white', padding: '8px 16px', fontSize: '0.85rem', borderRadius: '20px' }}>
-                    <BookOpen size={16} /> Manage Tier Subjects
+                    <BookOpen size={16} /> Manage Subjects
                   </button>
                   <button className="btn btn-primary" onClick={() => setShowGlobalClassSubjectsModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(5px)', color: 'white', padding: '8px 16px', fontSize: '0.85rem', borderRadius: '20px' }}>
                     <BookOpen size={16} /> Manage Class Subjects
