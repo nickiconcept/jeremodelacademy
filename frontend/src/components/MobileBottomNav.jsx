@@ -12,22 +12,22 @@ import {
 
 const navigationByRole = {
   student: [
-    { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
-    { id: 'results', label: 'Results', icon: Award },
-    { id: 'attendance', label: 'Attendance', icon: CalendarCheck },
-    { id: 'fees', label: 'Fees', icon: CreditCard },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'results', label: 'My Results', icon: Award },
+    { id: 'attendance', label: 'My Attendance', icon: CalendarCheck },
+    { id: 'fees', label: 'Fees & Payments', icon: CreditCard },
   ],
   teacher: [
-    { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
-    { id: 'students', label: 'Students', icon: Users },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'students', label: 'My Students', icon: Users },
     { id: 'attendance', label: 'Attendance', icon: CalendarCheck },
-    { id: 'grades', label: 'Marks', icon: FileSpreadsheet },
+    { id: 'grades', label: 'Enter Marks', icon: FileSpreadsheet },
   ],
   admin: [
-    { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'students', label: 'Students', icon: Users },
-    { id: 'subjects', label: 'Academics', icon: BookOpen, subTab: 'list' },
-    { id: 'fees', label: 'Finance', icon: CreditCard, subTab: 'invoices' },
+    { id: 'subjects', label: 'Subjects', icon: BookOpen, subTab: 'list' },
+    { id: 'fees', label: 'School Fees', icon: CreditCard, subTab: 'invoices' },
   ],
 };
 

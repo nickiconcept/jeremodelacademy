@@ -90,7 +90,7 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
 
         {/* ── Top Header Bar ── */}
         <header
-          className="glass-panel no-print"
+          className="glass-panel no-print mobile-sticky-header"
           style={{
             padding: '12px 24px',
             display: 'flex',
@@ -106,7 +106,7 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
           {/* Left: Hamburger + Title */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <button
-              className="mobile-only btn btn-secondary"
+              className="mobile-only mobile-sidebar-trigger btn btn-secondary"
               onClick={() => setSidebarOpen(!sidebarOpen)}
               style={{
                 padding: '8px 12px', fontSize: '0.85rem',
@@ -227,7 +227,7 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
             {/* Sign out */}
             <button
               onClick={onLogout}
-              className="btn btn-secondary"
+              className="btn btn-secondary mobile-signout-trigger"
               style={{
                 padding: '8px 14px', fontSize: '0.82rem',
                 border: '1px solid var(--border-color)',
@@ -268,6 +268,7 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
         isOpen={moreSheetOpen}
         onClose={() => setMoreSheetOpen(false)}
         onSelectTab={handleSidebarSelectTab}
+        onLogout={onLogout}
       />
 
       {/* ── User Profile Modal ── */}
