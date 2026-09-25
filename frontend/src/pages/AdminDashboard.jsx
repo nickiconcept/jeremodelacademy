@@ -6090,7 +6090,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
           ======================================================= */}
       {selectedStudentForHistory && (
         <div className="modal-overlay">
-          <div className="modal-content glass-panel" style={{ maxWidth: '850px', backgroundColor: 'var(--bg-surface)', padding: '20px' }}>
+          <div className="modal-content glass-panel student-ledger-modal" style={{ maxWidth: '850px', backgroundColor: 'var(--bg-surface)', padding: '20px' }}>
             <button className="modal-close no-print" style={{ top: '15px', right: '15px', backgroundColor: 'rgba(255,255,255,0.2)', color: 'white', backdropFilter: 'blur(5px)' }} onClick={() => setSelectedStudentForHistory(null)}>✕</button>
 
             {/* Header */}
@@ -6128,27 +6128,18 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
 
                   return (
                     <>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '18px' }}>
-                        <div style={{ padding: '16px 20px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(to right bottom, #ffffff, #f8fafc)', border: '1px solid #e2e8f0', borderLeft: '5px solid #3b82f6', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', position: 'relative', overflow: 'hidden' }}>
-                          <div style={{ position: 'absolute', right: '-15px', top: '-15px', color: '#3b82f6', opacity: 0.1, transform: 'rotate(-15deg)' }}><Receipt size={90} /></div>
-                          <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Fees</div>
-                          <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#1e3a8a', marginTop: '6px' }}>
-                            ₦{totalBilled.toLocaleString()}
-                          </div>
+                      <div className="student-ledger-summary">
+                        <div className="student-ledger-summary__card student-ledger-summary__card--fees">
+                          <div className="student-ledger-summary__icon"><Receipt size={20} /></div>
+                          <div className="student-ledger-summary__copy"><div>Total Fees</div><strong title={`₦${totalBilled.toLocaleString()}`}>₦{totalBilled.toLocaleString()}</strong></div>
                         </div>
-                        <div style={{ padding: '16px 20px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(to right bottom, #ffffff, #f8fafc)', border: '1px solid #e2e8f0', borderLeft: '5px solid #10b981', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', position: 'relative', overflow: 'hidden' }}>
-                          <div style={{ position: 'absolute', right: '-15px', top: '-15px', color: '#10b981', opacity: 0.1, transform: 'rotate(-15deg)' }}><CheckCircle size={90} /></div>
-                          <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Paid</div>
-                          <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#065f46', marginTop: '6px' }}>
-                            ₦{totalPaid.toLocaleString()}
-                          </div>
+                        <div className="student-ledger-summary__card student-ledger-summary__card--paid">
+                          <div className="student-ledger-summary__icon"><CheckCircle size={20} /></div>
+                          <div className="student-ledger-summary__copy"><div>Total Paid</div><strong title={`₦${totalPaid.toLocaleString()}`}>₦{totalPaid.toLocaleString()}</strong></div>
                         </div>
-                        <div style={{ padding: '16px 20px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(to right bottom, #ffffff, #f8fafc)', border: '1px solid #e2e8f0', borderLeft: '5px solid #ef4444', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', position: 'relative', overflow: 'hidden' }}>
-                          <div style={{ position: 'absolute', right: '-15px', top: '-15px', color: '#ef4444', opacity: 0.1, transform: 'rotate(-15deg)' }}><AlertCircle size={90} /></div>
-                          <div style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Debt</div>
-                          <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#991b1b', marginTop: '6px' }}>
-                            ₦{balanceOwed.toLocaleString()}
-                          </div>
+                        <div className="student-ledger-summary__card student-ledger-summary__card--debt">
+                          <div className="student-ledger-summary__icon"><AlertCircle size={20} /></div>
+                          <div className="student-ledger-summary__copy"><div>Outstanding Debt</div><strong title={`₦${balanceOwed.toLocaleString()}`}>₦{balanceOwed.toLocaleString()}</strong></div>
                         </div>
                       </div>
 

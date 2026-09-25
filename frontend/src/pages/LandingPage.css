@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════
    LandingPage.css  –  Jere Model Academy Public Website
-   Color system: Sky Blue #0EA5E9 | Navy #0F172A | Accent #38BDF8
+   Color system: Sky Blue #0EA5E9 | Academy Blue #1D4ED8 | Accent #38BDF8
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Google Fonts ─────────────────────────────────────────────── */
@@ -8,24 +8,24 @@
 
 /* ── Design Tokens ────────────────────────────────────────────── */
 .lp-root {
-  --lp-primary:      #175342;
-  --lp-primary-dark: #0D3429;
-  --lp-accent:       #C7963E;
-  --lp-navy:         #102720;
-  --lp-navy-mid:     #163C31;
-  --lp-navy-soft:    #2A5545;
-  --lp-primary-light:#E4F0E8;
-  --lp-bg:           #F8F5EE;
-  --lp-bg-alt:       #EFE8DA;
+  --lp-primary:      #1D4ED8;
+  --lp-primary-dark: #1E3A8A;
+  --lp-accent:       #38BDF8;
+  --lp-navy:         #0B1F4A;
+  --lp-navy-mid:     #12356F;
+  --lp-navy-soft:    #1E4D91;
+  --lp-primary-light:#E0F2FE;
+  --lp-bg:           #F5FAFF;
+  --lp-bg-alt:       #EAF4FF;
   --lp-white:        #FFFFFF;
-  --lp-text:         #15231D;
-  --lp-text-muted:   #5B6A62;
-  --lp-text-light:   #8A978E;
-  --lp-border:       #DDD7C9;
-  --lp-shadow-sm:    0 2px 10px rgba(23, 83, 66, 0.08);
-  --lp-shadow-md:    0 8px 30px rgba(23, 83, 66, 0.12);
-  --lp-shadow-lg:    0 16px 50px rgba(16, 39, 32, 0.18);
-  --lp-glow:         0 0 40px rgba(199, 150, 62, 0.28);
+  --lp-text:         #10234A;
+  --lp-text-muted:   #5B6F91;
+  --lp-text-light:   #8B9BB6;
+  --lp-border:       #D5E5F5;
+  --lp-shadow-sm:    0 2px 10px rgba(29, 78, 216, 0.08);
+  --lp-shadow-md:    0 8px 30px rgba(29, 78, 216, 0.12);
+  --lp-shadow-lg:    0 16px 50px rgba(11, 31, 74, 0.18);
+  --lp-glow:         0 0 40px rgba(56, 189, 248, 0.3);
   --lp-radius:       14px;
   --lp-radius-lg:    22px;
   --lp-ease:         cubic-bezier(0.16, 1, 0.3, 1);
@@ -971,15 +971,17 @@
 
 /* ── Public-site refinement: deliberate mobile navigation and editorial hero ── */
 .lp-nav__mobile-actions, .lp-nav__mobile-menu { display: none; }
-.lp-hero__slider-overlay-full { background: linear-gradient(110deg, rgba(10,35,27,.9), rgba(16,39,32,.63) 56%, rgba(16,39,32,.4)); }
-.lp-hero__eyebrow { display: inline-flex; margin: 0 0 17px; padding: 7px 11px; border: 1px solid rgba(255,255,255,.28); border-radius: 99px; color: #F5D99D; background: rgba(255,255,255,.08); font-size: .7rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-.lp-hero__support { max-width: 610px; margin: 20px auto 0; color: rgba(255,255,255,.8); font-size: clamp(.9rem, 1.5vw, 1.05rem); line-height: 1.65; }
-.lp-hero__actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.lp-hero--centered { justify-content: flex-start; text-align: left; }
+.lp-hero__content-centered { max-width: 760px; margin: 0 clamp(28px, 9vw, 150px); padding-left: 0; }
+.lp-hero__slider-overlay-full { background: linear-gradient(105deg, rgba(7,31,79,.94), rgba(13,55,129,.72) 52%, rgba(14,165,233,.28)); }
+.lp-hero__eyebrow { display: inline-flex; margin: 0 0 17px; padding: 7px 11px; border: 1px solid rgba(186,230,253,.55); border-radius: 99px; color: #BAE6FD; background: rgba(14,165,233,.14); font-size: .7rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.lp-hero__support { max-width: 610px; margin: 20px 0 0; color: rgba(255,255,255,.84); font-size: clamp(.9rem, 1.5vw, 1.05rem); line-height: 1.65; }
+.lp-hero__actions { display: flex; justify-content: flex-start; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
 .lp-hero__primary-action, .lp-hero__secondary-action { min-height: 48px; padding: 0 18px; border-radius: 10px; font-family: inherit; font-size: .82rem; font-weight: 800; cursor: pointer; transition: transform .25s var(--lp-ease), background .25s var(--lp-ease); }
-.lp-hero__primary-action { border: 1px solid var(--lp-accent); color: #2A2418; background: var(--lp-accent); display: inline-flex; align-items: center; gap: 8px; }
+.lp-hero__primary-action { border: 1px solid var(--lp-accent); color: #082F49; background: var(--lp-accent); display: inline-flex; align-items: center; gap: 8px; }
 .lp-hero__secondary-action { border: 1px solid rgba(255,255,255,.38); color: var(--lp-white); background: rgba(255,255,255,.08); }
 .lp-hero__primary-action:hover, .lp-hero__secondary-action:hover { transform: translateY(-2px); }
-.lp-hero__primary-action:hover { background: #E0B764; }
+.lp-hero__primary-action:hover { background: #7DD3FC; }
 .lp-hero__secondary-action:hover { background: rgba(255,255,255,.18); }
 
 @media (max-width: 768px) {
@@ -991,16 +993,17 @@
   .lp-nav__mobile-login, .lp-nav__menu-toggle { min-height: 40px; border-radius: 10px; font-family: inherit; font-weight: 800; cursor: pointer; }
   .lp-nav__mobile-login { padding: 0 11px; border: 1px solid var(--lp-primary); background: var(--lp-primary); color: var(--lp-white); font-size: .7rem; }
   .lp-nav__menu-toggle { width: 40px; padding: 0; border: 1px solid var(--lp-border); background: var(--lp-white); color: var(--lp-primary); display: grid; place-items: center; }
-  .lp-nav__mobile-menu { display: block; padding: 8px 18px 14px; border-top: 1px solid var(--lp-border); background: var(--lp-white); box-shadow: 0 12px 24px rgba(16,39,32,.1); }
+  .lp-nav__mobile-menu { display: block; padding: 8px 18px 14px; border-top: 1px solid var(--lp-border); background: var(--lp-white); box-shadow: 0 12px 24px rgba(11,31,74,.12); }
   .lp-nav__mobile-menu button { width: 100%; min-height: 45px; padding: 0 3px; border: 0; border-bottom: 1px solid var(--lp-border); color: var(--lp-text); background: transparent; font-family: inherit; font-size: .84rem; font-weight: 700; display: flex; align-items: center; justify-content: space-between; text-align: left; }
-  .lp-nav__mobile-menu .lp-nav__mobile-menu-login { margin-top: 10px; padding: 0 13px; border: 0; border-radius: 10px; color: #2A2418; background: var(--lp-accent); }
+  .lp-nav__mobile-menu .lp-nav__mobile-menu-login { margin-top: 10px; padding: 0 13px; border: 0; border-radius: 10px; color: #082F49; background: var(--lp-accent); }
   .lp-nav__name { max-width: min(46vw, 220px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .9rem; }
   .lp-nav__logo { height: 35px; }
   .lp-hero { min-height: 680px; }
-  .lp-hero__content-centered { padding: 112px 20px 88px; }
+  .lp-hero--centered { justify-content: center; text-align: center; }
+  .lp-hero__content-centered { margin: 0 auto; padding: 112px 20px 88px; }
   .lp-hero__eyebrow { margin-bottom: 14px; font-size: .61rem; }
   .lp-hero__title { font-size: clamp(2rem, 9vw, 2.8rem); letter-spacing: -.045em; }
-  .lp-hero__support { margin-top: 16px; font-size: .88rem; }
+  .lp-hero__support { margin: 16px auto 0; font-size: .88rem; }
   .lp-hero__actions { display: grid; grid-template-columns: 1fr; max-width: 320px; margin: 24px auto 0; }
   .lp-hero__primary-action, .lp-hero__secondary-action { width: 100%; justify-content: center; }
   .lp-hero__arrow { top: auto; bottom: 22px; width: 42px; height: 42px; transform: none; }
