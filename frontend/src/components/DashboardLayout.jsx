@@ -3,7 +3,7 @@ import Sidebar from './Sidebar';
 import MobileBottomNav from './MobileBottomNav';
 import MobileMoreSheet from './MobileMoreSheet';
 import api from '../utils/api';
-import { Sun, Moon, User, LogOut, Menu as MenuIcon, ShieldAlert, Bell } from 'lucide-react';
+import { Sun, Moon, User, LogOut, ShieldAlert, Bell } from 'lucide-react';
 
 export default function DashboardLayout({ children, user, activeTab, setActiveTab, subTab, onSelectTab, onLogout, settings }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -56,6 +56,14 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
   const roleLabel = user.role === 'admin' ? 'Administrator' : user.role === 'teacher' ? 'Staff' : 'Student';
   const roleColor = user.role === 'admin' ? 'var(--danger)' : user.role === 'teacher' ? 'var(--success)' : 'var(--primary)';
   const roleBg = user.role === 'admin' ? 'var(--danger-light)' : user.role === 'teacher' ? 'var(--success-light)' : 'var(--primary-light)';
+  const pageTitles = {
+    dashboard: 'Dashboard', students: user.role === 'teacher' ? 'My Students' : 'Students', teachers: 'Teachers',
+    classes: 'Classes', subjects: 'Subjects', timetable: user.role === 'teacher' ? 'My Timetable' : 'Timetable',
+    attendance: 'Attendance', grades: 'Enter Marks', broadsheet: 'Class Results', behavioral: 'Evaluate Students',
+    schemes: 'Scheme of Work', results: 'My Results', fees: user.role === 'student' ? 'Fees & Payments' : 'School Fees',
+    rules: 'School Rules', 'student-results': 'Student Results', settings: 'Settings', logs: 'Activity Logs',
+  };
+  const pageTitle = pageTitles[activeTab] || 'Dashboard';
 
   // Get initials for avatar
   const initials = (user.full_name || 'U')
@@ -90,7 +98,7 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
 
         {/* ── Top Header Bar ── */}
         <header
-          className="glass-panel no-print mobile-sticky-header"
+          className="glass-panel no-print mobile-sticky-header dashboard-header"
           style={{
             padding: '12px 24px',
             display: 'flex',
@@ -103,34 +111,20 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
             borderRadius: 'var(--radius-lg)',
           }}
         >
-          {/* Left: Hamburger + Title */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <button
-              className="mobile-only mobile-sidebar-trigger btn btn-secondary"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              style={{
-                padding: '8px 12px', fontSize: '0.85rem',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--radius-sm)',
-                display: 'flex', alignItems: 'center', gap: '6px',
-              }}
-            >
-              <MenuIcon size={18} />
-              <span>Menu</span>
-            </button>
-
+          {/* Current location — mobile navigation lives in the bottom app bar. */}
+          <div className="dashboard-header__title" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <div>
-              <h1 style={{ fontSize: '1.05rem', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>
-                Welcome back, <span style={{ color: 'var(--primary)' }}>{user.full_name}!</span>
-              </h1>
-              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0, letterSpacing: '0.02em' }}>
-                {settings?.landing_school_name || 'Jere Model Academy'} Portal
+              <p className="dashboard-header__eyebrow">
+                {roleLabel} portal · {settings?.landing_school_name || 'Jere Model Academy'}
               </p>
+              <h1>
+                {pageTitle}
+              </h1>
             </div>
           </div>
 
           {/* Right: Actions Row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div className="dashboard-header__actions" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             {/* Session pill */}
             {settings && (
               <div
@@ -174,7 +168,7 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
             {/* Theme toggle */}
             <button
               onClick={toggleTheme}
-              className="btn btn-secondary btn-icon"
+              className="btn btn-secondary btn-icon dashboard-theme-button"
               title="Toggle Theme"
             >
               {isDark ? <Sun size={17} /> : <Moon size={17} />}
@@ -183,6 +177,7 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
             {/* Profile button */}
             <button
               onClick={() => setShowProfileModal(true)}
+              className="dashboard-profile-button"
               style={{
                 display: 'flex', alignItems: 'center', gap: '9px',
                 padding: '6px 12px 6px 6px',

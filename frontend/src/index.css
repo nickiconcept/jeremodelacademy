@@ -1234,6 +1234,19 @@ body.dark .icon-3d {
 .payment-modal__method { margin-top: 2px; }
 .payment-modal__submit { width: 100%; min-height: 50px; padding: 12px; font-size: .92rem; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 
+/* Student payment information: amount values must remain readable on every phone width. */
+.fee-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.fee-summary-card { min-width: 0; padding: 18px; overflow: hidden; border: 1px solid var(--fee-card-border); border-radius: var(--radius-md); background: var(--fee-card-bg); box-shadow: var(--shadow-sm); }
+.fee-summary-card__content { min-width: 0; display: flex; align-items: center; gap: 12px; }
+.fee-summary-card__icon { width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; border: 1px solid var(--fee-card-border); border-radius: 11px; color: var(--fee-card-color); background: rgba(255,255,255,.55); }
+.fee-summary-card__copy { min-width: 0; }
+.fee-summary-card__label { color: var(--text-muted); font-size: .7rem; font-weight: 800; letter-spacing: .055em; text-transform: uppercase; }
+.fee-summary-card__value { margin-top: 3px; color: var(--fee-card-color); font-size: clamp(1rem, 1.3vw, 1.2rem); font-weight: 850; letter-spacing: -.025em; line-height: 1.2; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fee-summary-card--primary { --fee-card-color: #2563eb; --fee-card-bg: #eff6ff; --fee-card-border: #bfdbfe; }
+.fee-summary-card--sky { --fee-card-color: #0284c7; --fee-card-bg: #f0f9ff; --fee-card-border: #bae6fd; }
+.fee-summary-card--indigo { --fee-card-color: #4f46e5; --fee-card-bg: #eef2ff; --fee-card-border: #c7d2fe; }
+.fee-summary-card--debt { --fee-card-color: #dc2626; --fee-card-bg: #fef2f2; --fee-card-border: #fecaca; }
+
 .mobile-bottom-nav {
   display: none;
 }
@@ -1382,6 +1395,9 @@ body.dark .icon-3d {
 
   .app-container {
     flex-direction: column;
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
   }
 
   .sidebar-container {
@@ -1396,8 +1412,12 @@ body.dark .icon-3d {
 
   .main-content {
     padding: 14px 14px calc(92px + env(safe-area-inset-bottom)) !important;
-    max-height: none !important;
-    overflow-y: visible !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   header.glass-panel {
@@ -1415,6 +1435,21 @@ body.dark .icon-3d {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  .dashboard-header {
+    min-height: 64px;
+    flex-wrap: nowrap !important;
+    gap: 10px !important;
+    border-radius: 18px !important;
+  }
+
+  .dashboard-header__title { min-width: 0; flex: 1; }
+  .dashboard-header__eyebrow { margin: 0 0 2px; overflow: hidden; color: var(--text-muted); font-size: .58rem; font-weight: 800; letter-spacing: .07em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+  .dashboard-header h1 { max-width: none; color: var(--text-primary); font-size: 1.08rem; font-weight: 800; letter-spacing: -.02em; }
+  .dashboard-header__actions { flex: 0 0 auto; gap: 7px !important; }
+  .dashboard-theme-button { width: 36px; min-width: 36px; height: 36px; min-height: 36px; padding: 7px !important; }
+  .dashboard-profile-button { width: 36px; height: 36px; min-width: 36px; padding: 3px !important; justify-content: center; }
+  .dashboard-profile-button img, .dashboard-profile-button > div:first-child { width: 28px !important; height: 28px !important; }
 
   .portal-page-content {
     animation: mobilePageIn 0.25s ease-out both;
@@ -1818,6 +1853,14 @@ body.dark .icon-3d {
   .payment-modal__amounts { grid-template-columns: 1fr 1fr; }
   .payment-modal__amounts .payment-modal__balance { grid-column: 1 / -1; border-top: 1px solid var(--border-color); }
   .payment-modal__amounts .payment-modal__balance { border-left: 0; }
+
+  .fee-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .fee-summary-card { padding: 13px 11px; border-radius: 15px; }
+  .fee-summary-card__content { align-items: flex-start; gap: 9px; }
+  .fee-summary-card__icon { width: 34px; height: 34px; flex-basis: 34px; border-radius: 10px; }
+  .fee-summary-card__icon svg { width: 17px; height: 17px; }
+  .fee-summary-card__label { font-size: .6rem; letter-spacing: .035em; }
+  .fee-summary-card__value { font-size: clamp(.91rem, 4vw, 1.08rem); }
 }
 
 @media (max-width: 360px) {
@@ -1825,6 +1868,9 @@ body.dark .icon-3d {
   .mobile-admin-overview__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .payment-modal__heading h3 { font-size: 1.08rem; }
   .payment-modal__amount-label { align-items: flex-start; flex-direction: column; gap: 6px; }
+  .fee-summary-grid { grid-template-columns: 1fr; }
+  .fee-summary-card { padding: 13px; }
+  .fee-summary-card__content { align-items: center; }
 }
 
 @keyframes mobilePageIn {

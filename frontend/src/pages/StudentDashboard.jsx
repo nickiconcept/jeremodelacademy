@@ -619,21 +619,21 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
           {/* Summary Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
+          <div className="fee-summary-grid">
             {[
-              { label: 'Total Charged', value: `₦${invoices.reduce((s, i) => s + Number(i.amount_due), 0).toLocaleString()}`, icon: FileText, color: '#2563eb', bg: 'rgba(37,99,235,0.08)', border: 'rgba(37,99,235,0.2)' },
-              { label: 'Total Paid', value: `₦${totalPaid.toLocaleString()}`, icon: CheckCircle, color: '#16a34a', bg: 'rgba(22,163,74,0.08)', border: 'rgba(22,163,74,0.2)' },
-              { label: 'Outstanding', value: `₦${outstandingDebt.toLocaleString()}`, icon: outstandingDebt > 0 ? AlertTriangle : CheckCircle, color: outstandingDebt > 0 ? '#dc2626' : '#16a34a', bg: outstandingDebt > 0 ? 'rgba(220,38,38,0.08)' : 'rgba(22,163,74,0.08)', border: outstandingDebt > 0 ? 'rgba(220,38,38,0.2)' : 'rgba(22,163,74,0.2)' },
-              { label: 'Payment Receipts', value: receipts.length, icon: Receipt, color: '#7c3aed', bg: 'rgba(124,58,237,0.08)', border: 'rgba(124,58,237,0.2)' },
+              { label: 'Total Fees', value: `₦${invoices.reduce((s, i) => s + Number(i.amount_due), 0).toLocaleString()}`, icon: FileText, tone: 'primary' },
+              { label: 'Total Paid', value: `₦${totalPaid.toLocaleString()}`, icon: CheckCircle, tone: 'sky' },
+              { label: 'Outstanding', value: `₦${outstandingDebt.toLocaleString()}`, icon: outstandingDebt > 0 ? AlertTriangle : CheckCircle, tone: outstandingDebt > 0 ? 'debt' : 'primary' },
+              { label: 'Payment Receipts', value: receipts.length, icon: Receipt, tone: 'indigo' },
             ].map((card, i) => (
-              <div key={i} className="glass-panel" style={{ padding: '18px 20px', backgroundColor: card.bg, border: `1px solid ${card.border}`, overflow: 'hidden' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: card.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${card.border}` }}>
-                    <card.icon size={20} style={{ color: card.color }} />
+              <div key={i} className={`fee-summary-card fee-summary-card--${card.tone}`}>
+                <div className="fee-summary-card__content">
+                  <div className="fee-summary-card__icon">
+                    <card.icon size={20} />
                   </div>
-                  <div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{card.label}</div>
-                    <div style={{ fontWeight: '800', fontSize: '1.1rem', color: card.color }}>{card.value}</div>
+                  <div className="fee-summary-card__copy">
+                    <div className="fee-summary-card__label">{card.label}</div>
+                    <div className="fee-summary-card__value" title={String(card.value)}>{card.value}</div>
                   </div>
                 </div>
               </div>
