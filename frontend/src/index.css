@@ -1395,6 +1395,37 @@ body.dark .icon-3d {
   }
 }
 
+/* Dashboard header: school identity, a personal welcome, and quiet utility actions. */
+.dashboard-header__identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 13px;
+}
+.dashboard-header__brand {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(14, 165, 233, .22);
+  border-radius: 14px;
+  background: linear-gradient(145deg, #e0f2fe, #f8fdff);
+  box-shadow: 0 5px 14px rgba(14, 165, 233, .12);
+}
+.dashboard-header__brand img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
+.dashboard-header__brand span { color: var(--primary); font-size: .78rem; font-weight: 900; letter-spacing: -.04em; }
+.dashboard-header__title { min-width: 0; }
+.dashboard-header__eyebrow,
+.dashboard-header__location { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dashboard-header__eyebrow { color: var(--text-muted); font-size: .65rem; font-weight: 800; letter-spacing: .065em; text-transform: uppercase; }
+.dashboard-header h1 { margin: 2px 0 0; color: var(--text-primary); font-size: 1.18rem; font-weight: 800; letter-spacing: -.025em; line-height: 1.15; }
+.dashboard-header__location { margin-top: 3px; color: var(--primary); font-size: .74rem; font-weight: 700; }
+.dashboard-header__actions { display: flex; flex: 0 0 auto; align-items: center; gap: 10px; }
+.dashboard-theme-button { width: 38px; min-width: 38px; height: 38px; min-height: 38px; padding: 8px !important; border-radius: 12px !important; }
+body.dark .dashboard-header__brand { border-color: rgba(56, 189, 248, .25); background: rgba(14, 165, 233, .11); }
+
 @media (max-width: 768px) {
   .mobile-only {
     display: block !important;
@@ -1456,9 +1487,12 @@ body.dark .icon-3d {
     border-radius: 18px !important;
   }
 
+  .dashboard-header__identity { flex: 1; gap: 10px; }
+  .dashboard-header__brand { width: 38px; height: 38px; flex-basis: 38px; border-radius: 12px; }
   .dashboard-header__title { min-width: 0; flex: 1; }
-  .dashboard-header__eyebrow { margin: 0 0 2px; overflow: hidden; color: var(--text-muted); font-size: .58rem; font-weight: 800; letter-spacing: .07em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
-  .dashboard-header h1 { max-width: none; color: var(--text-primary); font-size: 1.08rem; font-weight: 800; letter-spacing: -.02em; }
+  .dashboard-header__eyebrow { font-size: .55rem; }
+  .dashboard-header h1 { max-width: none; font-size: 1rem; }
+  .dashboard-header__location { margin-top: 2px; font-size: .67rem; }
   .dashboard-header__actions { flex: 0 0 auto; gap: 7px !important; }
   .dashboard-theme-button { width: 36px; min-width: 36px; height: 36px; min-height: 36px; padding: 7px !important; }
   .dashboard-profile-button { width: 36px; height: 36px; min-width: 36px; padding: 3px !important; justify-content: center; }

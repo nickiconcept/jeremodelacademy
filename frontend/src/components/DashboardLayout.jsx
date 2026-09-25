@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import MobileBottomNav from './MobileBottomNav';
 import MobileMoreSheet from './MobileMoreSheet';
@@ -10,6 +10,13 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [currentHour, setCurrentHour] = useState(() => new Date().getHours());
+
+  useEffect(() => {
+    const updateGreetingHour = () => setCurrentHour(new Date().getHours());
+    const timer = window.setInterval(updateGreetingHour, 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   // Password fields
   const [oldPassword, setOldPassword] = useState('');
@@ -64,6 +71,9 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
     rules: 'School Rules', 'student-results': 'Student Results', settings: 'Settings', logs: 'Activity Logs',
   };
   const pageTitle = pageTitles[activeTab] || 'Dashboard';
+  const greeting = currentHour < 12 ? 'Good morning' : currentHour < 17 ? 'Good afternoon' : 'Good evening';
+  const schoolName = settings?.landing_school_name || 'Jere Model Academy';
+  const displayName = user.full_name?.split(' ')[0] || user.username || 'there';
 
   // Get initials for avatar
   const initials = (user.full_name || 'U')
@@ -111,15 +121,19 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
             borderRadius: 'var(--radius-lg)',
           }}
         >
-          {/* Current location — mobile navigation lives in the bottom app bar. */}
-          <div className="dashboard-header__title" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div>
-              <p className="dashboard-header__eyebrow">
-                {roleLabel} portal · {settings?.landing_school_name || 'Jere Model Academy'}
-              </p>
-              <h1>
-                {pageTitle}
-              </h1>
+          {/* School identity and a clear, personal welcome. */}
+          <div className="dashboard-header__identity">
+            <div className="dashboard-header__brand" aria-label={schoolName}>
+              {settings?.school_logo_url ? (
+                <img src={settings.school_logo_url} alt={`${schoolName} logo`} />
+              ) : (
+                <span aria-hidden="true">{schoolName.split(' ').map(word => word[0]).slice(0, 2).join('').toUpperCase()}</span>
+              )}
+            </div>
+            <div className="dashboard-header__title">
+              <p className="dashboard-header__eyebrow">{schoolName} · {roleLabel} portal</p>
+              <h1>{greeting}, {displayName}</h1>
+              <p className="dashboard-header__location">{pageTitle}</p>
             </div>
           </div>
 
@@ -157,19 +171,12 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
               </div>
             )}
 
-            {/* Date */}
-            <div
-              className="desktop-only"
-              style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: '500' }}
-            >
-              {new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-            </div>
-
             {/* Theme toggle */}
             <button
               onClick={toggleTheme}
               className="btn btn-secondary btn-icon dashboard-theme-button"
-              title="Toggle Theme"
+              title={isDark ? 'Use light mode' : 'Use dark mode'}
+              aria-label={isDark ? 'Use light mode' : 'Use dark mode'}
             >
               {isDark ? <Sun size={17} /> : <Moon size={17} />}
             </button>
