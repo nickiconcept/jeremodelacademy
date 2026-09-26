@@ -19,6 +19,7 @@ import {
   TrendingUp,
   LogOut,
   ChevronRight,
+  Shield,
 } from 'lucide-react';
 
 const menuByRole = {
@@ -76,8 +77,21 @@ const menuByRole = {
   ],
 };
 
-export default function MobileMoreSheet({ role, isOpen, onClose, onSelectTab, onLogout }) {
-  const groups = menuByRole[role] || [];
+export default function MobileMoreSheet({ role, isOpen, onClose, onSelectTab, onLogout, user }) {
+  let groups = menuByRole[role] || [];
+  
+  if (role === 'admin' && user?.permissions?.includes('super_admin')) {
+    // Add a dedicated System Administration section at the very top
+    groups = [
+      {
+        title: 'System Administration',
+        items: [
+          { id: 'system_admins', label: 'System Admins', icon: Shield }
+        ]
+      },
+      ...groups
+    ];
+  }
 
   useEffect(() => {
     if (!isOpen) return undefined;

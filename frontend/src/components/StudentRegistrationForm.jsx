@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../utils/api';
 import { ArrowLeft, Edit2, X, User, Save, Upload, Download } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
@@ -70,7 +71,7 @@ export default function StudentRegistrationForm({ student, onClose, onUpdate }) 
     setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
-  return (
+  return createPortal(
     <div className="modal-overlay">
       <div className="modal-content glass-panel" style={{ maxWidth: '850px', backgroundColor: 'var(--bg-surface)' }}>
         <button className="modal-close no-print" onClick={onClose} style={{ display: 'flex', alignItems: 'center' }}>
@@ -346,6 +347,7 @@ export default function StudentRegistrationForm({ student, onClose, onUpdate }) 
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -28,6 +28,7 @@ import {
   Sparkles,
   TrendingUp,
   ShieldCheck,
+  Shield,
   ChevronDown,
   ChevronRight,
   ClipboardList,
@@ -43,6 +44,8 @@ export default function Sidebar({ role, activeTab, subTab, onSelectTab, onLogout
   const navItems = {
     admin: [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      // Conditionally render System Admins if the user has super_admin permission
+      ...(user?.permissions?.includes('super_admin') ? [{ id: 'system_admins', label: 'System Admins', icon: Shield }] : []),
       { id: 'students', label: 'Students', icon: Users },
       { id: 'teachers', label: 'Teachers', icon: GraduationCap },
       { id: 'classes', label: 'Classes', icon: School },

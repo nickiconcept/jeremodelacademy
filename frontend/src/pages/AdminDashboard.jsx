@@ -22,6 +22,7 @@ import { useGlobalUI } from '../contexts/GlobalUIContext';
 import AdminWebsiteTab from './AdminWebsiteTab';
 import AdminTimetableTab from './AdminTimetableTab';
 import AdminSettingsTab from '../components/admin/AdminSettingsTab';
+import AdminManagementTab from '../components/admin/AdminManagementTab';
 import {
   ArrowLeft,
   LayoutDashboard,
@@ -4655,6 +4656,13 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
           classes={classes}
         />
         )
+      )}
+
+      {/* =======================================================
+          TAB: SYSTEM ADMINS
+          ======================================================= */}
+      {activeSubTab === 'system_admins' && (
+        <AdminManagementTab />
       )}
 
       {/* =======================================================

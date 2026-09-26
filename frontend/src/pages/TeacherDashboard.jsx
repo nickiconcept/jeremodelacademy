@@ -1,5 +1,6 @@
-import TimetableViewer from '../components/TimetableViewer';
+﻿import TimetableViewer from '../components/TimetableViewer';
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../utils/api';
 import ClassBroadsheet from '../components/ClassBroadsheet';
 import Toast from '../components/Toast';
@@ -870,7 +871,7 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: '600', color: '#d97706' }}>
-                      <Pencil size={13} /> Enter Marks →
+                      <Pencil size={13} /> Enter Marks â†’
                     </div>
                   </button>
                 ))
@@ -890,14 +891,14 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                 onClick={() => { setSelectedClassSubject(null); setActiveSubTab('overview'); }}
                 style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.4)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '1.1rem', transition: 'all 0.2s' }}
                 title="Back to overview"
-              >←</button>
+              >â†</button>
               <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid rgba(255,255,255,0.4)' }}>
                 <Pencil size={24} color="white" />
               </div>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '700' }}>{selectedClassSubject.subject_name}</h3>
                 <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.85rem', margin: '4px 0 0 0' }}>
-                  {selectedClassSubject.class_name} · {settings.active_term} · {settings.active_session}
+                  {selectedClassSubject.class_name} Â· {settings.active_term} Â· {settings.active_session}
                 </p>
               </div>
             </div>
@@ -1105,7 +1106,7 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                   <thead style={{ backgroundColor: '#f8fafc' }}>
                     <tr>
                       <th style={{ padding: '14px' }}>Student Name</th>
-                      <th style={{ padding: '14px' }}>Admission Number</th>
+                      <th className="desktop-only" style={{ padding: '14px' }}>Admission Number</th>
                       <th style={{ padding: '14px' }}>Roll Call Status</th>
                     </tr>
                   </thead>
@@ -1115,8 +1116,13 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                       r.admission_number.toLowerCase().includes(attendanceSearch.toLowerCase())
                     ).map((r, idx) => (
                       <tr key={idx} style={{ transition: 'background-color 0.2s', borderBottom: '1px solid var(--border-color)' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.01)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                        <td style={{ fontWeight: '600', padding: '14px' }}>{r.full_name}</td>
-                        <td style={{ padding: '14px' }}><code style={{ backgroundColor: 'var(--bg-secondary)', padding: '3px 8px', borderRadius: '4px', fontSize: '0.82rem' }}>{r.admission_number}</code></td>
+                        <td style={{ fontWeight: '600', padding: '14px' }}>
+                          {r.full_name}
+                          <div className="mobile-only" style={{ marginTop: '4px', fontWeight: 'normal' }}>
+                            <code style={{ backgroundColor: 'var(--bg-secondary)', padding: '3px 8px', borderRadius: '4px', fontSize: '0.82rem' }}>{r.admission_number}</code>
+                          </div>
+                        </td>
+                        <td className="desktop-only" style={{ padding: '14px' }}><code style={{ backgroundColor: 'var(--bg-secondary)', padding: '3px 8px', borderRadius: '4px', fontSize: '0.82rem' }}>{r.admission_number}</code></td>
                         <td style={{ padding: '14px' }}>
                           <div style={{ display: 'flex', gap: '8px' }}>
                             <button
@@ -1135,7 +1141,7 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                                 transition: 'all 0.2s ease'
                               }}
                             >
-                              ✓ Present
+                              <span className="desktop-only">âœ“ Present</span><span className="mobile-only-inline" style={{ fontWeight: 'bold' }}>P</span>
                             </button>
                             <button
                               type="button"
@@ -1153,7 +1159,7 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                                 transition: 'all 0.2s ease'
                               }}
                             >
-                              ✕ Absent
+                              <span className="desktop-only">âœ• Absent</span><span className="mobile-only-inline" style={{ fontWeight: 'bold' }}>A</span>
                             </button>
                             <button
                               type="button"
@@ -1171,7 +1177,7 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                                 transition: 'all 0.2s ease'
                               }}
                             >
-                              ⏰ Late
+                              <span className="desktop-only">â° Late</span><span className="mobile-only-inline" style={{ fontWeight: 'bold' }}>L</span>
                             </button>
                           </div>
                         </td>
@@ -1210,7 +1216,7 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                   <thead style={{ backgroundColor: '#f8fafc' }}>
                     <tr>
                       <th style={{ padding: '14px' }}>Student Name</th>
-                      <th style={{ padding: '14px' }}>Admission Number</th>
+                      <th className="desktop-only" style={{ padding: '14px' }}>Admission Number</th>
                       {attendanceReportView === 'monthly' && <th style={{ padding: '14px' }}>Month</th>}
                       {attendanceReportView === 'weekdays' ? (
                         <>
@@ -1241,8 +1247,13 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                         const ratio = r.total_days > 0 ? Math.round((r.present_count / r.total_days) * 100) : 0;
                         return (
                           <tr key={idx} style={{ transition: 'background-color 0.2s', borderBottom: '1px solid var(--border-color)' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.01)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                            <td style={{ fontWeight: '600', padding: '14px' }}>{r.full_name}</td>
-                            <td style={{ padding: '14px' }}><code style={{ backgroundColor: 'var(--bg-secondary)', padding: '3px 8px', borderRadius: '4px', fontSize: '0.82rem' }}>{r.admission_number}</code></td>
+                            <td style={{ fontWeight: '600', padding: '14px' }}>
+                          {r.full_name}
+                          <div className="mobile-only" style={{ marginTop: '4px', fontWeight: 'normal' }}>
+                            <code style={{ backgroundColor: 'var(--bg-secondary)', padding: '3px 8px', borderRadius: '4px', fontSize: '0.82rem' }}>{r.admission_number}</code>
+                          </div>
+                        </td>
+                            <td className="desktop-only" style={{ padding: '14px' }}><code style={{ backgroundColor: 'var(--bg-secondary)', padding: '3px 8px', borderRadius: '4px', fontSize: '0.82rem' }}>{r.admission_number}</code></td>
                             {attendanceReportView === 'monthly' && <td style={{ padding: '14px', fontWeight: 'bold' }}>{r.month}</td>}
                             
                             {attendanceReportView === 'weekdays' ? (
@@ -1295,9 +1306,9 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                 <FileSpreadsheet size={24} color="white" />
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '700' }}>Class Result — {assignments.formClass.name}</h3>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '700' }}>Class Result â€” {assignments.formClass.name}</h3>
                 <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.85rem', margin: '4px 0 0 0' }}>
-                  {settings.active_term} · {settings.active_session} · Full broadsheet matrix
+                  {settings.active_term} Â· {settings.active_session} Â· Full broadsheet matrix
                 </p>
               </div>
             </div>
@@ -1379,7 +1390,7 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                   {behavioralStudents.rated.length > 0 && (
                     <optgroup label="Already Evaluated">
                       {behavioralStudents.rated.map(s => (
-                        <option key={s.id} value={s.id}>{s.full_name} ({s.admission_number}) ✅</option>
+                        <option key={s.id} value={s.id}>{s.full_name} ({s.admission_number}) âœ…</option>
                       ))}
                     </optgroup>
                   )}
@@ -1530,7 +1541,7 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                       {assignments.subjects[teacherSchemeAssignIdx]?.subject_name || 'Subject'}
                     </div>
                     <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                      {assignments.subjects[teacherSchemeAssignIdx]?.class_name || 'Class'} · {teacherSchemeTerm}
+                      {assignments.subjects[teacherSchemeAssignIdx]?.class_name || 'Class'} Â· {teacherSchemeTerm}
                     </div>
                   </div>
                 </div>
@@ -1568,7 +1579,7 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                               <div style={{ fontWeight: '700', fontSize: '0.92rem', color: 'var(--text-primary)' }}>{w.topic}</div>
                               {w.subtitle && (
                                 <div style={{ fontSize: '0.8rem', color: 'var(--primary)', marginTop: '3px', fontWeight: '500' }}>
-                                  📌 {w.subtitle}
+                                  ðŸ“Œ {w.subtitle}
                                 </div>
                               )}
                             </div>
@@ -1629,13 +1640,13 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                 <Users size={24} color="white" />
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '700' }}>My Students — {assignments.formClass.name}</h3>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '700' }}>My Students â€” {assignments.formClass.name}</h3>
                 <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.85rem', margin: '4px 0 0 0' }}>
                   {formClassStudents.length} student{formClassStudents.length !== 1 ? 's' : ''} enrolled in your class
                 </p>
               </div>
             </div>
-            {/* Register Button — only if admin permits or teacher has specific permission */}
+            {/* Register Button â€” only if admin permits or teacher has specific permission */}
             {(settings.allow_fm_register_student === 1 || (user.permissions || []).includes('can_register_students')) ? (
               <button
                 className="btn"
@@ -1671,7 +1682,7 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
 
             {/* Student List */}
             {studentsLoading ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Loading students…</div>
+              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Loading studentsâ€¦</div>
             ) : formClassStudents.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                 <Users size={40} style={{ opacity: 0.3, marginBottom: '12px' }} />
@@ -1720,16 +1731,16 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                           </div>
                         </td>
                         <td style={{ padding: '14px' }}>
-                          <code style={{ backgroundColor: 'var(--bg-secondary)', padding: '3px 8px', borderRadius: '4px', fontSize: '0.82rem' }}>{s.admission_number || '—'}</code>
+                          <code style={{ backgroundColor: 'var(--bg-secondary)', padding: '3px 8px', borderRadius: '4px', fontSize: '0.82rem' }}>{s.admission_number || 'â€”'}</code>
                         </td>
                         <td style={{ padding: '14px' }}>
                           <span style={{
                             padding: '4px 10px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: '600',
                             backgroundColor: s.sex === 'Female' ? 'rgba(236,72,153,0.1)' : 'rgba(59,130,246,0.1)',
                             color: s.sex === 'Female' ? '#db2777' : '#2563eb'
-                          }}>{s.sex || '—'}</span>
+                          }}>{s.sex || 'â€”'}</span>
                         </td>
-                        <td style={{ padding: '14px', color: 'var(--text-secondary)' }}>{s.date_of_birth || '—'}</td>
+                        <td style={{ padding: '14px', color: 'var(--text-secondary)' }}>{s.date_of_birth || 'â€”'}</td>
                         <td style={{ padding: '14px', textAlign: 'center' }}>
                           <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                             <button
@@ -1761,12 +1772,12 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
       )}
 
       {/* ==========================================
-          MY STUDENTS — REGISTER MODAL
+          MY STUDENTS â€” REGISTER MODAL
           ========================================== */}
-      {showStudentModal && assignments.formClass && (
+      {showStudentModal && assignments.formClass && createPortal(
         <div className="modal-overlay">
           <div className="modal-content glass-panel" style={{ backgroundColor: 'var(--bg-surface)', maxWidth: '540px', width: '95%' }}>
-            <button className="modal-close" onClick={() => setShowStudentModal(false)}>✕</button>
+            <button className="modal-close" onClick={() => setShowStudentModal(false)}>âœ•</button>
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
               <Plus size={20} style={{ color: 'var(--primary)' }} /> Register New Student
             </h3>
@@ -1777,18 +1788,26 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
               </span>
             </p>
             <form onSubmit={handleRegisterStudent} style={{ marginTop: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px' }}>
-                <label style={{ marginRight: '10px', fontWeight: 'bold' }}>Passport Photo:</label>
-                <input type="file" accept="image/*" className="form-control" onChange={(e) => {
-                  const file = e.target.files[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => setStudentForm({ ...studentForm, passport_photo: reader.result });
-                    reader.readAsDataURL(file);
-                  }
-                }} />
-                {studentForm.passport_photo && <span style={{ marginLeft: '10px', color: 'var(--success)' }}>✓ Added</span>}
-              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', marginBottom: '15px' }}>
+                  <label style={{ marginBottom: '5px', fontWeight: 'bold' }}>Passport Photo (Max 150kb):</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    {studentForm.passport_photo && (
+                      <img src={studentForm.passport_photo} alt="Preview" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #ccc' }} />
+                    )}
+                    <input type="file" accept=".jpg,.jpeg,.png" className="form-control" onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        if (file.size > 150 * 1024) {
+                          setErrorMsg('Passport photo must be less than 150KB.');
+                          return;
+                        }
+                        const reader = new FileReader();
+                        reader.onloadend = () => setStudentForm({ ...studentForm, passport_photo: reader.result });
+                        reader.readAsDataURL(file);
+                      }
+                    }} />
+                  </div>
+                </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
                   <div className="form-group">
@@ -1913,7 +1932,8 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ==========================================
@@ -1933,3 +1953,5 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
     </div>
   );
 }
+
+

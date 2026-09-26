@@ -18,6 +18,12 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
     return () => window.clearInterval(timer);
   }, []);
 
+  // Fix: Scroll to top only when the main activeTab changes to prevent the SPA scroll-state bug
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [activeTab]);
+
+
   // Password fields
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -267,6 +273,7 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
 
       <MobileMoreSheet
         role={user.role}
+        user={user}
         isOpen={moreSheetOpen}
         onClose={() => setMoreSheetOpen(false)}
         onSelectTab={handleSidebarSelectTab}

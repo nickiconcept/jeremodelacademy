@@ -52,6 +52,14 @@ Route::group(['middleware' => ['auth:api', 'throttle:60,1']], function () {
     Route::put('/users/update-teacher/{id}', [App\Http\Controllers\UserController::class, 'updateTeacher']);
     Route::post('/users/update-status', [App\Http\Controllers\UserController::class, 'updateStatus']);
     Route::post('/users/update-permissions', [App\Http\Controllers\UserController::class, 'updatePermissions']);
+
+    // Admin Management Routes (Protected by super_admin check in controller)
+    Route::get('/admins', [App\Http\Controllers\AdminController::class, 'index']);
+    Route::post('/admins/register', [App\Http\Controllers\AdminController::class, 'register']);
+    Route::post('/admins/elevate', [App\Http\Controllers\AdminController::class, 'elevate']);
+    Route::put('/admins/update/{id}', [App\Http\Controllers\AdminController::class, 'update']);
+    Route::delete('/admins/delete/{id}', [App\Http\Controllers\AdminController::class, 'destroy']);
+
     Route::put('/users/update-student/{id}', [StudentController::class, 'update']);
     Route::delete('/users/delete-student/{id}', [StudentController::class, 'destroy']);
     Route::post('/students/transition', [StudentController::class, 'transition']);

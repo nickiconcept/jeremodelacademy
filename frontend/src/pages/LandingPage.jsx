@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Calendar, ChevronRight, ChevronLeft, MapPin, Phone, Mail,
   MessageCircle, X, GraduationCap, Award, BookOpen, ShieldCheck,
-  ArrowRight, ExternalLink, Menu
+  ArrowRight, ExternalLink, Menu, ChevronDown
 } from 'lucide-react';
 import api from '../utils/api';
 import './LandingPage.css';
@@ -34,6 +34,9 @@ export default function LandingPage({ settings, onEnterPortal }) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
+  const [openFeature, setOpenFeature] = useState(null);
+  const [openEvent, setOpenEvent] = useState(null);
+  const [openFooterSection, setOpenFooterSection] = useState(null);
   const [statsVisible, setStatsVisible] = useState(false);
   const [showChatbot, setShowChatbot] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
@@ -290,10 +293,58 @@ export default function LandingPage({ settings, onEnterPortal }) {
           </div>
           <div className="lp-features__grid">
             {dynamicFeatures.map((f, i) => (
-              <div key={i} className="lp-feature-card">
-                <div className="lp-feature-card__icon">{f.icon}</div>
-                <h3 className="lp-feature-card__title">{f.title}</h3>
-                <p className="lp-feature-card__desc">{f.desc}</p>
+              <div 
+                key={i} 
+                className="lp-feature-card" 
+                style={{ 
+                  padding: 0, 
+                  overflow: 'hidden', 
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                <button 
+                  onClick={() => setOpenFeature(openFeature === i ? null : i)}
+                  style={{ 
+                    width: '100%', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between', 
+                    padding: '20px', 
+                    border: 'none', 
+                    background: 'transparent', 
+                    cursor: 'pointer',
+                    textAlign: 'left'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div className="lp-feature-card__icon" style={{ margin: 0, padding: '12px', background: 'rgba(14,165,233,0.1)', color: 'var(--lp-primary)', borderRadius: '12px' }}>
+                      {f.icon}
+                    </div>
+                    <h3 className="lp-feature-card__title" style={{ margin: 0, fontSize: '1.1rem' }}>{f.title}</h3>
+                  </div>
+                  <ChevronDown 
+                    size={22} 
+                    color="var(--lp-primary)" 
+                    style={{ 
+                      transform: openFeature === i ? 'rotate(180deg)' : 'rotate(0deg)', 
+                      transition: 'transform 0.3s ease' 
+                    }} 
+                  />
+                </button>
+                
+                <div style={{ 
+                  maxHeight: openFeature === i ? '200px' : '0', 
+                  overflow: 'hidden', 
+                  transition: 'max-height 0.3s ease-in-out',
+                  opacity: openFeature === i ? 1 : 0
+                }}>
+                  <div style={{ padding: '0 20px 24px 80px' }}>
+                    <p className="lp-feature-card__desc" style={{ margin: 0, fontSize: '0.9rem', lineHeight: '1.5', color: 'var(--lp-text-muted)' }}>
+                      {f.desc}
+                    </p>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -349,22 +400,45 @@ export default function LandingPage({ settings, onEnterPortal }) {
               {events.slice(0, 8).map((ev, i) => {
                 const { day, month, full } = formatEventDate(ev.event_date);
                 return (
-                  <article key={ev.id} className="lp-event-card" style={{ animationDelay: `${i * 0.08}s` }}>
-                    <div className="lp-event-card__img-wrap">
-                      {ev.image_url
-                        ? <img src={ev.image_url} alt={ev.title} className="lp-event-card__img" />
-                        : <div className="lp-event-card__img-placeholder"><Calendar size={36} /></div>
-                      }
-                      <div className="lp-event-card__badge">
-                        <span className="lp-event-card__badge-day">{day}</span>
-                        <span className="lp-event-card__badge-month">{month}</span>
+                  <article key={ev.id} className="lp-event-card" style={{ padding: 0, overflow: 'hidden', animationDelay: `${i * 0.08}s`, transition: 'all 0.3s ease' }}>
+                    <button 
+                      onClick={() => setOpenEvent(openEvent === i ? null : i)}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(14,165,233,0.1)', padding: '12px 16px', borderRadius: '12px', color: 'var(--lp-primary)' }}>
+                          <span style={{ fontSize: '1.25rem', fontWeight: '800', lineHeight: '1' }}>{day}</span>
+                          <span style={{ fontSize: '0.7rem', fontWeight: '700', letterSpacing: '1px', textTransform: 'uppercase', marginTop: '2px' }}>{month}</span>
+                        </div>
+                        <div>
+                          <p className="lp-event-card__date" style={{ margin: '0 0 6px 0', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--lp-primary)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            <Calendar size={13} /> {full}
+                          </p>
+                          <h3 className="lp-event-card__title" style={{ margin: 0, fontSize: '1.05rem', color: 'var(--lp-text)', fontWeight: '700' }}>{ev.title}</h3>
+                        </div>
                       </div>
-                    </div>
-                    <div className="lp-event-card__body">
-                      <p className="lp-event-card__date"><Calendar size={13} /> {full}</p>
-                      <h3 className="lp-event-card__title">{ev.title}</h3>
-                      <p className="lp-event-card__desc">{ev.description}</p>
-                      <span className="lp-event-card__more" onClick={() => setSelectedEvent(ev)} style={{ cursor: 'pointer' }}>Read More <ExternalLink size={13} /></span>
+                      <ChevronDown size={22} color="var(--lp-primary)" style={{ transform: openEvent === i ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease' }} />
+                    </button>
+                    
+                    <div style={{ 
+                      maxHeight: openEvent === i ? '600px' : '0', 
+                      overflow: 'hidden', 
+                      transition: 'max-height 0.4s ease-in-out',
+                      opacity: openEvent === i ? 1 : 0
+                    }}>
+                      <div style={{ padding: '0 20px 24px 20px' }}>
+                        {ev.image_url && (
+                          <div style={{ height: '160px', width: '100%', borderRadius: '12px', overflow: 'hidden', marginBottom: '16px' }}>
+                            <img src={ev.image_url} alt={ev.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          </div>
+                        )}
+                        <p className="lp-event-card__desc" style={{ margin: '0 0 16px 0', fontSize: '0.9rem', lineHeight: '1.6', color: 'var(--lp-text-muted)' }}>
+                          {ev.description}
+                        </p>
+                        <span className="lp-event-card__more" onClick={() => setSelectedEvent(ev)} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--lp-primary)', fontWeight: '700', fontSize: '0.85rem' }}>
+                          Read More <ExternalLink size={14} />
+                        </span>
+                      </div>
                     </div>
                   </article>
                 );
@@ -384,9 +458,14 @@ export default function LandingPage({ settings, onEnterPortal }) {
       {/* ── ABOUT US ── */}
       <section id="about" className="lp-about">
         <div className="lp-container">
-          <div className="lp-about__grid">
+          <div className="lp-about__content" style={{ maxWidth: '800px', margin: '0 auto', textAlign: 'center' }}>
+            <div className="lp-section-header" style={{ marginBottom: '24px' }}>
+              <h2 className="lp-section-title">About {schoolName}</h2>
+              <div className="lp-section-bar" />
+            </div>
+
             {/* Image side */}
-            <div className="lp-about__img-wrap">
+            <div className="lp-about__img-wrap" style={{ maxWidth: '600px', margin: '0 auto 36px auto' }}>
               <div className="lp-about__img-frame">
                 {settings?.about_us_image_url
                   ? <img src={settings.about_us_image_url} alt="About" className="lp-about__img" />
@@ -403,14 +482,8 @@ export default function LandingPage({ settings, onEnterPortal }) {
             </div>
 
             {/* Text side */}
-            <div className="lp-about__content">
-              <h2 className="lp-section-title">About {schoolName}</h2>
-              <div className="lp-section-bar lp-section-bar--left" />
-              <div className="lp-about__text">
-                {aboutContent.split('\n').map((p, i) => <p key={i}>{p}</p>)}
-              </div>
-
-              {/* Removed original stats block */}
+            <div className="lp-about__text" style={{ textAlign: 'left' }}>
+              {aboutContent.split('\n').map((p, i) => <p key={i}>{p}</p>)}
             </div>
           </div>
         </div>
@@ -421,17 +494,21 @@ export default function LandingPage({ settings, onEnterPortal }) {
         <div className="lp-container">
           <div className="lp-footer__grid">
             {/* Col 1: Brand */}
-            <div className="lp-footer__col">
-              {settings?.school_logo_url && (
-                <img src={settings.school_logo_url} alt="logo" className="lp-footer__logo" />
-              )}
+            <div className="lp-footer__col lp-footer__col--brand">
+              <div className="lp-footer__logo-wrap">
+                {settings?.school_logo_url ? (
+                  <img src={settings.school_logo_url} alt="logo" className="lp-footer__logo" />
+                ) : (
+                  <div style={{ color: 'white', fontWeight: 800, fontSize: '1.2rem', marginBottom: '10px' }}>{schoolName}</div>
+                )}
+              </div>
               <p className="lp-footer__tagline">{tagline}</p>
               <div className="lp-footer__socials">
                 {settings?.facebook_url && (
                   <a href={settings.facebook_url} target="_blank" rel="noreferrer" className="lp-footer__social" aria-label="Facebook">f</a>
                 )}
                 {settings?.twitter_url && (
-                  <a href={settings.twitter_url} target="_blank" rel="noreferrer" className="lp-footer__social" aria-label="Twitter">𝕏</a>
+                  <a href={settings.twitter_url} target="_blank" rel="noreferrer" className="lp-footer__social" aria-label="Twitter">d𝕏</a>
                 )}
                 {settings?.instagram_url && (
                   <a href={settings.instagram_url} target="_blank" rel="noreferrer" className="lp-footer__social" aria-label="Instagram">in</a>
@@ -439,30 +516,63 @@ export default function LandingPage({ settings, onEnterPortal }) {
               </div>
             </div>
 
-            {/* Col 2: Contact */}
-            <div className="lp-footer__col">
-              <h4 className="lp-footer__heading">Contact Us</h4>
-              <ul className="lp-footer__contact">
-                <li><MapPin size={15} /><span>{settings?.landing_address || 'Kaduna State, Nigeria'}</span></li>
-                <li><Phone size={15} /><span>{settings?.contact_phone || '+234 (0) 123 456 7890'}</span></li>
-                <li><Mail size={15} /><span>{settings?.contact_email || 'info@school.edu'}</span></li>
+            {/* Col 2: Explore (Mobile Accordion) */}
+            <div className="lp-footer__col lp-footer__col--accordion">
+              <button 
+                className="lp-footer__heading-btn" 
+                onClick={() => setOpenFooterSection(openFooterSection === 'explore' ? null : 'explore')}
+              >
+                Explore <ChevronDown size={16} style={{ transform: openFooterSection === 'explore' ? 'rotate(180deg)' : 'rotate(0)' }} />
+              </button>
+              <h4 className="lp-footer__heading-desktop">Explore</h4>
+              <ul className={`lp-footer__links ${openFooterSection === 'explore' ? 'open' : ''}`}>
+                <li><button onClick={() => scrollTo('home')}>Home</button></li>
+                <li><button onClick={() => scrollTo('events')}>Events & Updates</button></li>
+                <li><button onClick={() => scrollTo('about')}>About Us</button></li>
+                <li><button onClick={onEnterPortal}>School Portal</button></li>
               </ul>
             </div>
 
-            {/* Col 3: Quick Links */}
-            <div className="lp-footer__col">
-              <h4 className="lp-footer__heading">Quick Links</h4>
-              <ul className="lp-footer__links">
-                <li><button onClick={() => scrollTo('home')}>Home</button></li>
-                <li><button onClick={() => scrollTo('events')}>Events</button></li>
-                <li><button onClick={() => scrollTo('about')}>About Us</button></li>
-                <li><button onClick={onEnterPortal}>School Portal</button></li>
+            {/* Col 3: Resources (Mobile Accordion) */}
+            <div className="lp-footer__col lp-footer__col--accordion">
+              <button 
+                className="lp-footer__heading-btn" 
+                onClick={() => setOpenFooterSection(openFooterSection === 'resources' ? null : 'resources')}
+              >
+                Resources <ChevronDown size={16} style={{ transform: openFooterSection === 'resources' ? 'rotate(180deg)' : 'rotate(0)' }} />
+              </button>
+              <h4 className="lp-footer__heading-desktop">Resources</h4>
+              <ul className={`lp-footer__links ${openFooterSection === 'resources' ? 'open' : ''}`}>
+                <li><button>Admissions Info</button></li>
+                <li><button>Student Life</button></li>
+                <li><button>Academic Calendar</button></li>
+                <li><button>Gallery</button></li>
+              </ul>
+            </div>
+
+            {/* Col 4: Contact (Mobile Accordion) */}
+            <div className="lp-footer__col lp-footer__col--accordion">
+              <button 
+                className="lp-footer__heading-btn" 
+                onClick={() => setOpenFooterSection(openFooterSection === 'contact' ? null : 'contact')}
+              >
+                Contact Us <ChevronDown size={16} style={{ transform: openFooterSection === 'contact' ? 'rotate(180deg)' : 'rotate(0)' }} />
+              </button>
+              <h4 className="lp-footer__heading-desktop">Contact Us</h4>
+              <ul className={`lp-footer__contact ${openFooterSection === 'contact' ? 'open' : ''}`}>
+                <li><MapPin size={15} /><span>{settings?.landing_address || 'Kaduna State, Nigeria'}</span></li>
+                <li><Phone size={15} /><span>{settings?.contact_phone || '+234 (0) 123 456 7890'}</span></li>
+                <li><Mail size={15} /><span>{settings?.contact_email || 'info@school.edu'}</span></li>
               </ul>
             </div>
           </div>
 
           <div className="lp-footer__bottom">
             <p>&copy; {new Date().getFullYear()} {schoolName}. All rights reserved.</p>
+            <div className="lp-footer__legal">
+              <button>Privacy Policy</button>
+              <button>Terms of Service</button>
+            </div>
           </div>
         </div>
       </footer>
