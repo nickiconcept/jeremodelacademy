@@ -505,13 +505,22 @@ export default function LandingPage({ settings, onEnterPortal }) {
               <p className="lp-footer__tagline">{tagline}</p>
               <div className="lp-footer__socials">
                 {settings?.facebook_url && (
-                  <a href={settings.facebook_url} target="_blank" rel="noreferrer" className="lp-footer__social" aria-label="Facebook">f</a>
+                  <a href={settings.facebook_url} target="_blank" rel="noreferrer" className="lp-footer__social" aria-label="Facebook">
+                    <span className="lp-footer__social-icon">f</span>
+                    <span className="lp-footer__social-text">Facebook</span>
+                  </a>
                 )}
                 {settings?.twitter_url && (
-                  <a href={settings.twitter_url} target="_blank" rel="noreferrer" className="lp-footer__social" aria-label="Twitter">d𝕏</a>
+                  <a href={settings.twitter_url} target="_blank" rel="noreferrer" className="lp-footer__social" aria-label="Twitter">
+                    <span className="lp-footer__social-icon">𝕏</span>
+                    <span className="lp-footer__social-text">Twitter</span>
+                  </a>
                 )}
                 {settings?.instagram_url && (
-                  <a href={settings.instagram_url} target="_blank" rel="noreferrer" className="lp-footer__social" aria-label="Instagram">in</a>
+                  <a href={settings.instagram_url} target="_blank" rel="noreferrer" className="lp-footer__social" aria-label="Instagram">
+                    <span className="lp-footer__social-icon">in</span>
+                    <span className="lp-footer__social-text">Instagram</span>
+                  </a>
                 )}
               </div>
             </div>
