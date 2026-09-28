@@ -208,8 +208,8 @@ export default function AdminManagementTab() {
       {loading ? (
         <div>Loading administrators...</div>
       ) : (
-        <div className="table-responsive">
-          <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="table-responsive" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <table className="table" style={{ width: '100%', borderCollapse: 'collapse', minWidth: '750px' }}>
             <thead>
               <tr style={{ borderBottom: '2px solid var(--border-color)', textAlign: 'left' }}>
                 <th style={{ padding: '12px' }}>Admin ID</th>
