@@ -1460,7 +1460,7 @@ body.dark .dashboard-header__brand { border-color: rgba(56, 189, 248, .25); back
     display: none !important;
   }
 
-  .app-container { display: flex; flex-direction: column; height: 100dvh !important; overflow: hidden; min-height: 0; }
+  .app-container { display: flex; flex-direction: column; height: 100dvh !important; overflow: hidden; min-height: 0; position: fixed; inset: 0; width: 100vw; }
 
   .sidebar-container {
     display: none !important;
@@ -1472,7 +1472,7 @@ body.dark .dashboard-header__brand { border-color: rgba(56, 189, 248, .25); back
     display: none !important;
   }
 
-  .main-content { padding: 14px !important; flex-grow: 1; overflow-y: auto; overflow-x: hidden; min-height: 0 !important; height: auto !important; max-height: none !important; }
+  .main-content { padding: 14px !important; flex: 1 1 0% !important; overflow-y: auto !important; overflow-x: hidden; min-height: 0 !important; -webkit-overflow-scrolling: touch; }
 
   header.glass-panel {
     position: sticky;

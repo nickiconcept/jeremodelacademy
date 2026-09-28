@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Sidebar from './Sidebar';
 import MobileBottomNav from './MobileBottomNav';
 import MobileMoreSheet from './MobileMoreSheet';
@@ -11,6 +11,7 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [currentHour, setCurrentHour] = useState(() => new Date().getHours());
+  const mainContentRef = useRef(null);
 
   useEffect(() => {
     const updateGreetingHour = () => setCurrentHour(new Date().getHours());
@@ -20,7 +21,11 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
 
   // Fix: Scroll to top only when the main activeTab changes to prevent the SPA scroll-state bug
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    if (mainContentRef.current) {
+      mainContentRef.current.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    } else {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
   }, [activeTab]);
 
 
@@ -110,7 +115,7 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
       />
 
       {/* Main Work Area */}
-      <div className="main-content" style={{ flexGrow: 1, backgroundColor: 'var(--bg-primary)' }}>
+      <div className="main-content" ref={mainContentRef} style={{ flexGrow: 1, backgroundColor: 'var(--bg-primary)' }}>
 
         {/* ── Top Header Bar ── */}
         <header
