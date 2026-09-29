@@ -811,6 +811,13 @@
   font-size: 0.82rem;
   margin: 0;
 }
+.lp-footer__notice {
+  color: var(--lp-accent);
+  font-size: 0.82rem;
+  margin: 0;
+  padding: 0 0 16px;
+  text-align: right;
+}
 
 /* ══════════════════════════════════════════════════════════════
    CHATBOT

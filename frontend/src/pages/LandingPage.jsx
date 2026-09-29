@@ -37,6 +37,7 @@ export default function LandingPage({ settings, onEnterPortal }) {
   const [openFeature, setOpenFeature] = useState(null);
   const [openEvent, setOpenEvent] = useState(null);
   const [openFooterSection, setOpenFooterSection] = useState(null);
+  const [footerNotice, setFooterNotice] = useState('');
   const [statsVisible, setStatsVisible] = useState(false);
   const [showChatbot, setShowChatbot] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
@@ -112,6 +113,9 @@ export default function LandingPage({ settings, onEnterPortal }) {
   const aboutContent = settings?.about_us_content || 'We are a premier educational institution dedicated to nurturing young minds and building the future leaders of Nigeria. Our commitment to academic rigour, moral development, and holistic education sets us apart.';
 
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  const showComingSoon = (event) => {
+    setFooterNotice(`${event.currentTarget.textContent.trim()} — coming soon.`);
+  };
   const nextSlide = () => setCurrentSlide(prev => (prev + 1) % slides.length);
   const prevSlide = () => setCurrentSlide(prev => (prev - 1 + slides.length) % slides.length);
 
@@ -552,10 +556,10 @@ export default function LandingPage({ settings, onEnterPortal }) {
               </button>
               <h4 className="lp-footer__heading-desktop">Resources</h4>
               <ul className={`lp-footer__links ${openFooterSection === 'resources' ? 'open' : ''}`}>
-                <li><button>Admissions Info</button></li>
-                <li><button>Student Life</button></li>
-                <li><button>Academic Calendar</button></li>
-                <li><button>Gallery</button></li>
+                <li><button onClick={showComingSoon}>Admissions Info</button></li>
+                <li><button onClick={showComingSoon}>Student Life</button></li>
+                <li><button onClick={showComingSoon}>Academic Calendar</button></li>
+                <li><button onClick={showComingSoon}>Gallery</button></li>
               </ul>
             </div>
 
@@ -579,10 +583,15 @@ export default function LandingPage({ settings, onEnterPortal }) {
           <div className="lp-footer__bottom">
             <p>&copy; {new Date().getFullYear()} {schoolName}. All rights reserved.</p>
             <div className="lp-footer__legal">
-              <button>Privacy Policy</button>
-              <button>Terms of Service</button>
+              <button onClick={showComingSoon}>Privacy Policy</button>
+              <button onClick={showComingSoon}>Terms of Service</button>
             </div>
           </div>
+          {footerNotice && (
+            <p className="lp-footer__notice" role="status" aria-live="polite">
+              {footerNotice}
+            </p>
+          )}
         </div>
       </footer>
 
