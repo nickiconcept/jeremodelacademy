@@ -197,7 +197,7 @@ export default function Sidebar({ role, activeTab, subTab, onSelectTab, onLogout
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {settings?.school_logo_url ? (
-            <img src={settings?.school_logo_url} alt="Logo" style={{ width: '56px', height: '56px', objectFit: 'contain', borderRadius: '8px', backgroundColor: '#ffffff', padding: '4px' }} />
+            <img src={settings?.school_logo_url} alt={`${settings?.landing_school_name || 'School'} logo`} style={{ width: '56px', height: '56px', boxSizing: 'border-box', flex: '0 0 56px', objectFit: 'contain', border: '1px solid var(--border-color)', borderRadius: '10px', backgroundColor: '#ffffff', padding: '5px' }} />
           ) : (
             <div style={{
               width: '40px', height: '40px', borderRadius: '10px',

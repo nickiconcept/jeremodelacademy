@@ -4,16 +4,22 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AttendanceController extends Controller
 {
     public function studentAttendance($studentId)
     {
         $user = auth('api')->user();
-
-        if ($user->role === 'student' && $user->id != $studentId) {
-            return response()->json(['error' => 'Unauthorized access.'], 403);
-        }
+        $studentClassId = DB::table('students')->where('id', $studentId)->value('class_id');
+        abort_unless(
+            $user && (
+                $user->role === 'admin'
+                || ($user->role === 'student' && (string) $user->id === (string) $studentId)
+                || ($studentClassId && $user->role === 'teacher' && $this->teacherIsFormMaster($studentClassId))
+            ),
+            403
+        );
 
         try {
             $attendance = DB::table('attendance')
@@ -22,9 +28,11 @@ class AttendanceController extends Controller
                 ->limit(90)
                 ->select('date', 'status')
                 ->get();
+
             return response()->json($attendance);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
@@ -37,12 +45,7 @@ class AttendanceController extends Controller
         $user = auth('api')->user();
 
         try {
-            if ($user->role === 'teacher') {
-                $cls = DB::table('classes')->where('id', $classId)->first();
-                if (!$cls || $cls->form_master_id != $user->id) {
-                    return response()->json(['error' => 'Access denied: You are not the Form Master of this class.'], 403);
-                }
-            }
+            $this->requireAdminOrFormMaster($classId);
 
             $query = DB::table('students as s')
                 ->join('users as u', 's.id', '=', 'u.id')
@@ -63,11 +66,11 @@ class AttendanceController extends Controller
                     DB::raw("SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) as present_count"),
                     DB::raw("SUM(CASE WHEN a.status = 'absent' THEN 1 ELSE 0 END) as absent_count"),
                     DB::raw("SUM(CASE WHEN a.status = 'late' THEN 1 ELSE 0 END) as late_count"),
-                    DB::raw("COUNT(a.status) as total_days")
+                    DB::raw('COUNT(a.status) as total_days')
                 )
-                ->groupBy('s.id', 'u.full_name', 's.admission_number', DB::raw("DATE_FORMAT(a.date, '%Y-%m')"))
-                ->orderBy('u.full_name')
-                ->orderBy('month');
+                    ->groupBy('s.id', 'u.full_name', 's.admission_number', DB::raw("DATE_FORMAT(a.date, '%Y-%m')"))
+                    ->orderBy('u.full_name')
+                    ->orderBy('month');
             } elseif ($view === 'weekdays') {
                 $query->select(
                     's.id as student_id',
@@ -84,8 +87,8 @@ class AttendanceController extends Controller
                     DB::raw("SUM(CASE WHEN DAYOFWEEK(a.date) = 6 AND a.status = 'present' THEN 1 ELSE 0 END) as fri_present"),
                     DB::raw("SUM(CASE WHEN DAYOFWEEK(a.date) = 6 AND a.status IN ('absent', 'late') THEN 1 ELSE 0 END) as fri_absent")
                 )
-                ->groupBy('s.id', 'u.full_name', 's.admission_number')
-                ->orderBy('u.full_name');
+                    ->groupBy('s.id', 'u.full_name', 's.admission_number')
+                    ->orderBy('u.full_name');
             } else {
                 $query->select(
                     's.id as student_id',
@@ -94,16 +97,18 @@ class AttendanceController extends Controller
                     DB::raw("SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) as present_count"),
                     DB::raw("SUM(CASE WHEN a.status = 'absent' THEN 1 ELSE 0 END) as absent_count"),
                     DB::raw("SUM(CASE WHEN a.status = 'late' THEN 1 ELSE 0 END) as late_count"),
-                    DB::raw("COUNT(a.status) as total_days")
+                    DB::raw('COUNT(a.status) as total_days')
                 )
-                ->groupBy('s.id', 'u.full_name', 's.admission_number')
-                ->orderBy('u.full_name');
+                    ->groupBy('s.id', 'u.full_name', 's.admission_number')
+                    ->orderBy('u.full_name');
             }
 
             $report = $query->get();
+
             return response()->json($report);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
@@ -113,18 +118,13 @@ class AttendanceController extends Controller
         $user = auth('api')->user();
 
         try {
-            if ($user->role === 'teacher') {
-                $cls = DB::table('classes')->where('id', $classId)->first();
-                if (!$cls || $cls->form_master_id != $user->id) {
-                    return response()->json(['error' => 'Access denied: You are not the Form Master of this class'], 403);
-                }
-            }
+            $this->requireAdminOrFormMaster($classId);
 
             $roster = DB::table('students as s')
                 ->join('users as u', 's.id', '=', 'u.id')
                 ->leftJoin('attendance as a', function ($join) use ($date) {
                     $join->on('s.id', '=', 'a.student_id')
-                         ->where('a.date', '=', $date);
+                        ->where('a.date', '=', $date);
                 })
                 ->where('s.class_id', $classId)
                 ->orderBy('u.full_name')
@@ -133,31 +133,51 @@ class AttendanceController extends Controller
 
             return response()->json($roster);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
     public function saveAttendance(Request $request)
     {
+        $validated = $request->validate([
+            'class_id' => ['required', 'integer', 'exists:classes,id'],
+            'date' => ['required', 'date_format:Y-m-d'],
+            'records' => ['required', 'array', 'min:1', 'max:500'],
+            'records.*.student_id' => ['required', 'integer', 'distinct', 'exists:students,id'],
+            'records.*.status' => ['required', 'in:present,absent,late'],
+            'lat' => ['nullable', 'numeric', 'between:-90,90'],
+            'lng' => ['nullable', 'numeric', 'between:-180,180'],
+        ]);
+
         $class_id = $request->input('class_id');
         $date = $request->input('date');
         $records = $request->input('records'); // array of {student_id, status}
         $userLat = $request->input('lat');
         $userLng = $request->input('lng');
         $user = auth('api')->user();
+        abort_unless($user && in_array($user->role, ['admin', 'teacher'], true), 403);
+
+        $this->requireAdminOrFormMaster($class_id);
+        $studentIds = collect($validated['records'])->pluck('student_id')->unique();
+        $classStudentIds = DB::table('students')
+            ->where('class_id', $class_id)
+            ->whereIn('id', $studentIds)
+            ->pluck('id');
+        abort_unless($classStudentIds->count() === $studentIds->count(), 403, 'Attendance includes students outside the authorized class.');
 
         try {
             if ($user->role === 'teacher') {
                 $cls = DB::table('classes')->where('id', $class_id)->first();
-                if (!$cls || $cls->form_master_id != $user->id) {
+                if (! $cls || $cls->form_master_id != $user->id) {
                     return response()->json(['error' => 'Access denied: You are not the Form Master of this class'], 403);
                 }
 
                 $settings = DB::table('system_settings')->first();
                 $today = date('Y-m-d');
                 $perms = $user->permissions ?? [];
-                if ($date < $today && (!$settings || !$settings->allow_past_attendance) && !in_array('can_take_past_attendance', $perms)) {
+                if ($date < $today && (! $settings || ! $settings->allow_past_attendance) && ! in_array('can_take_past_attendance', $perms)) {
                     return response()->json(['error' => 'Access denied: Past attendance is not permitted by global settings.'], 403);
                 }
 
@@ -169,32 +189,32 @@ class AttendanceController extends Controller
                     $loc2Lat = $settings->attendance_location2_lat;
                     $loc2Lng = $settings->attendance_location2_lng;
                     $radius = $settings->attendance_radius ?: 100;
-                    
+
                     $geofencingEnabled = ($loc1Lat && $loc1Lng) || ($loc2Lat && $loc2Lng);
-                    
+
                     if ($geofencingEnabled) {
-                        if (!$userLat || !$userLng) {
+                        if (! $userLat || ! $userLng) {
                             return response()->json(['error' => 'Geofencing is enabled. You must grant location access to take attendance.'], 403);
                         }
-                        
+
                         $withinLoc1 = false;
                         $withinLoc2 = false;
-                        
+
                         if ($loc1Lat && $loc1Lng) {
                             $dist1 = $this->calculateDistance($userLat, $userLng, $loc1Lat, $loc1Lng);
                             if ($dist1 <= $radius) {
                                 $withinLoc1 = true;
                             }
                         }
-                        
+
                         if ($loc2Lat && $loc2Lng) {
                             $dist2 = $this->calculateDistance($userLat, $userLng, $loc2Lat, $loc2Lng);
                             if ($dist2 <= $radius) {
                                 $withinLoc2 = true;
                             }
                         }
-                        
-                        if (!$withinLoc1 && !$withinLoc2) {
+
+                        if (! $withinLoc1 && ! $withinLoc2) {
                             return response()->json(['error' => 'Geofence Error: You must be physically on school premises to take attendance.'], 403);
                         }
                     }
@@ -215,23 +235,25 @@ class AttendanceController extends Controller
                         ->where('date', $date)
                         ->update([
                             'status' => $rec['status'],
-                            'marked_by' => $user->id
+                            'marked_by' => $user->id,
                         ]);
                 } else {
                     DB::table('attendance')->insert([
                         'student_id' => $rec['student_id'],
                         'date' => $date,
                         'status' => $rec['status'],
-                        'marked_by' => $user->id
+                        'marked_by' => $user->id,
                     ]);
                 }
             }
 
             DB::commit();
+
             return response()->json(['message' => 'Attendance records updated successfully']);
         } catch (\Exception $e) {
             DB::rollBack();
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
@@ -251,7 +273,7 @@ class AttendanceController extends Controller
         $a = sin($latDelta / 2) * sin($latDelta / 2) +
              cos($lat1) * cos($lat2) *
              sin($lonDelta / 2) * sin($lonDelta / 2);
-        
+
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
 
         return $earthRadius * $c;

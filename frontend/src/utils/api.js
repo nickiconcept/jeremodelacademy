@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:5000/api`;
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 function getHeaders() {
   const token = localStorage.getItem('jma_token');
@@ -90,6 +90,20 @@ const api = {
   // System Settings
   getSettings: async () => {
     const res = await fetch(`${API_BASE}/settings`, { headers: getHeaders() });
+    return handleResponse(res);
+  },
+
+  getPublicSettings: async () => {
+    const res = await fetch(`${API_BASE}/settings/public`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse(res);
+  },
+
+  getPublicSettings: async () => {
+    const res = await fetch(`${API_BASE}/settings/public`, {
+      headers: { 'Accept': 'application/json' },
+    });
     return handleResponse(res);
   },
 

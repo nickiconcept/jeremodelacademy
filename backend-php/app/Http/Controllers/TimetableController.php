@@ -2,27 +2,44 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Models\SchoolClass;
 use App\Models\Timetable;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TimetableController extends Controller
 {
     public function index(Request $request)
     {
+        $user = $this->authenticatedUser();
+        abort_unless($user, 401);
+
         $query = Timetable::with(['class', 'subject', 'teacher']);
-        
-        if ($request->class_id) {
+
+        if ($user->role === 'teacher') {
+            $query->where('teacher_id', $user->id);
+        } elseif ($user->role === 'student') {
+            $classId = DB::table('students')->where('id', $user->id)->value('class_id');
+            abort_unless($classId, 403);
+            $query->where('class_id', $classId);
+        } elseif ($user->role !== 'admin') {
+            abort(403);
+        }
+
+        if ($user->role === 'admin' && $request->class_id) {
             $query->where('class_id', $request->class_id);
         }
-        if ($request->teacher_id) {
+        if ($user->role === 'admin' && $request->teacher_id) {
             $query->where('teacher_id', $request->teacher_id);
         }
-        
+
         return response()->json($query->orderBy('day_of_week')->orderBy('start_time')->get());
     }
 
     public function store(Request $request)
     {
+        $this->requireAdmin();
+
         $request->validate([
             'type' => 'nullable|string|in:class,short_break,long_break',
             'class_id' => 'required_if:type,class|nullable|exists:classes,id',
@@ -32,7 +49,7 @@ class TimetableController extends Controller
             'teacher_id' => 'nullable|exists:users,id',
             'day_of_week' => 'required|string',
             'start_time' => ['required', 'regex:/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/'],
-            'end_time' => ['required', 'regex:/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/']
+            'end_time' => ['required', 'regex:/^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/'],
         ]);
 
         // Normalize time to HH:mm
@@ -46,28 +63,29 @@ class TimetableController extends Controller
         }
 
         if ($request->type !== 'class') {
-            $classes = \App\Models\SchoolClass::whereIn('tier', $request->tiers)->pluck('id');
+            $classes = SchoolClass::whereIn('tier', $request->tiers)->pluck('id');
             $createdCount = 0;
-            
+
             foreach ($classes as $cId) {
                 // Check conflict for this specific class
-                $conflict = \App\Models\Timetable::where('day_of_week', $request->day_of_week)
+                $conflict = Timetable::where('day_of_week', $request->day_of_week)
                     ->where('start_time', '<', $request->end_time)
                     ->where('end_time', '>', $request->start_time)
                     ->where('class_id', $cId)
                     ->exists();
 
-                if (!$conflict) {
+                if (! $conflict) {
                     $data = $request->except(['class_id', 'tiers']);
                     $data['class_id'] = $cId;
-                    \App\Models\Timetable::create($data);
+                    Timetable::create($data);
                     $createdCount++;
                 }
             }
+
             return response()->json(['message' => "$createdCount break periods added across selected sections"]);
         } else {
             // Check for double booking for single class
-            $conflict = \App\Models\Timetable::where('day_of_week', $request->day_of_week)
+            $conflict = Timetable::where('day_of_week', $request->day_of_week)
                 ->where('start_time', '<', $request->end_time)
                 ->where('end_time', '>', $request->start_time)
                 ->where(function ($query) use ($request) {
@@ -81,14 +99,18 @@ class TimetableController extends Controller
                 return response()->json(['message' => 'This time slot overlaps with an existing class or teacher schedule.'], 422);
             }
 
-            $timetable = \App\Models\Timetable::create($request->except(['tiers']));
+            $timetable = Timetable::create($request->except(['tiers']));
+
             return response()->json(['message' => 'Timetable entry added', 'timetable' => $timetable->load(['class', 'subject', 'teacher'])]);
         }
     }
 
     public function destroy($id)
     {
+        $this->requireAdmin();
+
         Timetable::findOrFail($id)->delete();
+
         return response()->json(['message' => 'Timetable entry deleted']);
     }
 }

@@ -64,6 +64,7 @@ import {
   XCircle,
   UserPlus,
   User,
+  UserRound,
   Clock,
   CircleCheck,
   Hourglass,
@@ -427,7 +428,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
     date_of_birth: '', class_of_entry: '', term_year_of_entry: '',
     last_school_attended: '', address_residence: '', sex: 'Male', religion: 'Islam',
     local_government: '', state_of_origin: '', handicapped: false, handicap_details: '',
-    parent_name: '', parent_address: '', parent_phone: '', passport_photo: '', custom_admission_number: '',
+    parent_name: '', parent_email: '', parent_address: '', parent_phone: '', passport_photo: '', custom_admission_number: '',
     has_offline_debt: false, offline_debt_amount: ''
   });
   
@@ -677,7 +678,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
       setSettingsForm({
         active_session: settings.active_session || '',
         active_term: settings.active_term || '',
-        result_entry_open: settings.result_entry_open || 1,
+        result_entry_open: settings.result_entry_open ?? 1,
         landing_school_name: settings.landing_school_name || '',
         landing_tagline: settings.landing_tagline || '',
         landing_hero_title: settings.landing_hero_title || '',
@@ -926,6 +927,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                religion: grad.religion || 'Islam',
                parent_name: grad.parent_name || '',
                parent_phone: grad.parent_phone || '',
+               parent_email: grad.parent_email || '',
                parent_address: grad.parent_address || '',
                address_residence: grad.address_residence || '',
                state_of_origin: grad.state_of_origin || '',
@@ -946,7 +948,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
           setNotify(res.message || 'Student successfully re-enrolled from graduate list!');
       } else {
           const res = await api.registerStudent(studentForm);
-          setNotify(`Student registered successfully! Auto-Admission Number: ${res.admission_number}`);
+          setNotify(`Student registered. ID/default password: ${res.admission_number}. They must change it at first login.`);
       }
       setShowStudentModal(false);
       loadAllData();
@@ -956,7 +958,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
         date_of_birth: '', class_of_entry: '', term_year_of_entry: '',
         last_school_attended: '', address_residence: '', sex: 'Male', religion: 'Islam',
         local_government: '', state_of_origin: '', handicapped: false, handicap_details: '',
-        parent_name: '', parent_address: '', parent_phone: '', passport_photo: '', custom_admission_number: '',
+        parent_name: '', parent_email: '', parent_address: '', parent_phone: '', passport_photo: '', custom_admission_number: '',
         has_offline_debt: false, offline_debt_amount: '', status: 'active'
       });
     } catch (err) {
@@ -1012,8 +1014,8 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
       const computedFullName = [teacherForm.surname, teacherForm.first_name, teacherForm.other_names].filter(Boolean).join(' ');
       const payload = { ...teacherForm, full_name: computedFullName };
       
-      await api.registerTeacher(payload);
-      setNotify('Teacher registered successfully!');
+      const res = await api.registerTeacher(payload);
+      setNotify(`Teacher registered. ID/default password: ${res.staff_id}. They must change it at first login.`);
       setShowTeacherModal(false);
       loadAllData();
       setTeacherForm({ 
@@ -2154,7 +2156,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', background: 'linear-gradient(135deg, var(--primary) 0%, #1e3a8a 100%)', padding: '24px', margin: '-24px -24px 24px -24px', borderTopLeftRadius: 'var(--radius-lg)', borderTopRightRadius: 'var(--radius-lg)', color: 'white', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
               <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid rgba(255,255,255,0.4)', boxShadow: '0 4px 10px rgba(0,0,0,0.2)' }}>
-                <Users size={24} color="white" />
+                <UserRound size={25} color="white" />
               </div>
               <div>
                 <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '700', letterSpacing: '0.5px' }}>Student Roster</h3>
@@ -4740,6 +4742,8 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                                 <div style={{ display: 'flex', gap: '8px' }}>
                                   <button
                                     type="button"
+                                    aria-label="Present"
+                                    title="Present"
                                     onClick={() => handleAdminAttendanceStatusChange(item.student_id, 'present')}
                                     className="btn"
                                     style={{
@@ -4754,10 +4758,12 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                                       transition: 'all 0.2s ease'
                                     }}
                                   >
-                                    Present
+                                    P
                                   </button>
                                   <button
                                     type="button"
+                                    aria-label="Absent"
+                                    title="Absent"
                                     onClick={() => handleAdminAttendanceStatusChange(item.student_id, 'absent')}
                                     className="btn"
                                     style={{
@@ -4772,10 +4778,12 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                                       transition: 'all 0.2s ease'
                                     }}
                                   >
-                                    Absent
+                                    A
                                   </button>
                                   <button
                                     type="button"
+                                    aria-label="Late"
+                                    title="Late"
                                     onClick={() => handleAdminAttendanceStatusChange(item.student_id, 'late')}
                                     className="btn"
                                     style={{
@@ -4790,7 +4798,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                                       transition: 'all 0.2s ease'
                                     }}
                                   >
-                                    Late
+                                    L
                                   </button>
                                 </div>
                               </td>
@@ -5265,6 +5273,10 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                 <div className="form-group">
                   <label>Parent Phone Number</label>
                   <input type="text" className="form-control" value={studentForm.parent_phone} onChange={(e) => setStudentForm({ ...studentForm, parent_phone: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>Parent / Guardian Email</label>
+                  <input type="email" className="form-control" value={studentForm.parent_email} onChange={(e) => setStudentForm({ ...studentForm, parent_email: e.target.value })} />
                 </div>
               </div>
 

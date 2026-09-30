@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class TeacherController extends Controller
 {
     public function index()
     {
+        $this->requireAdmin();
+
         $teachers = DB::table('users')
             ->leftJoin('teachers', 'users.id', '=', 'teachers.id')
             ->where('users.role', 'teacher')
@@ -20,21 +23,30 @@ class TeacherController extends Controller
             )
             ->orderBy('users.full_name')
             ->get();
-            
+
         return response()->json($teachers);
     }
 
     public function show($id)
     {
+        $user = $this->authenticatedUser();
+        abort_unless(
+            $user && ($user->role === 'admin' || ($user->role === 'teacher' && (string) $user->id === (string) $id)),
+            403
+        );
+
         $teacher = DB::table('teachers')->where('id', $id)->first();
-        if (!$teacher) {
+        if (! $teacher) {
             return response()->json(['error' => 'Teacher not found'], 404);
         }
+
         return response()->json($teacher);
     }
 
     public function store(Request $request)
     {
+        $this->requireAdmin();
+
         $request->validate([
             'surname' => 'required|string',
             'first_name' => 'required|string',
@@ -56,6 +68,8 @@ class TeacherController extends Controller
 
     public function update(Request $request, $id)
     {
+        $this->requireAdmin();
+
         $request->validate([
             'surname' => 'required|string',
             'first_name' => 'required|string',
@@ -72,7 +86,7 @@ class TeacherController extends Controller
             'status' => $request->status ?? 'active',
         ]);
 
-        if (!$updated) {
+        if (! $updated) {
             return response()->json(['error' => 'Teacher not found or no changes made'], 404);
         }
 
@@ -90,7 +104,7 @@ class TeacherController extends Controller
             DB::beginTransaction();
 
             $teacherUser = DB::table('users')->where('id', $id)->where('role', 'teacher')->first();
-            if (!$teacherUser) {
+            if (! $teacherUser) {
                 return response()->json(['error' => 'Teacher not found.'], 404);
             }
 
@@ -98,10 +112,12 @@ class TeacherController extends Controller
             DB::table('users')->where('id', $id)->delete();
 
             DB::commit();
+
             return response()->json(['message' => 'Teacher deleted successfully.']);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => 'Failed to delete teacher: ' . $e->getMessage()], 500);
+
+            return response()->json(['error' => 'Failed to delete teacher: '.$e->getMessage()], 500);
         }
     }
 
@@ -126,10 +142,11 @@ class TeacherController extends Controller
 
             return response()->json([
                 'subjects' => $classes,
-                'formClass' => $formClass ?: null
+                'formClass' => $formClass ?: null,
             ]);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }

@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Event;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class EventController extends Controller
@@ -15,16 +15,18 @@ class EventController extends Controller
 
     public function store(Request $request)
     {
+        $this->requireAdmin();
+
         $request->validate([
             'title' => 'required|string',
             'description' => 'required|string',
-            'event_date' => 'required|date'
+            'event_date' => 'required|date',
         ]);
 
         if ($request->hasFile('image')) {
             $file = $request->file('image');
-            
-            if (!$file->isValid()) {
+
+            if (! $file->isValid()) {
                 return response()->json(['errors' => ['image' => ['The image failed to upload.']]], 422);
             }
             if ($file->getSize() > 1024 * 1024) {
@@ -33,7 +35,7 @@ class EventController extends Controller
 
             $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
             $extension = strtolower($file->getClientOriginalExtension());
-            if (!in_array($extension, $allowedExtensions)) {
+            if (! in_array($extension, $allowedExtensions)) {
                 return response()->json(['errors' => ['image' => ['The uploaded file must be a valid image.']]], 422);
             }
         }
@@ -42,29 +44,32 @@ class EventController extends Controller
 
         if ($request->hasFile('image')) {
             $file = $request->file('image');
-            $filename = uniqid('event_') . '.' . strtolower($file->getClientOriginalExtension());
+            $filename = uniqid('event_').'.'.strtolower($file->getClientOriginalExtension());
             $path = $file->storeAs('events', $filename, 'public');
-            $data['image_url'] = url('storage/' . $path);
+            $data['image_url'] = url('storage/'.$path);
         }
 
         $event = Event::create($data);
+
         return response()->json(['message' => 'Event created successfully', 'event' => $event]);
     }
 
     public function update(Request $request, $id)
     {
+        $this->requireAdmin();
+
         $event = Event::findOrFail($id);
-        
+
         $request->validate([
             'title' => 'required|string',
             'description' => 'required|string',
-            'event_date' => 'required|date'
+            'event_date' => 'required|date',
         ]);
 
         if ($request->hasFile('image')) {
             $file = $request->file('image');
-            
-            if (!$file->isValid()) {
+
+            if (! $file->isValid()) {
                 return response()->json(['errors' => ['image' => ['The image failed to upload.']]], 422);
             }
             if ($file->getSize() > 1024 * 1024) {
@@ -73,7 +78,7 @@ class EventController extends Controller
 
             $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
             $extension = strtolower($file->getClientOriginalExtension());
-            if (!in_array($extension, $allowedExtensions)) {
+            if (! in_array($extension, $allowedExtensions)) {
                 return response()->json(['errors' => ['image' => ['The uploaded file must be a valid image.']]], 422);
             }
         }
@@ -82,27 +87,31 @@ class EventController extends Controller
 
         if ($request->hasFile('image')) {
             if ($event->image_url) {
-                $oldPath = str_replace(url('storage') . '/', '', $event->image_url);
+                $oldPath = str_replace(url('storage').'/', '', $event->image_url);
                 Storage::disk('public')->delete($oldPath);
             }
             $file = $request->file('image');
-            $filename = uniqid('event_') . '.' . strtolower($file->getClientOriginalExtension());
+            $filename = uniqid('event_').'.'.strtolower($file->getClientOriginalExtension());
             $path = $file->storeAs('events', $filename, 'public');
-            $data['image_url'] = url('storage/' . $path);
+            $data['image_url'] = url('storage/'.$path);
         }
 
         $event->update($data);
+
         return response()->json(['message' => 'Event updated successfully', 'event' => $event]);
     }
 
     public function destroy($id)
     {
+        $this->requireAdmin();
+
         $event = Event::findOrFail($id);
         if ($event->image_url) {
-            $path = str_replace(url('storage') . '/', '', $event->image_url);
+            $path = str_replace(url('storage').'/', '', $event->image_url);
             Storage::disk('public')->delete($path);
         }
         $event->delete();
+
         return response()->json(['message' => 'Event deleted successfully']);
     }
 }

@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../utils/api';
-import { ArrowLeft, Edit2, X, User, Save, Upload, Download } from 'lucide-react';
+import { ArrowLeft, Edit2, X, Download } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 
 export default function StudentRegistrationForm({ student, onClose, onUpdate }) {
-  if (!student) return null;
-
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({ ...student });
+  const [formData, setFormData] = useState(() => ({ ...(student || {}) }));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const photoInputRef = React.useRef(null);
@@ -33,6 +31,8 @@ export default function StudentRegistrationForm({ student, onClose, onUpdate }) 
   };
 
   const formRef = React.useRef(null);
+
+  if (!student) return null;
 
   const handleExportPDF = () => {
     const element = formRef.current;
@@ -138,6 +138,7 @@ export default function StudentRegistrationForm({ student, onClose, onUpdate }) 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                   <div><strong>Name:</strong> {student.parent_name || 'N/A'}</div>
                   <div><strong>Phone:</strong> {student.parent_phone || 'N/A'}</div>
+                  <div><strong>Email:</strong> {student.parent_email || 'N/A'}</div>
                   <div style={{ gridColumn: '1 / -1' }}><strong>Address:</strong> {student.parent_address || 'N/A'}</div>
                 </div>
               </div>
@@ -213,6 +214,10 @@ export default function StudentRegistrationForm({ student, onClose, onUpdate }) 
                   <div className="form-group">
                     <label>Parent Phone</label>
                     <input type="text" className="form-control" name="parent_phone" value={formData.parent_phone || ''} onChange={handleChange} required />
+                  </div>
+                  <div className="form-group">
+                    <label>Parent / Guardian Email</label>
+                    <input type="email" className="form-control" name="parent_email" value={formData.parent_email || ''} onChange={handleChange} />
                   </div>
                 </div>
 

@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Timetable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class SubjectController extends Controller
 {
@@ -20,6 +22,7 @@ class SubjectController extends Controller
                 }
             }
             $subject->classes = $classes;
+
             return $subject;
         });
 
@@ -29,14 +32,17 @@ class SubjectController extends Controller
     public function show($id)
     {
         $subject = DB::table('subjects')->where('id', $id)->first();
-        if (!$subject) {
+        if (! $subject) {
             return response()->json(['error' => 'Subject not found'], 404);
         }
+
         return response()->json($subject);
     }
 
     public function store(Request $request)
     {
+        $this->requireAdmin();
+
         $request->validate([
             'name' => 'required|string',
         ]);
@@ -51,12 +57,14 @@ class SubjectController extends Controller
 
     public function update(Request $request, $id)
     {
+        $this->requireAdmin();
+
         $request->validate([
             'name' => 'required|string',
         ]);
 
         $subject = DB::table('subjects')->where('id', $id)->first();
-        if (!$subject) {
+        if (! $subject) {
             return response()->json(['error' => 'Subject not found'], 404);
         }
 
@@ -83,15 +91,20 @@ class SubjectController extends Controller
 
     public function destroy($id)
     {
+        $this->requireAdmin();
+
         $deleted = DB::table('subjects')->where('id', $id)->delete();
-        if (!$deleted) {
+        if (! $deleted) {
             return response()->json(['error' => 'Subject not found'], 404);
         }
+
         return response()->json(['message' => 'Subject deleted successfully']);
     }
 
     public function assign(Request $request)
     {
+        $this->requireAdmin();
+
         $class_ids = $request->input('class_ids');
         $class_id = $request->input('class_id');
         $subject_id = $request->input('subject_id');
@@ -103,17 +116,18 @@ class SubjectController extends Controller
         try {
             DB::beginTransaction();
 
-            if (!$overwrite) {
+            if (! $overwrite) {
                 foreach ($targetClasses as $cid) {
                     $existing = DB::table('class_subjects')
                         ->where('class_id', $cid)
                         ->where('subject_id', $subject_id)
                         ->whereNotNull('teacher_id')
                         ->first();
-                        
+
                     if ($existing && $existing->teacher_id != $teacher_id) {
                         $cls = DB::table('classes')->where('id', $cid)->first();
                         $sub = DB::table('subjects')->where('id', $subject_id)->first();
+
                         return response()->json(['error' => "A teacher is already assigned to {$sub->name} in {$cls->name}. Use the Edit option on the class subject to reassign."], 400);
                     }
                 }
@@ -125,7 +139,7 @@ class SubjectController extends Controller
                     ->where('class_id', $cid)
                     ->where('subject_id', $subject_id)
                     ->first();
-                
+
                 if ($exists) {
                     DB::table('class_subjects')
                         ->where('class_id', $cid)
@@ -135,30 +149,34 @@ class SubjectController extends Controller
                     DB::table('class_subjects')->insert([
                         'class_id' => $cid,
                         'subject_id' => $subject_id,
-                        'teacher_id' => $teacher_id
+                        'teacher_id' => $teacher_id,
                     ]);
                 }
             }
 
             // Retroactive timetable update: fill in unassigned periods for these classes/subject
             if ($teacher_id) {
-                \App\Models\Timetable::whereIn('class_id', $targetClasses)
+                Timetable::whereIn('class_id', $targetClasses)
                     ->where('subject_id', $subject_id)
                     ->whereNull('teacher_id')
                     ->update(['teacher_id' => $teacher_id]);
             }
 
             DB::commit();
+
             return response()->json(['message' => 'Subject mapped to selected classes successfully']);
         } catch (\Exception $e) {
             DB::rollBack();
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
     public function syncForClass(Request $request)
     {
+        $this->requireAdmin();
+
         $request->validate([
             'class_id' => 'required|integer',
             'subject_ids' => 'present|array',
@@ -173,14 +191,14 @@ class SubjectController extends Controller
         $toAdd = array_diff($subjectIds, $existing);
         $toRemove = array_diff($existing, $subjectIds);
 
-        if (!empty($toRemove)) {
+        if (! empty($toRemove)) {
             DB::table('class_subjects')
                 ->where('class_id', $classId)
                 ->whereIn('subject_id', $toRemove)
                 ->delete();
         }
 
-        if (!empty($toAdd)) {
+        if (! empty($toAdd)) {
             $insertData = [];
             foreach ($toAdd as $sid) {
                 $insertData[] = ['class_id' => $classId, 'subject_id' => $sid];
@@ -193,6 +211,8 @@ class SubjectController extends Controller
 
     public function syncForTier(Request $request)
     {
+        $this->requireAdmin();
+
         $request->validate([
             'tier' => 'required|string',
             'subject_ids' => 'present|array',
@@ -205,11 +225,11 @@ class SubjectController extends Controller
         try {
             // Get what was previously assigned as core subjects for this tier
             $oldTierSubjects = DB::table('tier_subjects')->where('tier', $tier)->pluck('subject_id')->toArray();
-            
+
             // 1. Update tier_subjects table
             DB::table('tier_subjects')->where('tier', $tier)->delete();
-            
-            if (!empty($subjectIds)) {
+
+            if (! empty($subjectIds)) {
                 $tierSubjectsData = [];
                 foreach ($subjectIds as $sid) {
                     $tierSubjectsData[] = ['tier' => $tier, 'subject_id' => $sid];
@@ -225,21 +245,21 @@ class SubjectController extends Controller
             $classes = DB::table('classes')->where('tier', $tier)->where('is_virtual', false)->pluck('id');
             foreach ($classes as $classId) {
                 $existing = DB::table('class_subjects')->where('class_id', $classId)->pluck('subject_id')->toArray();
-                
+
                 // We only add the newly checked tier subjects (if they don't already have them)
                 $toAdd = array_diff($tierSubjectsToAdd, $existing);
-                
+
                 // We only remove the subjects that were specifically unchecked from the tier core subjects
                 $toRemove = array_intersect($tierSubjectsToRemove, $existing);
 
-                if (!empty($toRemove)) {
+                if (! empty($toRemove)) {
                     DB::table('class_subjects')
                         ->where('class_id', $classId)
                         ->whereIn('subject_id', $toRemove)
                         ->delete();
                 }
 
-                if (!empty($toAdd)) {
+                if (! empty($toAdd)) {
                     $insertData = [];
                     foreach ($toAdd as $sid) {
                         $insertData[] = ['class_id' => $classId, 'subject_id' => $sid];
@@ -249,10 +269,12 @@ class SubjectController extends Controller
             }
 
             DB::commit();
+
             return response()->json(['message' => 'Tier subjects synced successfully']);
         } catch (\Exception $e) {
             DB::rollBack();
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
@@ -260,6 +282,7 @@ class SubjectController extends Controller
     public function getTierSubjects($tier)
     {
         $subjects = DB::table('tier_subjects')->where('tier', $tier)->pluck('subject_id')->toArray();
+
         return response()->json($subjects);
     }
 
@@ -280,6 +303,7 @@ class SubjectController extends Controller
             ->orderBy('classes.name')
             ->orderBy('subjects.name')
             ->get();
+
         return response()->json($rows);
     }
 }

@@ -13,6 +13,8 @@ import html2pdf from 'html2pdf.js';
 import { Download } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 import MobileTeacherOverview from '../components/MobileTeacherOverview';
+import StudentRegistrationForm from '../components/StudentRegistrationForm';
+import RemarksManager from '../components/RemarksManager';
 
 export default function TeacherDashboard({ user, settings, activeTab, subTab, onSelectTab }) {
   const [activeSubTab, setActiveSubTab] = useState('overview');
@@ -90,7 +92,7 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
     date_of_birth: '', sex: 'Male', religion: 'Islam',
     address_residence: '', last_school_attended: '', passport_photo: '',
     local_government: '', state_of_origin: '', handicapped: false, handicap_details: '',
-    parent_name: '', parent_address: '', parent_phone: '', has_offline_debt: false, offline_debt_amount: ''
+    parent_name: '', parent_email: '', parent_address: '', parent_phone: '', has_offline_debt: false, offline_debt_amount: ''
   });
 
   // Status banners
@@ -195,14 +197,14 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
     try {
       const payload = { ...studentForm, class_id: assignments.formClass.id };
       const res = await api.registerStudent(payload);
-      setNotify(`Student registered! Admission No: ${res.admission_number}`);
+      setNotify(`Student registered. ID/default password: ${res.admission_number}. They must change it at first login.`);
       setShowStudentModal(false);
       setStudentForm({
         surname: '', first_name: '', other_names: '', full_name: '', class_id: '',
         date_of_birth: '', sex: 'Male', religion: 'Islam',
         address_residence: '', last_school_attended: '', passport_photo: '',
         local_government: '', state_of_origin: '', handicapped: false, handicap_details: '',
-        parent_name: '', parent_address: '', parent_phone: '', has_offline_debt: false, offline_debt_amount: ''
+        parent_name: '', parent_email: '', parent_address: '', parent_phone: '', has_offline_debt: false, offline_debt_amount: ''
       });
       loadFormClassStudents(assignments.formClass.id);
     } catch (err) {
@@ -1127,6 +1129,8 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                           <div style={{ display: 'flex', gap: '8px' }}>
                             <button
                               type="button"
+                              aria-label="Present"
+                              title="Present"
                               onClick={() => handleAttendanceChange(r.student_id, 'present')}
                               className="btn"
                               style={{
@@ -1141,10 +1145,12 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                                 transition: 'all 0.2s ease'
                               }}
                             >
-                              <span className="desktop-only">âœ“ Present</span><span className="mobile-only-inline" style={{ fontWeight: 'bold' }}>P</span>
+                              P
                             </button>
                             <button
                               type="button"
+                              aria-label="Absent"
+                              title="Absent"
                               onClick={() => handleAttendanceChange(r.student_id, 'absent')}
                               className="btn"
                               style={{
@@ -1159,10 +1165,12 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                                 transition: 'all 0.2s ease'
                               }}
                             >
-                              <span className="desktop-only">âœ• Absent</span><span className="mobile-only-inline" style={{ fontWeight: 'bold' }}>A</span>
+                              A
                             </button>
                             <button
                               type="button"
+                              aria-label="Late"
+                              title="Late"
                               onClick={() => handleAttendanceChange(r.student_id, 'late')}
                               className="btn"
                               style={{
@@ -1177,7 +1185,7 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                                 transition: 'all 0.2s ease'
                               }}
                             >
-                              <span className="desktop-only">â° Late</span><span className="mobile-only-inline" style={{ fontWeight: 'bold' }}>L</span>
+                              L
                             </button>
                           </div>
                         </td>
@@ -1902,6 +1910,10 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                 <div className="form-group">
                   <label>Parent Phone Number</label>
                   <input type="text" className="form-control" value={studentForm.parent_phone} onChange={(e) => setStudentForm({ ...studentForm, parent_phone: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>Parent / Guardian Email</label>
+                  <input type="email" className="form-control" value={studentForm.parent_email} onChange={(e) => setStudentForm({ ...studentForm, parent_email: e.target.value })} />
                 </div>
               </div>
 

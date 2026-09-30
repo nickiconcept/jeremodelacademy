@@ -5,6 +5,7 @@ import DashboardLayout from './components/DashboardLayout';
 import AdminDashboard from './pages/AdminDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import StudentDashboard from './pages/StudentDashboard';
+import RequiredPasswordChange from './components/RequiredPasswordChange';
 import api from './utils/api';
 import { GlobalUIProvider } from './contexts/GlobalUIContext';
 
@@ -29,7 +30,7 @@ function AppContent() {
 
   // Sync settings and token session on mount
   useEffect(() => {
-    fetchSettings();
+    fetchPublicSettings();
     verifySession();
   }, []);
 
@@ -83,58 +84,60 @@ function AppContent() {
     }
   };
 
+  const fetchPublicSettings = async () => {
+    try {
+      const data = await api.getPublicSettings();
+      setSettings(data);
+      setSettingsError(false);
+    } catch (err) {
+      console.error('Failed to load public school settings:', err);
+      setSettingsError(true);
+    }
+  };
+
   const verifySession = async () => {
     const token = localStorage.getItem('jma_token');
     if (token) {
       try {
-        // Simple client-side token payload decoding
         const parts = token.split('.');
-        if (parts.length === 3) {
-          const base64Url = parts[1];
-          let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-          const pad = base64.length % 4;
-          if (pad) {
-            base64 += new Array(5 - pad).join('=');
-          }
-          const payload = JSON.parse(window.atob(base64));
-
-          // Check expiry (in seconds)
-          if (payload.exp * 1000 < Date.now()) {
-            handleLogout();
-            return;
-          }
-          
-          // Temporarily use cached user, then fetch latest
-          const storedUser = localStorage.getItem('jma_user');
-          if (storedUser) {
-            setUser(JSON.parse(storedUser));
-          } else {
-            setUser(payload);
-          }
-        } else {
-          // If not a JWT, just use stored user temporarily
-          const storedUser = localStorage.getItem('jma_user');
-          if (storedUser) setUser(JSON.parse(storedUser));
+        if (parts.length !== 3) {
+          throw new Error('Invalid token format');
         }
-        
-        setLoading(false); // Unblock UI immediately with cached data
-        
-        try {
-           const freshUser = await api.getMe();
-           setUser(freshUser);
-        } catch (e) {
-           console.error('Failed to fetch fresh user details:', e);
-           handleLogout();
+
+        const base64Url = parts[1];
+        let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const pad = base64.length % 4;
+        if (pad) {
+          base64 += new Array(5 - pad).join('=');
+        }
+        const payload = JSON.parse(window.atob(base64));
+
+        if (payload.exp * 1000 < Date.now()) {
+          handleLogout();
+          return;
+        }
+
+        // Do not render a role dashboard from unverified cached/token claims.
+        const freshUser = await api.getMe();
+        setUser(freshUser);
+        if (!freshUser.must_change_password) {
+          await fetchSettings();
         }
       } catch (err) {
         console.error('Invalid session token:', err);
         handleLogout();
+      } finally {
+        setLoading(false);
       }
+      return;
     }
     setLoading(false);
   };
 
-  const handleLoginSuccess = (loggedInUser) => {
+  const handleLoginSuccess = async (loggedInUser) => {
+    if (!loggedInUser.must_change_password) {
+      await fetchSettings();
+    }
     setUser(loggedInUser);
     setActiveTab('dashboard'); // Default landing page
     setSubTab(null);
@@ -151,6 +154,12 @@ function AppContent() {
     localStorage.removeItem('jma_active_subtab');
     localStorage.removeItem('jma_user');
     window.history.pushState(null, '', `#/dashboard`);
+  };
+
+  const handlePasswordChangeComplete = async () => {
+    const freshUser = await api.getMe();
+    await fetchSettings();
+    setUser(freshUser);
   };
 
   if (settingsError) {
@@ -252,6 +261,16 @@ function AppContent() {
       return <LandingPage settings={settings} onEnterPortal={() => setShowLogin(true)} />;
     }
     return <Login onLoginSuccess={handleLoginSuccess} onBack={() => setShowLogin(false)} settings={settings} />;
+  }
+
+  if (user.must_change_password) {
+    return (
+      <RequiredPasswordChange
+        user={user}
+        onComplete={handlePasswordChangeComplete}
+        onLogout={handleLogout}
+      />
+    );
   }
 
   // Logged-in view selection based on role

@@ -2,16 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use App\Services\SchoolMailer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\User;
+use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
     public function registerTeacher(Request $request)
     {
-        $full_name = $request->input('full_name');
-        $email = $request->input('email');
+        $this->requireAdmin();
+
+        $validated = $request->validate([
+            'full_name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+        ]);
+        $full_name = $validated['full_name'];
+        $email = $validated['email'] ?? null;
         $passport_photo = $request->input('passport_photo');
         $surname = $request->input('surname');
         $first_name = $request->input('first_name');
@@ -26,7 +34,7 @@ class UserController extends Controller
         $discipline = $request->input('discipline');
         $employment_category = $request->input('employment_category');
 
-        if (!$full_name) {
+        if (! $full_name) {
             return response()->json(['error' => 'Full name is required'], 400);
         }
 
@@ -51,7 +59,7 @@ class UserController extends Controller
                 ->where('username', 'like', "JMA/STF/{$year}/%")
                 ->orderBy('username', 'desc')
                 ->first();
-            
+
             if ($latestTeacher) {
                 // Extract the last 3 digits from JMA/STF/YYYY/XXX
                 $lastSeq = (int) substr($latestTeacher->username, -3);
@@ -59,7 +67,7 @@ class UserController extends Controller
             } else {
                 $nextSeq = '001';
             }
-            
+
             $staff_id = "JMA/STF/{$year}/{$nextSeq}";
 
             $username = strtoupper($staff_id);
@@ -69,6 +77,7 @@ class UserController extends Controller
             $userId = DB::table('users')->insertGetId([
                 'username' => $username,
                 'password_hash' => $password_hash,
+                'must_change_password' => true,
                 'email' => $email,
                 'full_name' => $full_name,
                 'role' => 'teacher',
@@ -97,13 +106,20 @@ class UserController extends Controller
             ]);
 
             DB::commit();
-            return response()->json(['message' => 'Teacher registered successfully', 'teacherId' => $userId], 201);
+            app(SchoolMailer::class)->teacherRegistered($email, $full_name, $staff_id);
+
+            return response()->json([
+                'message' => 'Teacher registered successfully',
+                'teacherId' => $userId,
+                'staff_id' => $staff_id,
+            ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
             if (str_contains($e->getMessage(), 'Duplicate entry')) {
                 return response()->json(['error' => 'Username already exists'], 400);
             }
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
@@ -111,7 +127,7 @@ class UserController extends Controller
     public function updateTeacher(Request $request, $id)
     {
         $user = auth('api')->user();
-        if ($user->role !== 'admin' && $user->id != $id) {
+        if (! $user || ($user->role !== 'admin' && ($user->role !== 'teacher' || (string) $user->id !== (string) $id))) {
             return response()->json(['error' => 'Access denied: You can only update your own profile'], 403);
         }
 
@@ -146,45 +162,90 @@ class UserController extends Controller
             DB::table('users')->where('id', $id)->update($updateData);
 
             $teacherUpdateData = [
-                'updated_at' => now()
+                'updated_at' => now(),
             ];
-            if ($surname !== null) $teacherUpdateData['surname'] = $surname;
-            if ($first_name !== null) $teacherUpdateData['first_name'] = $first_name;
-            if ($other_names !== null) $teacherUpdateData['other_names'] = $other_names;
-            if ($address !== null) $teacherUpdateData['address'] = $address;
-            if ($state_of_residence !== null) $teacherUpdateData['state_of_residence'] = $state_of_residence;
-            if ($lga_of_residence !== null) $teacherUpdateData['lga_of_residence'] = $lga_of_residence;
-            if ($sig !== null) $teacherUpdateData['signature'] = $sig;
-            if ($phone_number !== null) $teacherUpdateData['phone_number'] = $phone_number;
-            if ($date_of_birth !== null) $teacherUpdateData['date_of_birth'] = $date_of_birth;
-            if ($qualification !== null) $teacherUpdateData['qualification'] = $qualification;
-            if ($discipline !== null) $teacherUpdateData['discipline'] = $discipline;
-            if ($employment_category !== null) $teacherUpdateData['employment_category'] = $employment_category;
+            if ($surname !== null) {
+                $teacherUpdateData['surname'] = $surname;
+            }
+            if ($first_name !== null) {
+                $teacherUpdateData['first_name'] = $first_name;
+            }
+            if ($other_names !== null) {
+                $teacherUpdateData['other_names'] = $other_names;
+            }
+            if ($address !== null) {
+                $teacherUpdateData['address'] = $address;
+            }
+            if ($state_of_residence !== null) {
+                $teacherUpdateData['state_of_residence'] = $state_of_residence;
+            }
+            if ($lga_of_residence !== null) {
+                $teacherUpdateData['lga_of_residence'] = $lga_of_residence;
+            }
+            if ($sig !== null) {
+                $teacherUpdateData['signature'] = $sig;
+            }
+            if ($phone_number !== null) {
+                $teacherUpdateData['phone_number'] = $phone_number;
+            }
+            if ($date_of_birth !== null) {
+                $teacherUpdateData['date_of_birth'] = $date_of_birth;
+            }
+            if ($qualification !== null) {
+                $teacherUpdateData['qualification'] = $qualification;
+            }
+            if ($discipline !== null) {
+                $teacherUpdateData['discipline'] = $discipline;
+            }
+            if ($employment_category !== null) {
+                $teacherUpdateData['employment_category'] = $employment_category;
+            }
 
             DB::table('teachers')->where('id', $id)->update($teacherUpdateData);
 
             DB::commit();
+
             return response()->json(['message' => 'Teacher updated successfully']);
         } catch (\Exception $e) {
             DB::rollBack();
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
     public function updatePermissions(Request $request)
     {
-        $userId = $request->input('user_id');
-        $permissions = $request->input('permissions', []);
+        $this->requireAdmin();
+
+        $validated = $request->validate([
+            'user_id' => ['required', 'integer', 'exists:users,id'],
+            'permissions' => ['present', 'array', 'max:20'],
+            'permissions.*' => ['string', 'distinct', 'in:can_manage_staff,can_manage_students,can_manage_fees,can_edit_website,can_manage_results,can_take_past_attendance,can_register_students,can_edit_students,super_admin'],
+        ]);
+        $actor = $this->authenticatedUser();
 
         try {
-            $user = User::find($userId);
-            if ($user) {
-                $user->permissions = $permissions;
-                $user->save();
-                return response()->json(['success' => true]);
+            $target = User::findOrFail($validated['user_id']);
+            $isSuperAdmin = in_array('super_admin', $actor->permissions ?? [], true);
+            $requestsAdminPermissions = array_intersect($validated['permissions'], [
+                'can_manage_staff', 'can_manage_students', 'can_manage_fees', 'can_edit_website', 'can_manage_results', 'super_admin',
+            ]) !== [];
+
+            abort_unless(
+                $isSuperAdmin || ($target->role === 'teacher' && ! $requestsAdminPermissions),
+                403,
+                'Only a super administrator may change administrator permissions.'
+            );
+
+            if ($target->role === 'student') {
+                abort(422, 'Permissions can only be assigned to staff accounts.');
             }
-            return response()->json(['error' => 'User not found'], 404);
+
+            $target->permissions = $validated['permissions'];
+            $target->save();
+
+            return response()->json(['success' => true]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
@@ -192,19 +253,22 @@ class UserController extends Controller
 
     public function updateStatus(Request $request)
     {
-        $userId = $request->input('userId');
-        $status = $request->input('status');
+        $this->requireAdmin();
 
-        if (!$userId || !$status) {
-            return response()->json(['error' => 'User ID and status are required'], 400);
-        }
+        $validated = $request->validate([
+            'userId' => ['required', 'integer', 'exists:users,id'],
+            'status' => ['required', 'in:active,inactive,suspended,graduated,archived'],
+        ]);
+        $userId = $validated['userId'];
+        $status = $validated['status'];
 
         try {
             DB::beginTransaction();
-            
+
             $user = DB::table('users')->where('id', $userId)->first();
-            if (!$user) {
+            if (! $user) {
                 DB::rollBack();
+
                 return response()->json(['error' => 'User not found'], 404);
             }
 
@@ -223,10 +287,12 @@ class UserController extends Controller
             }
 
             DB::commit();
+
             return response()->json(['message' => 'User status updated successfully']);
         } catch (\Exception $e) {
             DB::rollBack();
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }

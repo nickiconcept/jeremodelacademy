@@ -2,21 +2,28 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Subject;
-use App\Models\SystemSetting;
-use App\Models\ReportCardRemark;
 use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ReportCardController extends Controller
 {
     private function calculateGrade($score)
     {
-        if ($score >= 75) return ['grade' => 'A', 'remark' => 'Excellent'];
-        if ($score >= 60) return ['grade' => 'B', 'remark' => 'Very Good'];
-        if ($score >= 50) return ['grade' => 'C', 'remark' => 'Good'];
-        if ($score >= 40) return ['grade' => 'D', 'remark' => 'Pass'];
+        if ($score >= 75) {
+            return ['grade' => 'A', 'remark' => 'Excellent'];
+        }
+        if ($score >= 60) {
+            return ['grade' => 'B', 'remark' => 'Very Good'];
+        }
+        if ($score >= 50) {
+            return ['grade' => 'C', 'remark' => 'Good'];
+        }
+        if ($score >= 40) {
+            return ['grade' => 'D', 'remark' => 'Pass'];
+        }
+
         return ['grade' => 'F', 'remark' => 'Fail'];
     }
 
@@ -39,7 +46,7 @@ class ReportCardController extends Controller
             ->leftJoin('teachers as fmt', 'c.form_master_id', '=', 'fmt.id')
             ->where('s.id', $targetStudentId)
             ->select(
-                's.*', 'u.full_name', 'u.passport_photo', 
+                's.*', 'u.full_name', 'u.passport_photo',
                 'c.name as class_name', 'c.tier',
                 'fm.full_name as form_master_name', 'fmt.signature as form_master_signature'
             )
@@ -62,7 +69,7 @@ class ReportCardController extends Controller
                 DB::raw("COUNT(CASE WHEN status IN ('present', 'late') THEN 1 END) as present"),
                 DB::raw("COUNT(CASE WHEN status = 'absent' THEN 1 END) as absent"),
                 DB::raw("COUNT(CASE WHEN status = 'late' THEN 1 END) as late"),
-                DB::raw("COUNT(*) as total")
+                DB::raw('COUNT(*) as total')
             )
             ->first();
 
@@ -77,19 +84,27 @@ class ReportCardController extends Controller
 
             $subTotals = [];
             foreach ($allYearGrades as $g) {
-                if (!isset($subTotals[$g->subject_id])) $subTotals[$g->subject_id] = [];
+                if (! isset($subTotals[$g->subject_id])) {
+                    $subTotals[$g->subject_id] = [];
+                }
                 $subTotals[$g->subject_id][$g->term] = $g->total_score;
             }
 
-            $reports = $activeGrades->map(function($g) use ($subTotals) {
+            $reports = $activeGrades->map(function ($g) use ($subTotals) {
                 $t1 = $subTotals[$g->subject_id]['1st Term'] ?? 0;
                 $t2 = $subTotals[$g->subject_id]['2nd Term'] ?? 0;
                 $t3 = $g->total_score;
 
                 $termsTaken = 0;
-                if ($t1 > 0) $termsTaken++;
-                if ($t2 > 0) $termsTaken++;
-                if ($t3 > 0) $termsTaken++;
+                if ($t1 > 0) {
+                    $termsTaken++;
+                }
+                if ($t2 > 0) {
+                    $termsTaken++;
+                }
+                if ($t3 > 0) {
+                    $termsTaken++;
+                }
 
                 $cumAverage = $termsTaken > 0 ? (($t1 + $t2 + $t3) / $termsTaken) : 0;
                 $gradeInfo = $this->calculateGrade($cumAverage);
@@ -105,22 +120,22 @@ class ReportCardController extends Controller
         }
 
         $affectiveBehavioral = DB::table('affective_skills as bs')
-            ->leftJoin('student_affective_eval as sse', function($join) use ($targetStudentId, $reqTerm, $reqYear) {
+            ->leftJoin('student_affective_eval as sse', function ($join) use ($targetStudentId, $reqTerm, $reqYear) {
                 $join->on('bs.id', '=', 'sse.skill_id')
-                     ->where('sse.student_id', '=', $targetStudentId)
-                     ->where('sse.term', '=', $reqTerm)
-                     ->where('sse.academic_year', '=', $reqYear);
+                    ->where('sse.student_id', '=', $targetStudentId)
+                    ->where('sse.term', '=', $reqTerm)
+                    ->where('sse.academic_year', '=', $reqYear);
             })
             ->select('bs.name', DB::raw("'affective' as category"), 'bs.target_section', DB::raw('COALESCE(sse.rating, 0) as rating'))
             ->orderBy('bs.name')
             ->get();
 
         $psychomotorBehavioral = DB::table('psychomotor_skills as bs')
-            ->leftJoin('student_psychomotor_eval as sse', function($join) use ($targetStudentId, $reqTerm, $reqYear) {
+            ->leftJoin('student_psychomotor_eval as sse', function ($join) use ($targetStudentId, $reqTerm, $reqYear) {
                 $join->on('bs.id', '=', 'sse.skill_id')
-                     ->where('sse.student_id', '=', $targetStudentId)
-                     ->where('sse.term', '=', $reqTerm)
-                     ->where('sse.academic_year', '=', $reqYear);
+                    ->where('sse.student_id', '=', $targetStudentId)
+                    ->where('sse.term', '=', $reqTerm)
+                    ->where('sse.academic_year', '=', $reqYear);
             })
             ->select('bs.name', DB::raw("'psychomotor' as category"), 'bs.target_section', DB::raw('COALESCE(sse.rating, 0) as rating'))
             ->orderBy('bs.name')
@@ -133,19 +148,19 @@ class ReportCardController extends Controller
         $class_average = '0.0';
         $highest_average = '0.0';
         $lowest_average = '0.0';
-        
+
         $next_term_fee = null;
 
         if ($studentInfo && $studentInfo->class_id) {
             $classId = $studentInfo->class_id;
-            
-            if (!empty($studentInfo->tier)) {
+
+            if (! empty($studentInfo->tier)) {
                 $feeStruct = DB::table('fee_structures')
                     ->where('tier', $studentInfo->tier)
                     ->where('category', 'School Fees')
                     ->first();
                 if ($feeStruct) {
-                    $next_term_fee = '₦' . number_format($feeStruct->amount, 2);
+                    $next_term_fee = '₦'.number_format($feeStruct->amount, 2);
                 }
             }
 
@@ -171,14 +186,15 @@ class ReportCardController extends Controller
                 $studentCounts[$g->student_id] += 1;
             }
 
-            $rankedList = $classStudents->map(function($sid) use ($studentTotals, $studentCounts) {
+            $rankedList = $classStudents->map(function ($sid) use ($studentTotals, $studentCounts) {
                 $total = $studentTotals[$sid];
                 $count = $studentCounts[$sid];
                 $avg = $count > 0 ? ($total / $count) : 0;
-                return (object)['student_id' => $sid, 'avg' => $avg];
+
+                return (object) ['student_id' => $sid, 'avg' => $avg];
             })->sortByDesc('avg')->values();
 
-            $rankIdx = $rankedList->search(function($item) use ($targetStudentId) {
+            $rankIdx = $rankedList->search(function ($item) use ($targetStudentId) {
                 return $item->student_id == $targetStudentId;
             });
 
@@ -186,7 +202,9 @@ class ReportCardController extends Controller
                 $position = $rankIdx + 1;
             }
 
-            $activeAvgs = $rankedList->pluck('avg')->filter(function($a) { return $a > 0; })->values();
+            $activeAvgs = $rankedList->pluck('avg')->filter(function ($a) {
+                return $a > 0;
+            })->values();
             if ($activeAvgs->count() > 0) {
                 $sumAvgs = $activeAvgs->sum();
                 $class_average = number_format($sumAvgs / $activeAvgs->count(), 1);
@@ -196,21 +214,26 @@ class ReportCardController extends Controller
 
             $subjectRanks = [];
             foreach ($classGrades as $cg) {
-                if (!isset($subjectRanks[$cg->subject_id])) $subjectRanks[$cg->subject_id] = [];
-                $subjectRanks[$cg->subject_id][] = (object)['student_id' => $cg->student_id, 'score' => $cg->total_score];
+                if (! isset($subjectRanks[$cg->subject_id])) {
+                    $subjectRanks[$cg->subject_id] = [];
+                }
+                $subjectRanks[$cg->subject_id][] = (object) ['student_id' => $cg->student_id, 'score' => $cg->total_score];
             }
 
             foreach ($subjectRanks as $subId => $ranks) {
-                usort($subjectRanks[$subId], function($a, $b) { return $b->score <=> $a->score; });
+                usort($subjectRanks[$subId], function ($a, $b) {
+                    return $b->score <=> $a->score;
+                });
             }
 
-            $reports = collect($reports)->map(function($g) use ($subjectRanks, $targetStudentId) {
+            $reports = collect($reports)->map(function ($g) use ($subjectRanks, $targetStudentId) {
                 $subRankList = collect($subjectRanks[$g->subject_id] ?? []);
-                $subRankIdx = $subRankList->search(function($r) use ($targetStudentId) {
+                $subRankIdx = $subRankList->search(function ($r) use ($targetStudentId) {
                     return $r->student_id == $targetStudentId;
                 });
-                
+
                 $g->subject_position = $subRankIdx !== false ? ($subRankIdx + 1) : '-';
+
                 return $g;
             });
         }
@@ -234,7 +257,7 @@ class ReportCardController extends Controller
             'highest_average' => $highest_average,
             'lowest_average' => $lowest_average,
             'remarks' => $remarkData,
-            'next_term_fee' => $next_term_fee
+            'next_term_fee' => $next_term_fee,
         ];
     }
 
@@ -244,8 +267,19 @@ class ReportCardController extends Controller
         $year = $request->query('year');
         $user = auth('api')->user();
 
-        if ($user->role === 'student' && $user->id != $studentId) {
-            return response()->json(['error' => 'Unauthorized view.'], 403);
+        $studentClassId = DB::table('students')->where('id', $studentId)->value('class_id');
+        abort_unless(
+            $user && (
+                $user->role === 'admin'
+                || ($user->role === 'student' && (string) $user->id === (string) $studentId)
+                || ($studentClassId && $user->role === 'teacher' && $this->teacherIsFormMaster($studentClassId))
+            ),
+            403,
+            'You are not authorized to access this report card.'
+        );
+
+        if ($user->role === 'student' && ! $term) {
+            return response()->json(['error' => 'Term is required.'], 422);
         }
 
         try {
@@ -269,7 +303,7 @@ class ReportCardController extends Controller
                     ->orderByDesc('id')
                     ->first();
 
-                if (!$boundPin) {
+                if (! $boundPin) {
                     return response()->json(['error' => 'Result Locked: Please input a result checker PIN to unlock this term\'s grades.'], 403);
                 }
 
@@ -277,7 +311,7 @@ class ReportCardController extends Controller
                 $newStatus = $newUsage >= 5 ? 'exhausted' : 'active';
                 DB::table('result_pins')->where('id', $boundPin->id)->update([
                     'usage_count' => $newUsage,
-                    'status' => $newStatus
+                    'status' => $newStatus,
                 ]);
 
                 ActivityLog::log(
@@ -288,20 +322,24 @@ class ReportCardController extends Controller
             }
 
             $reportCardData = $this->buildReportCardData($studentId, $term, $year);
+
             return response()->json($reportCardData);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
     public function getBulkReportCards(Request $request)
     {
+        $this->requireAdmin();
+
         $class_id = $request->query('class_id');
         $term = $request->query('term');
         $year = $request->query('year');
 
-        if (!$class_id || !$term || !$year) {
+        if (! $class_id || ! $term || ! $year) {
             return response()->json(['error' => 'class_id, term, and year parameters are required.'], 400);
         }
 
@@ -315,7 +353,8 @@ class ReportCardController extends Controller
 
             return response()->json($reportCards);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
@@ -327,12 +366,7 @@ class ReportCardController extends Controller
         $user = auth('api')->user();
 
         try {
-            if ($user->role === 'teacher') {
-                $cls = DB::table('classes')->where('id', $classId)->first();
-                if (!$cls || $cls->form_master_id != $user->id) {
-                    return response()->json(['error' => 'Access denied: You are not the Form Master of this class'], 403);
-                }
-            }
+            $this->requireAdminOrFormMaster($classId);
 
             $subjects = DB::table('class_subjects as cs')
                 ->join('subjects as s', 'cs.subject_id', '=', 's.id')
@@ -358,7 +392,9 @@ class ReportCardController extends Controller
 
             $gradeMap = [];
             foreach ($gradesList as $g) {
-                if (!isset($gradeMap[$g->student_id])) $gradeMap[$g->student_id] = [];
+                if (! isset($gradeMap[$g->student_id])) {
+                    $gradeMap[$g->student_id] = [];
+                }
                 $gradeMap[$g->student_id][$g->subject_id] = $g;
             }
 
@@ -372,8 +408,12 @@ class ReportCardController extends Controller
                     ->get();
 
                 foreach ($allYearGrades as $yg) {
-                    if (!isset($allYearGradeMap[$yg->student_id])) $allYearGradeMap[$yg->student_id] = [];
-                    if (!isset($allYearGradeMap[$yg->student_id][$yg->subject_id])) $allYearGradeMap[$yg->student_id][$yg->subject_id] = [];
+                    if (! isset($allYearGradeMap[$yg->student_id])) {
+                        $allYearGradeMap[$yg->student_id] = [];
+                    }
+                    if (! isset($allYearGradeMap[$yg->student_id][$yg->subject_id])) {
+                        $allYearGradeMap[$yg->student_id][$yg->subject_id] = [];
+                    }
                     $allYearGradeMap[$yg->student_id][$yg->subject_id][$yg->term] = $yg->total_score;
                 }
             }
@@ -402,18 +442,24 @@ class ReportCardController extends Controller
                             'ca3' => $g->ca3,
                             'ca4' => $g->ca4,
                             'exam' => $g->exam_score,
-                            'grade' => $g->grade_letter
+                            'grade' => $g->grade_letter,
                         ];
 
                         if ($term === '3rd Term') {
                             $t1 = $allYearGradeMap[$stuId][$subId]['1st Term'] ?? 0;
                             $t2 = $allYearGradeMap[$stuId][$subId]['2nd Term'] ?? 0;
                             $t3 = $g->total_score;
-                            
+
                             $termsTaken = 0;
-                            if ($t1 > 0) $termsTaken++;
-                            if ($t2 > 0) $termsTaken++;
-                            if ($t3 > 0) $termsTaken++;
+                            if ($t1 > 0) {
+                                $termsTaken++;
+                            }
+                            if ($t2 > 0) {
+                                $termsTaken++;
+                            }
+                            if ($t3 > 0) {
+                                $termsTaken++;
+                            }
 
                             $cumAvg = $termsTaken > 0 ? (($t1 + $t2 + $t3) / $termsTaken) : 0;
                             $gradeObj = $this->calculateGrade($cumAvg);
@@ -434,7 +480,7 @@ class ReportCardController extends Controller
                             'ca3' => '-',
                             'ca4' => '-',
                             'exam' => '-',
-                            'grade' => '-'
+                            'grade' => '-',
                         ];
                         if ($term === '3rd Term') {
                             $emptyEntry['term1'] = '-';
@@ -450,11 +496,11 @@ class ReportCardController extends Controller
                     'student' => $stu,
                     'grades' => $stuGrades,
                     'grandTotal' => $grandTotal,
-                    'average' => $subjectsTaken > 0 ? ($grandTotal / $subjectsTaken) : 0
+                    'average' => $subjectsTaken > 0 ? ($grandTotal / $subjectsTaken) : 0,
                 ];
             }
 
-            usort($studentPerformance, function($a, $b) {
+            usort($studentPerformance, function ($a, $b) {
                 return $b['average'] <=> $a['average'];
             });
 
@@ -464,16 +510,20 @@ class ReportCardController extends Controller
 
             return response()->json([
                 'subjects' => $subjects,
-                'students' => $studentPerformance
+                'students' => $studentPerformance,
             ]);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
+
     public function teacherResultProgress(Request $request)
     {
         $user = auth('api')->user();
+        abort_unless($user && $user->role === 'teacher', 403);
+
         try {
             $settings = DB::table('system_settings')->orderByDesc('id')->first();
             $term = $settings ? $settings->active_term : '3rd Term';
@@ -499,7 +549,7 @@ class ReportCardController extends Controller
                     ->where('subject_id', $item->subject_id)
                     ->where('term', $term)
                     ->where('academic_year', $year)
-                    ->whereIn('student_id', function($q) use ($item) {
+                    ->whereIn('student_id', function ($q) use ($item) {
                         $q->select('id')->from('students')->where('class_id', $item->class_id);
                     })
                     ->distinct('student_id')
@@ -522,7 +572,7 @@ class ReportCardController extends Controller
                     'total_students' => $totalStudents,
                     'uploaded_count' => $uploadedCount,
                     'status' => $status,
-                    'percentage' => $totalStudents > 0 ? round(($uploadedCount / $totalStudents) * 100) : 0
+                    'percentage' => $totalStudents > 0 ? round(($uploadedCount / $totalStudents) * 100) : 0,
                 ];
             }
 
@@ -537,18 +587,21 @@ class ReportCardController extends Controller
                     'in_progress' => $inProgressCount,
                     'pending' => $pendingCount,
                     'total' => $totalAllocations,
-                    'percentage' => $percentage
+                    'percentage' => $percentage,
                 ],
-                'details' => $details
+                'details' => $details,
             ]);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 
     public function adminResultProgress(Request $request)
     {
+        $this->requireAdmin();
+
         try {
             $settings = DB::table('system_settings')->orderByDesc('id')->first();
             $term = $settings ? $settings->active_term : '3rd Term';
@@ -577,7 +630,7 @@ class ReportCardController extends Controller
                     ->where('subject_id', $item->subject_id)
                     ->where('term', $term)
                     ->where('academic_year', $year)
-                    ->whereIn('student_id', function($q) use ($item) {
+                    ->whereIn('student_id', function ($q) use ($item) {
                         $q->select('id')->from('students')->where('class_id', $item->class_id);
                     })
                     ->distinct('student_id')
@@ -601,7 +654,7 @@ class ReportCardController extends Controller
                     'total_students' => $totalStudents,
                     'uploaded_count' => $uploadedCount,
                     'status' => $status,
-                    'percentage' => $totalStudents > 0 ? round(($uploadedCount / $totalStudents) * 100) : 0
+                    'percentage' => $totalStudents > 0 ? round(($uploadedCount / $totalStudents) * 100) : 0,
                 ];
             }
 
@@ -616,12 +669,13 @@ class ReportCardController extends Controller
                     'in_progress' => $inProgressCount,
                     'pending' => $pendingCount,
                     'total' => $totalAllocations,
-                    'percentage' => $percentage
+                    'percentage' => $percentage,
                 ],
-                'details' => $details
+                'details' => $details,
             ]);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
@@ -629,9 +683,7 @@ class ReportCardController extends Controller
     public function studentTimeline(Request $request, $studentId)
     {
         $user = auth('api')->user();
-        if ($user->role === 'student' && $user->id != $studentId) {
-            return response()->json(['error' => 'Unauthorized view.'], 403);
-        }
+        $this->requireAdminOrOwnStudent($studentId);
 
         try {
             $timeline = DB::table('grades')
@@ -652,13 +704,12 @@ class ReportCardController extends Controller
 
             return response()->json([
                 'timeline' => $timeline,
-                'unlockedPins' => $unlockedPins
+                'unlockedPins' => $unlockedPins,
             ]);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
 }
-
-

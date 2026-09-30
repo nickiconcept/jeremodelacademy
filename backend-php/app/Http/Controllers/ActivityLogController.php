@@ -23,12 +23,9 @@ class ActivityLogController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        $this->requireAdmin();
+
         $query = ActivityLog::query()->orderByDesc('created_at');
-        
-        $user = auth('api')->user();
-        if ($user && $user->role !== 'admin') {
-            $query->where('user_id', $user->id);
-        }
 
         // ----- Filters -----
         if ($request->filled('user_role')) {
@@ -51,8 +48,8 @@ class ActivityLogController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('user_name', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhere('target_name', 'like', "%{$search}%");
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('target_name', 'like', "%{$search}%");
             });
         }
 
@@ -78,17 +75,19 @@ class ActivityLogController extends Controller
      */
     public function stats(): JsonResponse
     {
+        $this->requireAdmin();
+
         $today = now()->toDateString();
 
         return response()->json([
-            'total'        => ActivityLog::count(),
-            'today'        => ActivityLog::whereDate('created_at', $today)->count(),
-            'by_role'      => ActivityLog::selectRaw('user_role, count(*) as count')
-                                ->groupBy('user_role')
-                                ->pluck('count', 'user_role'),
-            'by_module'    => ActivityLog::selectRaw('module, count(*) as count')
-                                ->groupBy('module')
-                                ->pluck('count', 'module'),
+            'total' => ActivityLog::count(),
+            'today' => ActivityLog::whereDate('created_at', $today)->count(),
+            'by_role' => ActivityLog::selectRaw('user_role, count(*) as count')
+                ->groupBy('user_role')
+                ->pluck('count', 'user_role'),
+            'by_module' => ActivityLog::selectRaw('module, count(*) as count')
+                ->groupBy('module')
+                ->pluck('count', 'module'),
         ]);
     }
 
@@ -100,6 +99,8 @@ class ActivityLogController extends Controller
      */
     public function purge(Request $request): JsonResponse
     {
+        $this->requireAdmin();
+
         $days = max(1, (int) ($request->days ?? 90));
         $cutoff = now()->subDays($days);
 

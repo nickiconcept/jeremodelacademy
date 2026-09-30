@@ -21,7 +21,7 @@ export default function Login({ onLoginSuccess, onBack, settings }) {
 
     try {
       const user = await api.login(identifier, password);
-      onLoginSuccess(user);
+      await onLoginSuccess(user);
     } catch (err) {
       setError(err.message || 'Login failed. Please check your username and password.');
     } finally {
@@ -63,35 +63,27 @@ export default function Login({ onLoginSuccess, onBack, settings }) {
           animation: 'blobDrift 18s ease-in-out infinite reverse',
         }} />
 
-        {/* Logo badge with pulse ring */}
+        {/* School logo */}
         <div style={{
           position: 'relative',
-          marginBottom: '32px',
+          marginBottom: '28px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           animation: 'fadeSlideUp 0.5s ease both',
         }}>
-          <div style={{
-            position: 'absolute',
-            width: '130px',
-            height: '130px',
-            borderRadius: '26px',
-            border: '2px solid rgba(14,165,233,0.4)',
-            animation: 'pulseRing 2s ease infinite',
-          }} />
           {settings?.school_logo_url ? (
             <img src={settings?.school_logo_url} alt="Logo" style={{
-              width: '110px', height: '110px', borderRadius: '20px', objectFit: 'contain',
-              backgroundColor: '#ffffff', padding: '6px',
-              boxShadow: '0 12px 36px rgba(14,165,233,0.35)'
+              width: '104px', height: '104px', boxSizing: 'border-box', borderRadius: '18px', objectFit: 'contain',
+              backgroundColor: '#ffffff', padding: '8px', border: '1px solid rgba(255,255,255,0.7)',
+              boxShadow: '0 8px 22px rgba(0,0,0,0.2)'
             }} />
           ) : (
             <div style={{
-              width: '90px', height: '90px', borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)',
+              width: '88px', height: '88px', borderRadius: '20px',
+              background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.24)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 12px 36px rgba(14,165,233,0.45)',
+              boxShadow: '0 8px 22px rgba(0,0,0,0.2)',
               color: '#fff',
             }}>
               <GraduationCap size={42} />
@@ -217,7 +209,7 @@ export default function Login({ onLoginSuccess, onBack, settings }) {
                 required
               />
               <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '5px', display: 'block' }}>
-                Students: use your JMA admission number
+                New students and staff: your initial password is your admission number or staff ID. You will be prompted to change it after signing in.
               </small>
             </div>
 

@@ -5,7 +5,17 @@ import {
   ArrowRight, ExternalLink, Menu, ChevronDown
 } from 'lucide-react';
 import api from '../utils/api';
+import ComingSoonPage from './ComingSoonPage';
 import './LandingPage.css';
+
+const COMING_SOON_PAGES = {
+  'admissions-info': 'Admissions Info',
+  'student-life': 'Student Life',
+  'academic-calendar': 'Academic Calendar',
+  gallery: 'Gallery',
+  'privacy-policy': 'Privacy Policy',
+  'terms-of-service': 'Terms of Service',
+};
 
 
 
@@ -37,7 +47,7 @@ export default function LandingPage({ settings, onEnterPortal }) {
   const [openFeature, setOpenFeature] = useState(null);
   const [openEvent, setOpenEvent] = useState(null);
   const [openFooterSection, setOpenFooterSection] = useState(null);
-  const [footerNotice, setFooterNotice] = useState('');
+  const [comingSoonPage, setComingSoonPage] = useState(null);
   const [statsVisible, setStatsVisible] = useState(false);
   const [showChatbot, setShowChatbot] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
@@ -93,6 +103,17 @@ export default function LandingPage({ settings, onEnterPortal }) {
     };
   }, []);
 
+  useEffect(() => {
+    const syncComingSoonPage = () => {
+      const route = window.location.hash.replace(/^#\/?/, '').split('/');
+      setComingSoonPage(route[0] === 'coming-soon' ? COMING_SOON_PAGES[route[1]] || null : null);
+    };
+
+    window.addEventListener('popstate', syncComingSoonPage);
+    syncComingSoonPage();
+    return () => window.removeEventListener('popstate', syncComingSoonPage);
+  }, []);
+
   // Auto-advance slides
   useEffect(() => {
     if (slides.length <= 1) return;
@@ -113,8 +134,24 @@ export default function LandingPage({ settings, onEnterPortal }) {
   const aboutContent = settings?.about_us_content || 'We are a premier educational institution dedicated to nurturing young minds and building the future leaders of Nigeria. Our commitment to academic rigour, moral development, and holistic education sets us apart.';
 
   const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-  const showComingSoon = (event) => {
-    setFooterNotice(`${event.currentTarget.textContent.trim()} — coming soon.`);
+  const openComingSoonPage = (title) => {
+    const slug = Object.keys(COMING_SOON_PAGES).find((pageSlug) => COMING_SOON_PAGES[pageSlug] === title);
+    if (!slug) return;
+
+    const previousHash = window.location.hash || '#/dashboard';
+    window.history.pushState({ comingSoonPage: title, previousHash }, '', `#/coming-soon/${slug}`);
+    setComingSoonPage(title);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const returnFromComingSoonPage = () => {
+    if (window.history.state?.comingSoonPage) {
+      window.history.back();
+      return;
+    }
+
+    window.history.replaceState(null, '', '#/dashboard');
+    setComingSoonPage(null);
   };
   const nextSlide = () => setCurrentSlide(prev => (prev + 1) % slides.length);
   const prevSlide = () => setCurrentSlide(prev => (prev - 1 + slides.length) % slides.length);
@@ -168,6 +205,17 @@ export default function LandingPage({ settings, onEnterPortal }) {
   };
 
   // ─── RENDER ────────────────────────────────────────────────────────────
+  if (comingSoonPage) {
+    return (
+      <ComingSoonPage
+        title={comingSoonPage}
+        schoolName={schoolName}
+        schoolLogo={settings?.school_logo_url}
+        onBack={returnFromComingSoonPage}
+      />
+    );
+  }
+
   return (
     <div className="lp-root">
 
@@ -176,7 +224,7 @@ export default function LandingPage({ settings, onEnterPortal }) {
         <div className="lp-nav__inner">
           <button className="lp-nav__brand" onClick={() => scrollTo('home')}>
             {settings?.school_logo_url && (
-              <img src={settings.school_logo_url} alt="logo" className="lp-nav__logo" />
+              <img src={settings.school_logo_url} alt={`${schoolName} logo`} className="lp-nav__logo" />
             )}
             <span className="lp-nav__name">{schoolName}</span>
           </button>
@@ -556,10 +604,10 @@ export default function LandingPage({ settings, onEnterPortal }) {
               </button>
               <h4 className="lp-footer__heading-desktop">Resources</h4>
               <ul className={`lp-footer__links ${openFooterSection === 'resources' ? 'open' : ''}`}>
-                <li><button onClick={showComingSoon}>Admissions Info</button></li>
-                <li><button onClick={showComingSoon}>Student Life</button></li>
-                <li><button onClick={showComingSoon}>Academic Calendar</button></li>
-                <li><button onClick={showComingSoon}>Gallery</button></li>
+                <li><button onClick={() => openComingSoonPage('Admissions Info')}>Admissions Info</button></li>
+                <li><button onClick={() => openComingSoonPage('Student Life')}>Student Life</button></li>
+                <li><button onClick={() => openComingSoonPage('Academic Calendar')}>Academic Calendar</button></li>
+                <li><button onClick={() => openComingSoonPage('Gallery')}>Gallery</button></li>
               </ul>
             </div>
 
@@ -583,15 +631,10 @@ export default function LandingPage({ settings, onEnterPortal }) {
           <div className="lp-footer__bottom">
             <p>&copy; {new Date().getFullYear()} {schoolName}. All rights reserved.</p>
             <div className="lp-footer__legal">
-              <button onClick={showComingSoon}>Privacy Policy</button>
-              <button onClick={showComingSoon}>Terms of Service</button>
+              <button onClick={() => openComingSoonPage('Privacy Policy')}>Privacy Policy</button>
+              <button onClick={() => openComingSoonPage('Terms of Service')}>Terms of Service</button>
             </div>
           </div>
-          {footerNotice && (
-            <p className="lp-footer__notice" role="status" aria-live="polite">
-              {footerNotice}
-            </p>
-          )}
         </div>
       </footer>
 

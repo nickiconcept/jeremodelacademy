@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\ReportCardRemark;
 use App\Models\SystemSetting;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 class RemarkController extends Controller
@@ -14,6 +15,17 @@ class RemarkController extends Controller
      */
     public function getRemark($student_id, Request $request)
     {
+        $user = $this->authenticatedUser();
+        $classId = DB::table('students')->where('id', $student_id)->value('class_id');
+        abort_unless(
+            $user && (
+                $user->role === 'admin'
+                || ($user->role === 'student' && (string) $user->id === (string) $student_id)
+                || ($classId && $user->role === 'teacher' && $this->teacherIsFormMaster($classId))
+            ),
+            403
+        );
+
         $term = $request->query('term');
         $academic_year = $request->query('year');
 
@@ -37,6 +49,19 @@ class RemarkController extends Controller
             'class_teacher_remark' => 'nullable|string',
             'principal_remark' => 'nullable|string',
         ]);
+
+        $user = $this->authenticatedUser();
+        $classId = DB::table('students')->where('id', $validated['student_id'])->value('class_id');
+        abort_unless(
+            $user && (
+                $user->role === 'admin'
+                || ($classId && $user->role === 'teacher' && $this->teacherIsFormMaster($classId))
+            ),
+            403
+        );
+        if ($user->role === 'teacher') {
+            $validated['principal_remark'] = null;
+        }
 
         $remark = ReportCardRemark::updateOrCreate(
             [
@@ -64,8 +89,13 @@ class RemarkController extends Controller
             'term' => 'required|string',
             'academic_year' => 'required|string',
             'performance_summary' => 'required|string', // A string describing their grades/behavior
-            'type' => 'required|in:teacher,principal'
+            'type' => 'required|in:teacher,principal',
         ]);
+
+        $user = $this->authenticatedUser();
+        $classId = DB::table('students')->where('id', $validated['student_id'])->value('class_id');
+        $allowedTeacher = $user && $user->role === 'teacher' && $classId && $this->teacherIsFormMaster($classId) && $validated['type'] === 'teacher';
+        abort_unless($user && ($user->role === 'admin' || $allowedTeacher), 403);
 
         // Check if AI is allowed by admin
         $setting = SystemSetting::first();
@@ -74,33 +104,33 @@ class RemarkController extends Controller
         }
 
         $apiKey = env('GEMINI_API_KEY');
-        if (!$apiKey) {
+        if (! $apiKey) {
             return response()->json(['message' => 'Gemini API key is not configured on the server.'], 500);
         }
 
-        $prompt = "You are writing a professional, concise report card remark for a student. ";
-        $prompt .= "Based on the following performance summary, write an encouraging remark (1-2 short sentences maximum). ";
-        $prompt .= "Type of remark: " . ($validated['type'] === 'teacher' ? 'Class Teacher' : 'Principal') . ". ";
-        $prompt .= "Performance Summary: " . $validated['performance_summary'] . " .";
+        $prompt = 'You are writing a professional, concise report card remark for a student. ';
+        $prompt .= 'Based on the following performance summary, write an encouraging remark (1-2 short sentences maximum). ';
+        $prompt .= 'Type of remark: '.($validated['type'] === 'teacher' ? 'Class Teacher' : 'Principal').'. ';
+        $prompt .= 'Performance Summary: '.$validated['performance_summary'].' .';
 
         try {
-            $response = Http::post('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' . $apiKey, [
+            $response = Http::post('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='.$apiKey, [
                 'contents' => [
-                    ['parts' => [['text' => $prompt]]]
-                ]
+                    ['parts' => [['text' => $prompt]]],
+                ],
             ]);
 
             if ($response->successful()) {
                 $data = $response->json();
                 $generatedText = $data['candidates'][0]['content']['parts'][0]['text'] ?? 'Excellent performance this term. Keep it up!';
-                
+
                 // Save it to the database automatically
                 $remarkData = [
                     'student_id' => $validated['student_id'],
                     'term' => $validated['term'],
                     'academic_year' => $validated['academic_year'],
                 ];
-                
+
                 $remark = ReportCardRemark::firstOrNew($remarkData);
                 if ($validated['type'] === 'teacher') {
                     $remark->class_teacher_remark = trim($generatedText);
@@ -112,13 +142,13 @@ class RemarkController extends Controller
 
                 return response()->json([
                     'message' => 'Remark generated successfully',
-                    'remark' => $remark
+                    'remark' => $remark,
                 ]);
             } else {
                 return response()->json(['message' => 'Failed to connect to Gemini API', 'error' => $response->body()], 500);
             }
         } catch (\Exception $e) {
-            return response()->json(['message' => 'An error occurred during AI generation: ' . $e->getMessage()], 500);
+            return response()->json(['message' => 'An error occurred during AI generation: '.$e->getMessage()], 500);
         }
     }
 }

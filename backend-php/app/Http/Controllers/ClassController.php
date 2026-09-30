@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ClassController extends Controller
 {
@@ -15,6 +16,7 @@ class ClassController extends Controller
             ->select('classes.*', 'users.full_name as form_master_name')
             ->orderBy('classes.name')
             ->get();
+
         return response()->json($classes);
     }
 
@@ -26,20 +28,24 @@ class ClassController extends Controller
             ->select('classes.*', 'users.full_name as form_master_name')
             ->orderBy('classes.name')
             ->get();
+
         return response()->json($classes);
     }
 
     public function show($id)
     {
         $class = DB::table('classes')->where('id', $id)->first();
-        if (!$class) {
+        if (! $class) {
             return response()->json(['error' => 'Class not found'], 404);
         }
+
         return response()->json($class);
     }
 
     public function store(Request $request)
     {
+        $this->requireAdmin();
+
         $request->validate([
             'name' => 'required|string',
             'tier' => 'required|string',
@@ -66,6 +72,8 @@ class ClassController extends Controller
 
     public function update(Request $request, $id)
     {
+        $this->requireAdmin();
+
         $request->validate([
             'name' => 'required|string',
             'tier' => 'required|string',
@@ -76,7 +84,7 @@ class ClassController extends Controller
             'tier' => $request->tier,
         ]);
 
-        if (!$updated) {
+        if (! $updated) {
             return response()->json(['error' => 'Class not found or no changes made'], 404);
         }
 
@@ -85,14 +93,20 @@ class ClassController extends Controller
 
     public function destroy($id)
     {
+        $this->requireAdmin();
+
         $deleted = DB::table('classes')->where('id', $id)->delete();
-        if (!$deleted) {
+        if (! $deleted) {
             return response()->json(['error' => 'Class not found'], 404);
         }
+
         return response()->json(['message' => 'Class deleted successfully']);
     }
+
     public function assignFormMaster(Request $request)
     {
+        $this->requireAdmin();
+
         $class_id = $request->input('class_id');
         $teacher_id = $request->input('teacher_id');
 
@@ -105,9 +119,11 @@ class ClassController extends Controller
             }
 
             DB::table('classes')->where('id', $class_id)->update(['form_master_id' => $teacher_id ?: null]);
+
             return response()->json(['message' => 'Form master assigned successfully']);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }

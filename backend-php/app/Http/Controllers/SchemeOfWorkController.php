@@ -3,9 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-
 use Illuminate\Support\Facades\DB;
-use App\Models\SystemSetting;
 
 class SchemeOfWorkController extends Controller
 {
@@ -15,18 +13,39 @@ class SchemeOfWorkController extends Controller
             'subject_id' => 'required|integer',
             'class_id' => 'required|integer',
             'academic_session' => 'required|string',
-            'term' => 'required|string'
+            'term' => 'required|string',
         ]);
 
         $subjectId = $request->input('subject_id');
         $classId = $request->input('class_id');
         $session = $request->input('academic_session');
         $term = $this->mapTermToInteger($request->input('term'));
+        $user = $this->authenticatedUser();
+        $studentClassId = $user?->role === 'student'
+            ? DB::table('students')->where('id', $user->id)->value('class_id')
+            : null;
+
+        if ($user?->role === 'student') {
+            $settings = DB::table('system_settings')->orderByDesc('id')->first();
+            abort_unless($settings && $settings->allow_students_view_sow_status, 403, 'Admins have hidden this feature.');
+        }
+
+        abort_unless(
+            $user && (
+                $user->role === 'admin'
+                || $this->teacherHasAssignment($classId, $subjectId)
+                || ($user->role === 'student' && (string) $studentClassId === (string) $classId)
+            ),
+            403,
+            'You are not assigned to this class and subject.'
+        );
 
         // Get the tier of the class
         $class = DB::table('classes')->where('id', $classId)->first();
-        if (!$class) return response()->json(['error' => 'Class not found'], 404);
-        
+        if (! $class) {
+            return response()->json(['error' => 'Class not found'], 404);
+        }
+
         $tier = $this->determineTier($class->name);
 
         $schemes = DB::table('scheme_of_works')
@@ -46,6 +65,7 @@ class SchemeOfWorkController extends Controller
         $schemes->transform(function ($scheme) use ($progress) {
             $scheme->progress = $progress->get($scheme->id) ?: null;
             $scheme->subtitle = $scheme->sub_topic;
+
             return $scheme;
         });
 
@@ -57,13 +77,17 @@ class SchemeOfWorkController extends Controller
         $request->validate([
             'scheme_of_work_id' => 'required|integer',
             'class_id' => 'required|integer',
-            'academic_session' => 'required|string'
+            'academic_session' => 'required|string',
         ]);
 
         $sowId = $request->input('scheme_of_work_id');
         $classId = $request->input('class_id');
         $session = $request->input('academic_session');
         $teacherId = $request->user()->id;
+        $scheme = DB::table('scheme_of_works')->where('id', $sowId)->first();
+        abort_unless($scheme, 404, 'Scheme topic not found.');
+
+        abort_unless($this->teacherHasAssignment($classId, $scheme->subject_id), 403, 'You are not assigned to this class and subject.');
 
         $exists = DB::table('sow_progress')
             ->where('scheme_of_work_id', $sowId)
@@ -75,7 +99,7 @@ class SchemeOfWorkController extends Controller
             DB::table('sow_progress')->where('id', $exists->id)->update([
                 'status' => 'completed',
                 'completed_at' => now(),
-                'teacher_id' => $teacherId
+                'teacher_id' => $teacherId,
             ]);
         } else {
             DB::table('sow_progress')->insert([
@@ -86,7 +110,7 @@ class SchemeOfWorkController extends Controller
                 'status' => 'completed',
                 'completed_at' => now(),
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ]);
         }
 
@@ -95,8 +119,12 @@ class SchemeOfWorkController extends Controller
 
     public function studentIndex(Request $request)
     {
-        $settings = DB::table('system_settings')->first();
-        if (!$settings || !$settings->allow_students_view_sow_status) {
+        $student = DB::table('students')->where('id', auth('api')->id())->first();
+        abort_unless($student, 403, 'Student profile not found.');
+        $request->merge(['class_id' => $student->class_id]);
+
+        $settings = DB::table('system_settings')->orderByDesc('id')->first();
+        if (! $settings || ! $settings->allow_students_view_sow_status) {
             return response()->json(['error' => 'Permission denied. Admins have hidden this feature.'], 403);
         }
 
@@ -105,6 +133,8 @@ class SchemeOfWorkController extends Controller
 
     public function adminProgressOverview(Request $request)
     {
+        $this->requireAdmin();
+
         $session = $request->input('academic_session');
 
         $progress = DB::table('sow_progress')
@@ -126,9 +156,10 @@ class SchemeOfWorkController extends Controller
             ->get();
 
         $grouped = $progress->groupBy(function ($item) {
-            return $item->teacher_id . '-' . $item->class_name . '-' . $item->subject_name;
+            return $item->teacher_id.'-'.$item->class_name.'-'.$item->subject_name;
         })->map(function ($items) {
             $first = $items->first();
+
             return [
                 'teacher_id' => $first->teacher_id,
                 'teacher_name' => $first->teacher_name,
@@ -140,9 +171,9 @@ class SchemeOfWorkController extends Controller
                         'topic' => $item->topic,
                         'subtitle' => $item->subtitle,
                         'week' => $item->week,
-                        'completed_at' => $item->completed_at
+                        'completed_at' => $item->completed_at,
                     ];
-                })->values()->toArray()
+                })->values()->toArray(),
             ];
         })->values();
 
@@ -151,6 +182,8 @@ class SchemeOfWorkController extends Controller
 
     public function store(Request $request)
     {
+        $user = $this->authenticatedUser();
+
         $request->validate([
             'class_id' => 'required|integer',
             'subject_id' => 'required|integer',
@@ -163,12 +196,20 @@ class SchemeOfWorkController extends Controller
 
         $classId = $request->input('class_id');
         $subjectId = $request->input('subject_id');
+        abort_unless(
+            $user && ($user->role === 'admin' || $this->teacherHasAssignment($classId, $subjectId)),
+            403,
+            'You are not assigned to this class and subject.'
+        );
+
         $term = $this->mapTermToInteger($request->input('term'));
         $week = $request->input('week');
-        
+
         $class = DB::table('classes')->where('id', $classId)->first();
-        if (!$class) return response()->json(['error' => 'Class not found'], 404);
-        
+        if (! $class) {
+            return response()->json(['error' => 'Class not found'], 404);
+        }
+
         $tier = $this->determineTier($class->name);
 
         $exists = DB::table('scheme_of_works')
@@ -183,7 +224,7 @@ class SchemeOfWorkController extends Controller
                 'topic' => $request->input('topic'),
                 'sub_topic' => $request->input('subtitle'),
                 'objectives' => $request->input('objectives'),
-                'updated_at' => now()
+                'updated_at' => now(),
             ]);
             $schemeId = $exists->id;
         } else {
@@ -196,7 +237,7 @@ class SchemeOfWorkController extends Controller
                 'sub_topic' => $request->input('subtitle'),
                 'objectives' => $request->input('objectives'),
                 'created_at' => now(),
-                'updated_at' => now()
+                'updated_at' => now(),
             ]);
         }
 
@@ -205,36 +246,53 @@ class SchemeOfWorkController extends Controller
 
     public function destroy($id)
     {
+        $this->requireAdmin();
+
         DB::table('scheme_of_works')->where('id', $id)->delete();
+
         return response()->json(['message' => 'Scheme of work deleted']);
     }
 
     private function determineTier($className)
     {
         $className = strtolower(trim($className));
-        
+
         // Extract grade number if present (e.g. JSS 1A -> 1, JSS 2B -> 2)
         preg_match('/(jss|ss|sss)\s*(\d)/', $className, $matches);
-        
+
         if (strpos($className, 'jss') !== false) {
             $num = isset($matches[2]) ? $matches[2] : '';
-            return 'jss' . $num;
+
+            return 'jss'.$num;
         }
         if (strpos($className, 'ss') !== false || strpos($className, 'sss') !== false) {
             $num = isset($matches[2]) ? $matches[2] : '';
-            return 'sss' . $num;
+
+            return 'sss'.$num;
         }
-        if (strpos($className, 'primary') !== false) return 'primary';
-        if (strpos($className, 'nursery') !== false) return 'nursery';
+        if (strpos($className, 'primary') !== false) {
+            return 'primary';
+        }
+        if (strpos($className, 'nursery') !== false) {
+            return 'nursery';
+        }
+
         return 'universal';
     }
 
     private function mapTermToInteger($termStr)
     {
         $termStr = strtolower($termStr);
-        if (strpos($termStr, '1') !== false || strpos($termStr, 'first') !== false) return 1;
-        if (strpos($termStr, '2') !== false || strpos($termStr, 'second') !== false) return 2;
-        if (strpos($termStr, '3') !== false || strpos($termStr, 'third') !== false) return 3;
+        if (strpos($termStr, '1') !== false || strpos($termStr, 'first') !== false) {
+            return 1;
+        }
+        if (strpos($termStr, '2') !== false || strpos($termStr, 'second') !== false) {
+            return 2;
+        }
+        if (strpos($termStr, '3') !== false || strpos($termStr, 'third') !== false) {
+            return 3;
+        }
+
         return $termStr;
     }
 }
