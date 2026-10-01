@@ -1,0 +1,8 @@
+---
+deployment:
+  tasks:
+    - /bin/cp -a frontend/dist/. /home/jeremode/public_html/
+    - /bin/cp -a backend-php/. /home/jeremode/jma_backend/
+    - composer install --working-dir=/home/jeremode/jma_backend --no-dev --optimize-autoloader --ignore-platform-req=ext-sodium --ignore-platform-req=ext-fileinfo
+    - php /home/jeremode/jma_backend/artisan migrate --force
+    - php /home/jeremode/jma_backend/artisan config:cache

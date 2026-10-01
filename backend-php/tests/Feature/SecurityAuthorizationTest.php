@@ -108,6 +108,24 @@ class SecurityAuthorizationTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_setting_the_active_session_creates_initial_system_settings(): void
+    {
+        $admin = $this->createUser('admin');
+        $sessionId = DB::table('academic_sessions')->insertGetId([
+            'session_name' => '2026/2027',
+            'is_current' => 0,
+        ]);
+
+        $this->actingAs($admin, 'api')
+            ->postJson('/api/sessions/set-active', ['id' => $sessionId])
+            ->assertOk();
+
+        $this->assertDatabaseHas('system_settings', [
+            'active_session' => '2026/2027',
+            'active_term' => '1st Term',
+        ]);
+    }
+
     public function test_public_settings_do_not_expose_operational_or_report_fields(): void
     {
         SystemSetting::create([

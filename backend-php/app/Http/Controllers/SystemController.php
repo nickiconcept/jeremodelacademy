@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class SystemController extends Controller
 {
@@ -11,9 +12,11 @@ class SystemController extends Controller
     {
         try {
             $settings = DB::table('system_settings')->orderByDesc('id')->first();
+
             return response()->json($settings);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
@@ -21,7 +24,9 @@ class SystemController extends Controller
     public function updateSettings(Request $request)
     {
         $user = auth('api')->user();
-        if ($user->role !== 'admin') return response()->json(['error' => 'Unauthorized'], 403);
+        if ($user->role !== 'admin') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
 
         try {
             $data = $request->only([
@@ -35,14 +40,15 @@ class SystemController extends Controller
                 'next_term_fee', 'next_term_begins', 'next_term_ends',
                 'max_ca_count',
                 'allow_fm_edit_student', 'allow_fm_register_student', 'allow_past_attendance',
-                'remark_generation_mode', 'allow_offline_debt', 'allow_students_view_sow_status'
+                'remark_generation_mode', 'allow_offline_debt', 'allow_students_view_sow_status',
             ]);
 
             DB::table('system_settings')->insert($data);
 
             return response()->json(['message' => 'Settings updated successfully']);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
@@ -51,9 +57,11 @@ class SystemController extends Controller
     {
         try {
             $sessions = DB::table('academic_sessions')->orderByDesc('session_name')->get();
+
             return response()->json($sessions);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
@@ -61,22 +69,28 @@ class SystemController extends Controller
     public function createSession(Request $request)
     {
         $user = auth('api')->user();
-        if ($user->role !== 'admin') return response()->json(['error' => 'Unauthorized'], 403);
+        if ($user->role !== 'admin') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
 
         $session_name = $request->input('session_name');
-        if (!$session_name) return response()->json(['error' => 'Session name is required'], 400);
+        if (! $session_name) {
+            return response()->json(['error' => 'Session name is required'], 400);
+        }
 
         try {
             DB::table('academic_sessions')->insert([
                 'session_name' => $session_name,
-                'is_current' => 0
+                'is_current' => 0,
             ]);
+
             return response()->json(['message' => 'Academic session created successfully'], 201);
         } catch (\Exception $e) {
             if (str_contains($e->getMessage(), 'UNIQUE constraint')) {
                 return response()->json(['error' => 'Session already exists'], 400);
             }
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
@@ -84,14 +98,20 @@ class SystemController extends Controller
     public function setActiveSession(Request $request)
     {
         $user = auth('api')->user();
-        if ($user->role !== 'admin') return response()->json(['error' => 'Unauthorized'], 403);
+        if ($user->role !== 'admin') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
 
         $id = $request->input('id');
-        if (!$id) return response()->json(['error' => 'Session ID is required'], 400);
+        if (! $id) {
+            return response()->json(['error' => 'Session ID is required'], 400);
+        }
 
         try {
             $session = DB::table('academic_sessions')->where('id', $id)->first();
-            if (!$session) return response()->json(['error' => 'Session not found'], 404);
+            if (! $session) {
+                return response()->json(['error' => 'Session not found'], 404);
+            }
 
             DB::transaction(function () use ($id, $session) {
                 DB::table('academic_sessions')->update(['is_current' => 0]);
@@ -100,14 +120,23 @@ class SystemController extends Controller
                 $latestSetting = DB::table('system_settings')->orderByDesc('id')->first();
                 if ($latestSetting) {
                     DB::table('system_settings')->where('id', $latestSetting->id)->update([
-                        'active_session' => $session->session_name
+                        'active_session' => $session->session_name,
+                    ]);
+                } else {
+                    DB::table('system_settings')->insert([
+                        'active_session' => $session->session_name,
+                        'active_term' => '1st Term',
+                        'result_entry_open' => 1,
+                        'created_at' => now(),
+                        'updated_at' => now(),
                     ]);
                 }
             });
 
             return response()->json(['message' => "Session {$session->session_name} is now the active current session."]);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
@@ -132,7 +161,7 @@ class SystemController extends Controller
                     foreach ($teacherSubjects as $ts) {
                         $q->orWhere(function ($sq) use ($ts) {
                             $sq->where('s.class_id', $ts->class_id)
-                               ->where('s.subject_id', $ts->subject_id);
+                                ->where('s.subject_id', $ts->subject_id);
                         });
                     }
                 });
@@ -140,14 +169,22 @@ class SystemController extends Controller
                 $query->where('s.class_id', $user->class_id);
             }
 
-            if ($class_id) $query->where('s.class_id', $class_id);
-            if ($subject_id) $query->where('s.subject_id', $subject_id);
-            if ($term) $query->where('s.term', $term);
+            if ($class_id) {
+                $query->where('s.class_id', $class_id);
+            }
+            if ($subject_id) {
+                $query->where('s.subject_id', $subject_id);
+            }
+            if ($term) {
+                $query->where('s.term', $term);
+            }
 
             $schemes = $query->orderBy('s.week')->get();
+
             return response()->json($schemes);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
@@ -155,10 +192,12 @@ class SystemController extends Controller
     public function saveScheme(Request $request)
     {
         $user = auth('api')->user();
-        if ($user->role !== 'admin') return response()->json(['error' => 'Unauthorized'], 403);
+        if ($user->role !== 'admin') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
 
         $data = $request->only(['class_id', 'subject_id', 'term', 'week', 'topic', 'subtitle', 'objectives']);
-        
+
         if (empty($data['class_id']) || empty($data['subject_id']) || empty($data['term']) || empty($data['week']) || empty($data['topic'])) {
             return response()->json(['error' => 'Class ID, Subject ID, term, week, and topic are required'], 400);
         }
@@ -171,19 +210,20 @@ class SystemController extends Controller
                     'class_id' => $data['class_id'],
                     'subject_id' => $data['subject_id'],
                     'term' => $data['term'],
-                    'week' => $data['week']
+                    'week' => $data['week'],
                 ],
                 [
                     'topic' => $data['topic'],
                     'subtitle' => $data['subtitle'] ?? null,
                     'objectives' => $data['objectives'] ?? null,
-                    'created_by' => $user->id
+                    'created_by' => $user->id,
                 ]
             );
 
             return response()->json(['message' => 'Scheme of work entry saved successfully']);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }
@@ -191,13 +231,17 @@ class SystemController extends Controller
     public function deleteScheme($id)
     {
         $user = auth('api')->user();
-        if ($user->role !== 'admin') return response()->json(['error' => 'Unauthorized'], 403);
+        if ($user->role !== 'admin') {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
 
         try {
             DB::table('scheme_of_work')->where('id', $id)->delete();
+
             return response()->json(['message' => 'Scheme deleted successfully']);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error($e->getMessage());
+            Log::error($e->getMessage());
+
             return response()->json(['error' => 'An internal server error occurred.'], 500);
         }
     }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\SystemSetting;
 use App\Services\SchoolMailer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class SettingsController extends Controller
@@ -60,7 +61,7 @@ class SettingsController extends Controller
         $settings = SystemSetting::latest('id')->first();
         $wasResultEntryOpen = $settings ? (bool) $settings->result_entry_open : true;
         if (! $settings) {
-            $settings = new SystemSetting;
+            $settings = $this->newSettingsWithAcademicDefaults();
         }
 
         $validColumns = Schema::getColumnListing($settings->getTable());
@@ -84,6 +85,8 @@ class SettingsController extends Controller
         $data['ca3_name'] = $request->input('ca3_name', 'CA 3');
         $data['ca4_name'] = $request->input('ca4_name', 'CA 4');
         $data['exam_name'] = $request->input('exam_name', 'Exam');
+        $data['active_session'] = $request->input('active_session') ?: ($settings->active_session ?: $this->currentAcademicSession());
+        $data['active_term'] = $request->input('active_term') ?: ($settings->active_term ?: '1st Term');
 
         $settings->fill($data);
         $settings->save();
@@ -114,7 +117,7 @@ class SettingsController extends Controller
 
             $settings = SystemSetting::latest('id')->first();
             if (! $settings) {
-                $settings = new SystemSetting;
+                $settings = $this->newSettingsWithAcademicDefaults();
             }
             $settings->school_logo_path = $path;
             $settings->save();
@@ -144,7 +147,7 @@ class SettingsController extends Controller
 
             $settings = SystemSetting::latest('id')->first();
             if (! $settings) {
-                $settings = new SystemSetting;
+                $settings = $this->newSettingsWithAcademicDefaults();
             }
             $settings->about_us_image_path = $path;
             $settings->save();
@@ -156,5 +159,19 @@ class SettingsController extends Controller
         }
 
         return response()->json(['error' => 'No file uploaded'], 400);
+    }
+
+    private function newSettingsWithAcademicDefaults(): SystemSetting
+    {
+        $settings = new SystemSetting;
+        $settings->active_session = $this->currentAcademicSession();
+        $settings->active_term = '1st Term';
+
+        return $settings;
+    }
+
+    private function currentAcademicSession(): string
+    {
+        return DB::table('academic_sessions')->where('is_current', 1)->value('session_name') ?: '2026/2027';
     }
 }

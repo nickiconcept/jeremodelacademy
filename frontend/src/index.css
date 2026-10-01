@@ -488,6 +488,8 @@ body.dark .skeleton {
   box-shadow: var(--shadow-sm);
   width: 100%;
   max-width: 100%;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .table-container-unbound {
@@ -495,43 +497,120 @@ body.dark .skeleton {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   background-color: var(--bg-surface);
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Desktop gets a nearly invisible scrollbar so tables read clean but remain scrollable; touch devices hide it entirely (see mobile media query below). */
+.table-container, .table-scroll-container, .table-container-unbound, .table-responsive,
+.grade-table-container, .broadsheet-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--text-secondary) 18%, transparent) transparent;
+}
+.table-container::-webkit-scrollbar, .table-scroll-container::-webkit-scrollbar,
+.table-container-unbound::-webkit-scrollbar, .table-responsive::-webkit-scrollbar,
+.grade-table-container::-webkit-scrollbar, .broadsheet-scroll::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.table-container::-webkit-scrollbar-track, .table-scroll-container::-webkit-scrollbar-track,
+.table-container-unbound::-webkit-scrollbar-track, .table-responsive::-webkit-scrollbar-track,
+.grade-table-container::-webkit-scrollbar-track, .broadsheet-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.table-container::-webkit-scrollbar-thumb, .table-scroll-container::-webkit-scrollbar-thumb,
+.table-container-unbound::-webkit-scrollbar-thumb, .table-responsive::-webkit-scrollbar-thumb,
+.grade-table-container::-webkit-scrollbar-thumb, .broadsheet-scroll::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--text-secondary) 18%, transparent);
+  border-radius: 20px;
+  transition: background-color 0.15s ease;
+}
+.table-container:hover::-webkit-scrollbar-thumb, .table-scroll-container:hover::-webkit-scrollbar-thumb,
+.table-container-unbound:hover::-webkit-scrollbar-thumb, .table-responsive:hover::-webkit-scrollbar-thumb,
+.grade-table-container:hover::-webkit-scrollbar-thumb, .broadsheet-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--text-secondary) 38%, transparent);
 }
 
 .school-table {
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   border-collapse: separate;
   border-spacing: 0;
   text-align: left;
+  color: var(--text-primary);
 }
 .school-table th {
-  padding: 13px 18px;
+  padding: 13px 16px;
   background-color: var(--bg-secondary);
   color: var(--text-secondary);
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.045em;
   border-bottom: 1px solid var(--border-color);
   position: sticky;
   top: 0;
   z-index: 10;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 0 var(--border-color);
+  white-space: nowrap;
+  text-align: inherit;
 }
 .school-table td {
-  padding: 13px 18px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border-color);
   font-size: 0.9rem;
+  vertical-align: middle;
 }
+.school-table tbody tr:nth-child(even) { background-color: color-mix(in srgb, var(--bg-secondary) 42%, var(--bg-surface)); }
 .school-table tbody tr:last-child td {
   border-bottom: none;
 }
 .school-table tbody tr:hover {
-  background-color: var(--primary-light);
+  background-color: color-mix(in srgb, var(--primary-light) 72%, var(--bg-surface));
 }
 .school-table tbody tr {
-  transition: background-color 0.15s ease;
+  transition: background-color 0.14s ease;
 }
+.school-table :is(th, td):focus-within { outline: 2px solid var(--primary); outline-offset: -2px; }
+.table-responsive { width: 100%; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+
+/* Student roster: fit entirely within its container on desktop instead of scrolling horizontally. */
+@media (min-width: 769px) {
+  .student-roster-container { overflow-x: hidden; overflow-y: scroll; max-height: 540px; }
+  .student-roster-table { width: 100%; min-width: 0; table-layout: fixed; }
+  .student-roster-table th, .student-roster-table td {
+    padding: 9px 8px;
+    font-size: 0.82rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .student-roster-table th { white-space: nowrap; }
+  .student-roster-table td { white-space: normal; word-break: break-word; }
+  .student-roster-table td code { font-size: 0.78rem; }
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  color: var(--text-primary);
+}
+.table thead th {
+  padding: 12px 15px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: .74rem;
+  font-weight: 750;
+  letter-spacing: .045em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.table tbody td { padding: 11px 15px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+.table tbody tr:nth-child(even) { background: color-mix(in srgb, var(--bg-secondary) 42%, var(--bg-surface)); }
+.table tbody tr:last-child td { border-bottom: 0; }
 
 /* ==========================================
    SUB-TAB NAVIGATION BAR & SETTINGS SWITCHER
@@ -614,6 +693,8 @@ body.dark .skeleton {
   border-radius: var(--radius-md);
   background: var(--bg-surface);
   position: relative;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .broadsheet-table, .grade-entry-table {
   width: 100%;
@@ -1639,9 +1720,17 @@ body.dark .dashboard-header__brand { border-color: var(--border-color); backgrou
   .portal-page-content .btn:not(.table-container .btn):not(.school-table .btn) { min-height: 40px; padding: 7px 11px; font-size: .76rem; }
   .modal-overlay { align-items: flex-end; padding: 0; }
   .modal-content { width: 100% !important; max-height: 92dvh; margin: 0 !important; padding: 20px !important; border-radius: 24px 24px 0 0 !important; }
-  .table-container, .table-scroll-container, .grade-table-container, .broadsheet-scroll { scrollbar-width: thin; scrollbar-color: var(--primary) var(--bg-secondary); }
-  .table-container::-webkit-scrollbar, .table-scroll-container::-webkit-scrollbar, .grade-table-container::-webkit-scrollbar, .broadsheet-scroll::-webkit-scrollbar { display: block; width: 6px; height: 6px; }
-  .table-container::-webkit-scrollbar-thumb, .table-scroll-container::-webkit-scrollbar-thumb, .grade-table-container::-webkit-scrollbar-thumb, .broadsheet-scroll::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 99px; }
+  .table-container, .table-scroll-container, .table-container-unbound, .table-responsive, .grade-table-container, .broadsheet-scroll {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .table-container::-webkit-scrollbar, .table-scroll-container::-webkit-scrollbar,
+  .table-container-unbound::-webkit-scrollbar, .table-responsive::-webkit-scrollbar,
+  .grade-table-container::-webkit-scrollbar, .broadsheet-scroll::-webkit-scrollbar {
+    display: none !important;
+    width: 0;
+    height: 0;
+  }
 
   .mobile-teacher-overview { display: flex; flex-direction: column; gap: 17px; }
   .mobile-teacher-overview__hero { padding: 23px 20px; color: #fff; border-radius: 22px; background: linear-gradient(145deg, #075c63, #0e8f94 60%, #38bdf8); box-shadow: 0 14px 30px rgba(14,143,148,.20); }
@@ -1950,9 +2039,15 @@ body.dark .dashboard-header__brand { border-color: var(--border-color); backgrou
 
   .school-table th, .school-table td,
   .grade-entry-table th, .grade-entry-table td,
-  .broadsheet-table th, .broadsheet-table td {
-    padding: 6px 8px !important;
-    font-size: 0.75rem !important;
+  .broadsheet-table th, .broadsheet-table td,
+  .table th, .table td {
+    padding: 9px 11px !important;
+    font-size: 0.76rem !important;
+  }
+
+  .school-table th, .grade-entry-table th, .broadsheet-table th, .table thead th {
+    font-size: 0.68rem !important;
+    letter-spacing: .035em;
   }
 
   .grade-input { padding: 4px !important; font-size: 16px !important; min-width: 44px !important; width: auto !important; }
@@ -2123,6 +2218,22 @@ body.dark .dashboard-header__brand { border-color: var(--border-color); backgrou
 @media (max-width: 768px) {
   .desktop-only { display: none !important; }
   .mobile-only-inline { display: inline-block !important; }
+}
+
+/* Phone tables remain swipe-scrollable without drawing browser-specific bars. */
+@media (max-width: 768px) {
+  .table-container, .table-scroll-container, .table-container-unbound, .table-responsive,
+  .grade-table-container, .broadsheet-scroll {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+  .table-container::-webkit-scrollbar, .table-scroll-container::-webkit-scrollbar,
+  .table-container-unbound::-webkit-scrollbar, .table-responsive::-webkit-scrollbar,
+  .grade-table-container::-webkit-scrollbar, .broadsheet-scroll::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
 }
 
 

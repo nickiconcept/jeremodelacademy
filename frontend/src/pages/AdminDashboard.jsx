@@ -1633,10 +1633,17 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
   // ==========================================
   // ADMIN SCHEME OF WORK LOGIC
   // ==========================================
+  const availableSchemeTerms = ['1st Term', '2nd Term', '3rd Term'];
   const [adminSchemeClass, setAdminSchemeClass] = useState('');
   const [adminSchemeSubject, setAdminSchemeSubject] = useState('');
-  const [adminSchemeTerm, setAdminSchemeTerm] = useState('3rd Term');
+  const [adminSchemeTerm, setAdminSchemeTerm] = useState(settings?.active_term || '1st Term');
   const [adminSchemeWeeks, setAdminSchemeWeeks] = useState(Array.from({ length: 12 }, (_, i) => ({ week: i + 1, topic: '', subtitle: '', objectives: '', id: null })));
+
+  useEffect(() => {
+    if (availableSchemeTerms.includes(settings?.active_term)) {
+      setAdminSchemeTerm(settings.active_term);
+    }
+  }, [settings?.active_term]);
 
   // Admin Enter Marks States
   const [adminGradesClass, setAdminGradesClass] = useState('');
@@ -2207,8 +2214,17 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
             
             return (
               <>
-                <div className="table-container" style={{ margin: 0 }}>
-                  <table className="school-table" style={{ margin: 0 }}>
+                <div className="table-container student-roster-container" style={{ margin: 0 }}>
+                  <table className="school-table student-roster-table" style={{ margin: 0 }}>
+                    <colgroup>
+                      <col style={{ width: '7%' }} />
+                      <col style={{ width: '21%' }} />
+                      <col style={{ width: '14%' }} />
+                      <col style={{ width: '12%' }} />
+                      <col style={{ width: '24%' }} />
+                      <col style={{ width: '14%' }} />
+                      <col style={{ width: '8%' }} />
+                    </colgroup>
                     <thead>
                       <tr>
                         <th>Passport</th>
@@ -2225,7 +2241,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                   <tr key={idx}>
                     <td>
                       <div
-                        style={{ width: '40px', height: '40px', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)', cursor: 'pointer' }}
+                        style={{ width: '34px', height: '34px', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)', cursor: 'pointer' }}
                         onClick={() => setSelectedStudentForForm(student)}
                         title="Click to view student profile"
                       >
@@ -2254,11 +2270,11 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                     </td>
                     <td><code>{student.admission_number}</code></td>
                     <td>{student.class_name || 'Unassigned'}</td>
-                    <td>{student.parent_name} ({student.parent_phone})</td>
+                    <td title={`${student.parent_name} (${student.parent_phone})`}>{student.parent_name} ({student.parent_phone})</td>
                     <td>
                       <select
                         className="form-control"
-                        style={{ padding: '4px 8px', fontSize: '0.85rem', width: 'auto' }}
+                        style={{ padding: '4px 6px', fontSize: '0.8rem', width: '100%' }}
                         value={student.status || 'active'}
                         onChange={(e) => handleUserStatusChange(student.id, e.target.value)}
                       >
@@ -2900,15 +2916,18 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                 </select>
               </div>
               <div className="form-group" style={{ margin: 0, flex: '1 1 150px' }}>
-                <label style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Term</label>
+                <label style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Term · Current: {settings?.active_term || 'Not set'}</label>
                 <select
                   className="form-control"
                   value={adminSchemeTerm}
+                  aria-label="Scheme of work term"
                   onChange={(e) => setAdminSchemeTerm(e.target.value)}
                 >
-                  <option value="1st Term">1st Term</option>
-                  <option value="2nd Term">2nd Term</option>
-                  <option value="3rd Term">3rd Term</option>
+                  {availableSchemeTerms.map((term) => (
+                    <option key={term} value={term}>
+                      {term}{term === settings?.active_term ? ' (Current)' : ''}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
