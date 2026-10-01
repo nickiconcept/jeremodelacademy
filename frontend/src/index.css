@@ -2200,6 +2200,42 @@ body.dark .dashboard-header__brand { border-color: var(--border-color); backgrou
   .teacher-registration-form__photo > div { margin-left: 0 !important; }
   .teacher-registration-form canvas { width: 100% !important; max-width: 100% !important; height: auto !important; }
 
+  /* Registration dialogs use the full phone viewport so long forms never get clipped. */
+  .registration-modal-overlay { align-items: stretch !important; padding: 0 !important; }
+  .registration-modal {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: max(16px, env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 0 !important;
+  }
+  .registration-modal__header {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: -16px -16px 18px;
+    padding: 16px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-surface);
+  }
+  .registration-modal__header h3 { margin: 0; padding-right: 8px; }
+  .registration-modal__header .modal-close { position: static; flex: 0 0 40px; width: 40px; height: 40px; }
+  .registration-modal .form-control,
+  .registration-modal input:not([type='checkbox']):not([type='radio']),
+  .registration-modal select,
+  .registration-modal textarea { width: 100%; min-width: 0; max-width: 100%; }
+  .registration-modal input[type='file'] { width: auto !important; min-width: 0; flex: 1 1 190px; }
+  .student-registration-form__photo > div { flex-wrap: wrap; }
+
   /* A compact attendance calendar retains date context without swallowing the screen. */
   .student-attendance-panel { padding: 14px !important; }
   .student-attendance-panel__heading { align-items: flex-start !important; flex-direction: column; gap: 10px; margin-bottom: 14px !important; }

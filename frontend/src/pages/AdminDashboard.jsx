@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import html2pdf from 'html2pdf.js';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import api from '../utils/api';
@@ -5124,11 +5125,13 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
         />
       )}
 
-      {showStudentModal && (
-        <div className="modal-overlay">
-          <div className="modal-content glass-panel" style={{ backgroundColor: 'var(--bg-surface)' }}>
-            <button className="modal-close" onClick={() => setShowStudentModal(false)}>✕</button>
-            <h3>Register Student</h3>
+      {showStudentModal && createPortal(
+        <div className="modal-overlay registration-modal-overlay">
+          <div className="modal-content glass-panel registration-modal student-registration-modal" style={{ backgroundColor: 'var(--bg-surface)' }}>
+            <div className="registration-modal__header">
+              <h3>Register Student</h3>
+              <button className="modal-close" onClick={() => setShowStudentModal(false)} aria-label="Close student registration">✕</button>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px', backgroundColor: 'var(--bg-secondary)', padding: '10px', borderRadius: '8px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', color: 'var(--primary)' }}>
                 <input 
@@ -5172,7 +5175,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
             )}
 
             <form onSubmit={handleStudentRegister} style={{ marginTop: '20px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', marginBottom: '15px' }}>
+              <div className="student-registration-form__photo" style={{ display: 'flex', flexDirection: 'column', marginBottom: '15px' }}>
                 <label style={{ marginBottom: '5px', fontWeight: 'bold' }}>Passport Photo (Max 150kb):</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                   {studentForm.passport_photo && (
@@ -5337,17 +5340,20 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
               <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '10px' }}>Save Student</button>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* =======================================================
           MODAL: TEACHER REGISTRATION FORM
           ======================================================= */}
-      {showTeacherModal && (
-        <div className="modal-overlay">
-          <div className="modal-content glass-panel teacher-registration-modal" style={{ backgroundColor: 'var(--bg-surface)' }}>
-            <button className="modal-close" onClick={() => setShowTeacherModal(false)}>✕</button>
-            <h3>Register Teacher</h3>
+      {showTeacherModal && createPortal(
+        <div className="modal-overlay registration-modal-overlay">
+          <div className="modal-content glass-panel registration-modal teacher-registration-modal" style={{ backgroundColor: 'var(--bg-surface)' }}>
+            <div className="registration-modal__header">
+              <h3>Register Teacher</h3>
+              <button className="modal-close" onClick={() => setShowTeacherModal(false)} aria-label="Close teacher registration">✕</button>
+            </div>
 
             <form className="teacher-registration-form" onSubmit={handleTeacherRegister} style={{ marginTop: '20px' }}>
               <div className="teacher-registration-form__photo" style={{ display: 'flex', alignItems: 'center', marginBottom: '15px' }}>
@@ -5506,7 +5512,8 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
               <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '10px' }}>Save Teacher</button>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* =======================================================
