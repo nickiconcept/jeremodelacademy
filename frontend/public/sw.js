@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jma-portal-shell-v1';
+const CACHE_NAME = 'jma-portal-shell-v2';
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/jma-app-icon.svg', '/favicon.svg'];
 
 self.addEventListener('install', (event) => {
@@ -22,6 +22,24 @@ self.addEventListener('fetch', (event) => {
     requestUrl.origin !== self.location.origin ||
     requestUrl.pathname.startsWith('/api/')
   ) return;
+
+  // Always check the network for the app document so a deployment can update
+  // the hashed JS/CSS references instead of leaving mobile clients on stale HTML.
+  if (event.request.mode === 'navigate' || requestUrl.pathname === '/index.html') {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok && response.type !== 'opaque') {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(async () => (await caches.match(event.request)) || caches.match('/index.html'))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => cached || fetch(event.request).then((response) => {
       if (!response.ok || response.type === 'opaque') return response;
