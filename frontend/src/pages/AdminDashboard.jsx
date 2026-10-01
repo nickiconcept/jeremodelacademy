@@ -535,7 +535,15 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
     next_term_fee: '',
     next_term_begins: '',
     next_term_ends: '',
-    last_term_debit: ''
+    last_term_debit: '',
+    attendance_geofencing_enabled: 0,
+    attendance_location1_name: '',
+    attendance_location1_lat: '',
+    attendance_location1_lng: '',
+    attendance_location2_name: '',
+    attendance_location2_lat: '',
+    attendance_location2_lng: '',
+    attendance_radius: 100
   });
 
   // Notifications
@@ -707,7 +715,15 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
         allow_fm_register_student: settings.allow_fm_register_student || 0,
         allow_fm_edit_student: settings.allow_fm_edit_student || 0,
         allow_students_view_sow_status: settings.allow_students_view_sow_status || 0,
-        max_ca_count: settings.max_ca_count || 4
+        max_ca_count: settings.max_ca_count || 4,
+        attendance_geofencing_enabled: settings.attendance_geofencing_enabled ?? 0,
+        attendance_location1_name: settings.attendance_location1_name || '',
+        attendance_location1_lat: settings.attendance_location1_lat ?? '',
+        attendance_location1_lng: settings.attendance_location1_lng ?? '',
+        attendance_location2_name: settings.attendance_location2_name || '',
+        attendance_location2_lat: settings.attendance_location2_lat ?? '',
+        attendance_location2_lng: settings.attendance_location2_lng ?? '',
+        attendance_radius: settings.attendance_radius ?? 100
       });
     }
   }, [settings]);

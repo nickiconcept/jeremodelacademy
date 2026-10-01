@@ -1,8 +1,147 @@
 import React, { useState } from 'react';
-import { CalendarCheck, Lock, Clock, UserPlus, Pencil, Award, BarChart2, BookOpen, Save, FileText, Sparkles, Globe, LayoutDashboard, GraduationCap, Trash2, Image } from 'lucide-react';
+import { CalendarCheck, Lock, Clock, UserPlus, Pencil, Award, BarChart2, BookOpen, Save, FileText, Sparkles, Globe, LayoutDashboard, GraduationCap, Trash2, Image, MapPin, Locate } from 'lucide-react';
 
 import SignaturePad from '../SignaturePad';
 import api from '../../utils/api';
+
+const AttendanceGeofenceSettings = ({ settingsForm, setSettingsForm }) => {
+  const [locatingSite, setLocatingSite] = useState(null);
+
+  const setField = (field, value) => {
+    setSettingsForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const captureCurrentLocation = (siteNumber) => {
+    if (!navigator.geolocation) {
+      window.alert('Location services are not available in this browser.');
+      return;
+    }
+
+    setLocatingSite(siteNumber);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setSettingsForm((current) => ({
+          ...current,
+          [`attendance_location${siteNumber}_lat`]: coords.latitude.toFixed(7),
+          [`attendance_location${siteNumber}_lng`]: coords.longitude.toFixed(7),
+        }));
+        setLocatingSite(null);
+      },
+      (error) => {
+        const message = error.code === error.PERMISSION_DENIED
+          ? 'Allow location access in your browser, then try again.'
+          : 'Could not determine this device’s location. You can enter the coordinates manually.';
+        window.alert(message);
+        setLocatingSite(null);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  };
+
+  const geofencingEnabled = Number(settingsForm.attendance_geofencing_enabled) === 1;
+
+  return (
+    <section className="attendance-geofence-settings" aria-labelledby="attendance-geofence-title">
+      <div className="attendance-geofence-settings__heading">
+        <div>
+          <h4 id="attendance-geofence-title"><MapPin size={18} /> Attendance Geofencing</h4>
+          <p>Allow teachers to submit attendance only from the permanent site or temporary site.</p>
+        </div>
+        <label className="attendance-geofence-toggle">
+          <input
+            type="checkbox"
+            checked={geofencingEnabled}
+            onChange={(event) => setField('attendance_geofencing_enabled', event.target.checked ? 1 : 0)}
+          />
+          <span>{geofencingEnabled ? 'Enabled' : 'Disabled'}</span>
+        </label>
+      </div>
+
+      <div className="attendance-geofence-grid">
+        {[1, 2].map((siteNumber) => {
+          const siteNameField = `attendance_location${siteNumber}_name`;
+          const latitudeField = `attendance_location${siteNumber}_lat`;
+          const longitudeField = `attendance_location${siteNumber}_lng`;
+          const defaultName = siteNumber === 1 ? 'Permanent Site' : 'Temporary Site';
+
+          return (
+            <div className="attendance-geofence-site" key={siteNumber}>
+              <h5>{settingsForm[siteNameField] || defaultName}{siteNumber === 2 ? ' (Optional)' : ''}</h5>
+              <label>
+                Site name
+                <input
+                  type="text"
+                  className="form-control"
+                  value={settingsForm[siteNameField] || ''}
+                  onChange={(event) => setField(siteNameField, event.target.value)}
+                  placeholder={defaultName}
+                  maxLength={100}
+                />
+              </label>
+              <div className="attendance-geofence-coordinates">
+                <label>
+                  Latitude
+                  <input
+                    type="number"
+                    step="any"
+                    min="-90"
+                    max="90"
+                    className="form-control"
+                    value={settingsForm[latitudeField] ?? ''}
+                    onChange={(event) => setField(latitudeField, event.target.value)}
+                    placeholder="e.g. 6.5244"
+                  />
+                </label>
+                <label>
+                  Longitude
+                  <input
+                    type="number"
+                    step="any"
+                    min="-180"
+                    max="180"
+                    className="form-control"
+                    value={settingsForm[longitudeField] ?? ''}
+                    onChange={(event) => setField(longitudeField, event.target.value)}
+                    placeholder="e.g. 3.3792"
+                  />
+                </label>
+              </div>
+              <button
+                type="button"
+                className="btn btn-secondary attendance-geofence-locate"
+                onClick={() => captureCurrentLocation(siteNumber)}
+                disabled={locatingSite === siteNumber}
+              >
+                <Locate size={16} />
+                {locatingSite === siteNumber ? 'Getting location…' : 'Use my current location'}
+              </button>
+            </div>
+          );
+        })}
+
+        <div className="attendance-geofence-radius">
+          <label>
+            Allowed radius for either site (metres)
+            <input
+              type="number"
+              min="25"
+              max="5000"
+              step="1"
+              className="form-control"
+              value={settingsForm.attendance_radius ?? 100}
+              onChange={(event) => setField('attendance_radius', event.target.value)}
+              required={geofencingEnabled}
+            />
+          </label>
+          <small>Choose a radius that accounts for GPS accuracy at your school. Valid range: 25–5,000 metres.</small>
+        </div>
+      </div>
+      <p className="attendance-geofence-settings__note">
+        When enabled, at least one complete site coordinate pair is required. Coordinates can be entered manually or captured while you are at that site.
+      </p>
+    </section>
+  );
+};
 
 const AdminSettingsTab = ({ settingsSubTab, sessions, settings, settingsForm, setSettingsForm, handleSetActiveSession, setShowSessionModal, handleUpdateSettings, settingsLoading = false, skillForm, setSkillForm, handleSkillCreate, skills, setSkillEditForm, setShowEditSkillModal, handleSkillDelete, promoSource, setPromoSource, promoTarget, setPromoTarget, handlePromotionBulk, getValidTargets, classes }) => {
   return (
@@ -13,7 +152,7 @@ const AdminSettingsTab = ({ settingsSubTab, sessions, settings, settingsForm, se
 
           {/* Sub-Tab 1: School Year & Term */}
           {settingsSubTab === 'academic' && (
-            <div className="glass-panel" style={{ padding: '24px', backgroundColor: 'var(--bg-surface)' }}>
+            <div className="admin-settings-page">
               <div style={{ display: 'flex', alignItems: 'center', gap: '15px', background: 'linear-gradient(135deg, var(--primary) 0%, #1e3a8a 100%)', padding: '24px', margin: '-24px -24px 24px -24px', borderTopLeftRadius: 'var(--radius-lg)', borderTopRightRadius: 'var(--radius-lg)', color: 'white', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>
                 <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid rgba(255,255,255,0.4)', boxShadow: '0 4px 10px rgba(0,0,0,0.2)' }}>
                   <CalendarCheck size={24} color="white" />
@@ -100,6 +239,8 @@ const AdminSettingsTab = ({ settingsSubTab, sessions, settings, settingsForm, se
                     </label>
                   </div>
                 </div>
+
+                <AttendanceGeofenceSettings settingsForm={settingsForm} setSettingsForm={setSettingsForm} />
 
                 <h4 style={{ marginTop: '30px', marginBottom: '15px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Lock size={20} color="var(--primary)" />
@@ -566,118 +707,6 @@ const AdminSettingsTab = ({ settingsSubTab, sessions, settings, settingsForm, se
                       value={settingsForm.landing_address || ''}
                       onChange={(e) => setSettingsForm({ ...settingsForm, landing_address: e.target.value })}
                     />
-                  </div>
-                </div>
-
-                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '24px', marginBottom: '32px' }}>
-                  <h4 style={{ margin: '0 0 16px 0', fontSize: '1rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Globe size={18} /> Attendance Geofencing Configuration
-                  </h4>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '20px' }}>
-                    Set up to two acceptable school locations where teachers must be physically present to take attendance. Leave blank to disable geofencing.
-                  </p>
-                  
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
-                    
-                    {/* Location 1 */}
-                    <div style={{ padding: '20px', background: 'var(--bg-primary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-                      <h5 style={{ margin: '0 0 15px 0', fontSize: '0.9rem', color: 'var(--text-primary)' }}>{settingsForm.attendance_location1_name || 'School Location 1'}</h5>
-                      <div className="form-group" style={{ marginBottom: '15px' }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Location Name (e.g. Main Campus)</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={settingsForm.attendance_location1_name || ''}
-                          onChange={(e) => setSettingsForm({ ...settingsForm, attendance_location1_name: e.target.value })}
-                          placeholder="e.g. Main Campus"
-                          style={{ backgroundColor: 'var(--bg-surface)' }}
-                        />
-                      </div>
-                      <div className="form-group" style={{ marginBottom: '15px' }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Latitude</label>
-                        <input
-                          type="number"
-                          step="any"
-                          className="form-control"
-                          value={settingsForm.attendance_location1_lat || ''}
-                          onChange={(e) => setSettingsForm({ ...settingsForm, attendance_location1_lat: e.target.value })}
-                          placeholder="e.g. 6.5244"
-                          style={{ backgroundColor: 'var(--bg-surface)' }}
-                        />
-                      </div>
-                      <div className="form-group" style={{ margin: 0 }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Longitude</label>
-                        <input
-                          type="number"
-                          step="any"
-                          className="form-control"
-                          value={settingsForm.attendance_location1_lng || ''}
-                          onChange={(e) => setSettingsForm({ ...settingsForm, attendance_location1_lng: e.target.value })}
-                          placeholder="e.g. 3.3792"
-                          style={{ backgroundColor: 'var(--bg-surface)' }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Location 2 */}
-                    <div style={{ padding: '20px', background: 'var(--bg-primary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-                      <h5 style={{ margin: '0 0 15px 0', fontSize: '0.9rem', color: 'var(--text-primary)' }}>{settingsForm.attendance_location2_name || 'School Location 2'} (Optional)</h5>
-                      <div className="form-group" style={{ marginBottom: '15px' }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Location Name (e.g. Annex)</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={settingsForm.attendance_location2_name || ''}
-                          onChange={(e) => setSettingsForm({ ...settingsForm, attendance_location2_name: e.target.value })}
-                          placeholder="e.g. Annex"
-                          style={{ backgroundColor: 'var(--bg-surface)' }}
-                        />
-                      </div>
-                      <div className="form-group" style={{ marginBottom: '15px' }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Latitude</label>
-                        <input
-                          type="number"
-                          step="any"
-                          className="form-control"
-                          value={settingsForm.attendance_location2_lat || ''}
-                          onChange={(e) => setSettingsForm({ ...settingsForm, attendance_location2_lat: e.target.value })}
-                          placeholder="e.g. 6.5244"
-                          style={{ backgroundColor: 'var(--bg-surface)' }}
-                        />
-                      </div>
-                      <div className="form-group" style={{ margin: 0 }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Longitude</label>
-                        <input
-                          type="number"
-                          step="any"
-                          className="form-control"
-                          value={settingsForm.attendance_location2_lng || ''}
-                          onChange={(e) => setSettingsForm({ ...settingsForm, attendance_location2_lng: e.target.value })}
-                          placeholder="e.g. 3.3792"
-                          style={{ backgroundColor: 'var(--bg-surface)' }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Radius */}
-                    <div style={{ padding: '20px', background: 'var(--bg-primary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-                      <h5 style={{ margin: '0 0 15px 0', fontSize: '0.9rem', color: 'var(--text-primary)' }}>Acceptable Radius</h5>
-                      <div className="form-group" style={{ margin: 0 }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Radius (in meters)</label>
-                        <input
-                          type="number"
-                          className="form-control"
-                          value={settingsForm.attendance_radius || ''}
-                          onChange={(e) => setSettingsForm({ ...settingsForm, attendance_radius: e.target.value })}
-                          placeholder="e.g. 100"
-                          style={{ backgroundColor: 'var(--bg-surface)' }}
-                        />
-                        <small style={{ color: 'var(--text-muted)', display: 'block', marginTop: '5px' }}>
-                          Standard is 100 meters to account for indoor GPS inaccuracy.
-                        </small>
-                      </div>
-                    </div>
-
                   </div>
                 </div>
 

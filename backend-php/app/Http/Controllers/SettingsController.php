@@ -7,6 +7,7 @@ use App\Services\SchoolMailer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 
 class SettingsController extends Controller
 {
@@ -64,6 +65,46 @@ class SettingsController extends Controller
             $settings = $this->newSettingsWithAcademicDefaults();
         }
 
+        $validatedGeofenceSettings = $request->validate([
+            'attendance_geofencing_enabled' => ['sometimes', 'boolean'],
+            'attendance_location1_name' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'attendance_location1_lat' => ['sometimes', 'nullable', 'numeric', 'between:-90,90'],
+            'attendance_location1_lng' => ['sometimes', 'nullable', 'numeric', 'between:-180,180'],
+            'attendance_location2_name' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'attendance_location2_lat' => ['sometimes', 'nullable', 'numeric', 'between:-90,90'],
+            'attendance_location2_lng' => ['sometimes', 'nullable', 'numeric', 'between:-180,180'],
+            'attendance_radius' => ['sometimes', 'nullable', 'integer', 'min:25', 'max:5000'],
+        ]);
+
+        $location1Lat = $request->input('attendance_location1_lat', $settings->attendance_location1_lat);
+        $location1Lng = $request->input('attendance_location1_lng', $settings->attendance_location1_lng);
+        $location2Lat = $request->input('attendance_location2_lat', $settings->attendance_location2_lat);
+        $location2Lng = $request->input('attendance_location2_lng', $settings->attendance_location2_lng);
+        $location1Complete = filled($location1Lat) && filled($location1Lng);
+        $location2Complete = filled($location2Lat) && filled($location2Lng);
+
+        if (filled($location1Lat) !== filled($location1Lng)) {
+            throw ValidationException::withMessages([
+                'attendance_location1_lat' => 'Enter both latitude and longitude for the permanent site.',
+            ]);
+        }
+
+        if (filled($location2Lat) !== filled($location2Lng)) {
+            throw ValidationException::withMessages([
+                'attendance_location2_lat' => 'Enter both latitude and longitude for the temporary site.',
+            ]);
+        }
+
+        $geofencingEnabled = array_key_exists('attendance_geofencing_enabled', $validatedGeofenceSettings)
+            ? (bool) $validatedGeofenceSettings['attendance_geofencing_enabled']
+            : (bool) $settings->attendance_geofencing_enabled;
+
+        if ($geofencingEnabled && ! $location1Complete && ! $location2Complete) {
+            throw ValidationException::withMessages([
+                'attendance_geofencing_enabled' => 'Configure complete coordinates for at least one school site before enabling geofencing.',
+            ]);
+        }
+
         $validColumns = Schema::getColumnListing($settings->getTable());
         // Force add recently added columns to bypass any schema caching issues
         $validColumns = array_merge($validColumns, [
@@ -74,6 +115,7 @@ class SettingsController extends Controller
             'attendance_location2_lat',
             'attendance_location2_lng',
             'attendance_radius',
+            'attendance_geofencing_enabled',
         ]);
 
         $data = $request->only($validColumns);

@@ -160,6 +160,44 @@ class SecurityAuthorizationTest extends TestCase
             ->assertJsonPath('result_entry_open', 0);
     }
 
+    public function test_admin_can_save_two_site_attendance_geofencing_configuration(): void
+    {
+        $admin = $this->createUser('admin');
+
+        $this->actingAs($admin, 'api')
+            ->postJson('/api/settings', [
+                'attendance_geofencing_enabled' => 1,
+                'attendance_location1_name' => 'Permanent Site',
+                'attendance_location1_lat' => 6.5244,
+                'attendance_location1_lng' => 3.3792,
+                'attendance_location2_name' => 'Temporary Site',
+                'attendance_location2_lat' => 6.525,
+                'attendance_location2_lng' => 3.38,
+                'attendance_radius' => 250,
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('system_settings', [
+            'attendance_geofencing_enabled' => 1,
+            'attendance_location1_name' => 'Permanent Site',
+            'attendance_location2_name' => 'Temporary Site',
+            'attendance_radius' => 250,
+        ]);
+    }
+
+    public function test_admin_cannot_enable_geofencing_without_a_complete_site_location(): void
+    {
+        $admin = $this->createUser('admin');
+
+        $this->actingAs($admin, 'api')
+            ->postJson('/api/settings', [
+                'attendance_geofencing_enabled' => 1,
+                'attendance_radius' => 100,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('attendance_geofencing_enabled');
+    }
+
     private function createUser(string $role): User
     {
         return User::create([

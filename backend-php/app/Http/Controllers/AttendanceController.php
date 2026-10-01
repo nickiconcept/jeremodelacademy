@@ -181,42 +181,38 @@ class AttendanceController extends Controller
                     return response()->json(['error' => 'Access denied: Past attendance is not permitted by global settings.'], 403);
                 }
 
-                // Geofencing Check (Only enforce for teachers)
+                // Geofencing is configurable and only applies to teachers taking attendance.
                 $settings = DB::table('system_settings')->first();
-                if ($settings) {
-                    $loc1Lat = $settings->attendance_location1_lat;
-                    $loc1Lng = $settings->attendance_location1_lng;
-                    $loc2Lat = $settings->attendance_location2_lat;
-                    $loc2Lng = $settings->attendance_location2_lng;
-                    $radius = $settings->attendance_radius ?: 100;
+                if ($settings && (bool) $settings->attendance_geofencing_enabled) {
+                    $locations = [
+                        [$settings->attendance_location1_lat, $settings->attendance_location1_lng],
+                        [$settings->attendance_location2_lat, $settings->attendance_location2_lng],
+                    ];
+                    $configuredLocations = array_filter(
+                        $locations,
+                        static fn (array $location): bool => $location[0] !== null && $location[1] !== null
+                    );
 
-                    $geofencingEnabled = ($loc1Lat && $loc1Lng) || ($loc2Lat && $loc2Lng);
+                    if ($configuredLocations === []) {
+                        return response()->json(['error' => 'Geofencing is enabled, but no school site coordinates are configured. Contact an administrator.'], 403);
+                    }
 
-                    if ($geofencingEnabled) {
-                        if (! $userLat || ! $userLng) {
-                            return response()->json(['error' => 'Geofencing is enabled. You must grant location access to take attendance.'], 403);
+                    if ($userLat === null || $userLng === null) {
+                        return response()->json(['error' => 'Geofencing is enabled. You must grant location access to take attendance.'], 403);
+                    }
+
+                    $radius = (int) ($settings->attendance_radius ?: 100);
+                    $withinSchoolSite = false;
+
+                    foreach ($configuredLocations as [$locationLat, $locationLng]) {
+                        if ($this->calculateDistance($userLat, $userLng, $locationLat, $locationLng) <= $radius) {
+                            $withinSchoolSite = true;
+                            break;
                         }
+                    }
 
-                        $withinLoc1 = false;
-                        $withinLoc2 = false;
-
-                        if ($loc1Lat && $loc1Lng) {
-                            $dist1 = $this->calculateDistance($userLat, $userLng, $loc1Lat, $loc1Lng);
-                            if ($dist1 <= $radius) {
-                                $withinLoc1 = true;
-                            }
-                        }
-
-                        if ($loc2Lat && $loc2Lng) {
-                            $dist2 = $this->calculateDistance($userLat, $userLng, $loc2Lat, $loc2Lng);
-                            if ($dist2 <= $radius) {
-                                $withinLoc2 = true;
-                            }
-                        }
-
-                        if (! $withinLoc1 && ! $withinLoc2) {
-                            return response()->json(['error' => 'Geofence Error: You must be physically on school premises to take attendance.'], 403);
-                        }
+                    if (! $withinSchoolSite) {
+                        return response()->json(['error' => 'Geofence Error: You must be physically on school premises to take attendance.'], 403);
                     }
                 }
             }

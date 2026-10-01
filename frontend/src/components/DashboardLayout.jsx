@@ -3,10 +3,11 @@ import Sidebar from './Sidebar';
 import MobileBottomNav from './MobileBottomNav';
 import MobileMoreSheet from './MobileMoreSheet';
 import api from '../utils/api';
-import { Sun, Moon, User, LogOut, ShieldAlert, Bell } from 'lucide-react';
+import { Sun, Moon, User, LogOut, ShieldAlert, Bell, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function DashboardLayout({ children, user, activeTab, setActiveTab, subTab, onSelectTab, onLogout, settings }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem('jma_sidebar_collapsed') === 'true');
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [isDark, setIsDark] = useState(false);
@@ -21,7 +22,7 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
 
   // Fix: Scroll to top only when the main activeTab changes to prevent the SPA scroll-state bug
   useEffect(() => {
-    if (mainContentRef.current) {
+    if (window.matchMedia('(max-width: 768px)').matches && mainContentRef.current) {
       mainContentRef.current.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     } else {
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -70,6 +71,14 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
     }
   };
 
+  const toggleSidebarCollapsed = () => {
+    setSidebarCollapsed((current) => {
+      const next = !current;
+      localStorage.setItem('jma_sidebar_collapsed', String(next));
+      return next;
+    });
+  };
+
   // Get readable role label
   const roleLabel = user.role === 'admin' ? 'Administrator' : user.role === 'teacher' ? 'Staff' : 'Student';
   const roleColor = user.role === 'admin' ? 'var(--danger)' : user.role === 'teacher' ? 'var(--success)' : 'var(--primary)';
@@ -105,6 +114,8 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
         onLogout={onLogout}
         user={user}
         isOpen={sidebarOpen}
+        isCollapsed={sidebarCollapsed}
+        onToggleCollapsed={toggleSidebarCollapsed}
         onClose={() => setSidebarOpen(false)}
         settings={settings}
       />
@@ -134,6 +145,16 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
         >
           {/* School identity and a clear, personal welcome. */}
           <div className="dashboard-header__identity">
+            <button
+              type="button"
+              className="btn btn-secondary btn-icon desktop-only dashboard-sidebar-toggle"
+              onClick={toggleSidebarCollapsed}
+              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-expanded={!sidebarCollapsed}
+              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {sidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            </button>
             <div className="dashboard-header__brand" aria-label={schoolName}>
               {settings?.school_logo_url ? (
                 <img src={settings.school_logo_url} alt={`${schoolName} logo`} />

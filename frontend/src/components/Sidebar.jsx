@@ -38,7 +38,7 @@ import {
 } from 'lucide-react';
 
 
-export default function Sidebar({ role, activeTab, subTab, onSelectTab, onLogout, user, isOpen, onClose, settings }) {
+export default function Sidebar({ role, activeTab, subTab, onSelectTab, onLogout, user, isOpen, onClose, settings, isCollapsed = false, onToggleCollapsed }) {
   const [openMenus, setOpenMenus] = useState({});
 
   const navItems = {
@@ -156,6 +156,11 @@ export default function Sidebar({ role, activeTab, subTab, onSelectTab, onLogout
 
   const handleTabClick = (item, subItemId = null) => {
     if (item.subItems && !subItemId) {
+      if (isCollapsed) {
+        onToggleCollapsed?.();
+        setOpenMenus(prev => ({ ...prev, [item.id]: true }));
+        return;
+      }
       toggleMenu(item.id);
       if (!openMenus[item.id] && item.subItems.length > 0) {
         onSelectTab(item.id, item.subItems[0].id);
@@ -173,21 +178,22 @@ export default function Sidebar({ role, activeTab, subTab, onSelectTab, onLogout
 
   return (
     <aside
-      className={`sidebar-container ${isOpen ? 'open' : ''}`}
+      className={`sidebar-container ${isOpen ? 'open' : ''} ${isCollapsed ? 'collapsed' : ''}`}
       style={{
-        width: '268px',
+        width: isCollapsed ? '76px' : '268px',
+        minWidth: isCollapsed ? '76px' : '268px',
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
         borderRight: '1px solid var(--border-color)',
         backgroundColor: 'var(--bg-surface)',
-        transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+        transition: 'width 0.25s ease, min-width 0.25s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
         zIndex: 90,
         boxShadow: 'var(--shadow-md)',
       }}
     >
       {/* ── Branding Header ── */}
-      <div style={{
+      <div className="sidebar-branding" style={{
         padding: '20px 20px 18px',
         borderBottom: '1px solid var(--border-color)',
         display: 'flex',
@@ -197,7 +203,7 @@ export default function Sidebar({ role, activeTab, subTab, onSelectTab, onLogout
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {settings?.school_logo_url ? (
-            <img src={settings?.school_logo_url} alt={`${settings?.landing_school_name || 'School'} logo`} style={{ width: '56px', height: '56px', boxSizing: 'border-box', flex: '0 0 56px', objectFit: 'contain', border: '1px solid var(--border-color)', borderRadius: '10px', backgroundColor: '#ffffff', padding: '5px' }} />
+            <img className="sidebar-brand-logo" src={settings?.school_logo_url} alt={`${settings?.landing_school_name || 'School'} logo`} style={{ width: '56px', height: '56px', boxSizing: 'border-box', flex: '0 0 56px', objectFit: 'contain', border: '1px solid var(--border-color)', borderRadius: '10px', backgroundColor: '#ffffff', padding: '5px' }} />
           ) : (
             <div style={{
               width: '40px', height: '40px', borderRadius: '10px',
@@ -210,7 +216,7 @@ export default function Sidebar({ role, activeTab, subTab, onSelectTab, onLogout
               <School size={19} />
             </div>
           )}
-          <div>
+          <div className="sidebar-brand-copy">
             <h2 style={{
               fontSize: '0.875rem', fontWeight: '800', color: 'var(--text-primary)',
               margin: 0, letterSpacing: '-0.01em', lineHeight: 1.2,
@@ -244,7 +250,7 @@ export default function Sidebar({ role, activeTab, subTab, onSelectTab, onLogout
       </div>
 
       {/* ── Navigation ── */}
-      <nav style={{
+      <nav className="sidebar-navigation" style={{
         padding: '14px 10px',
         flexGrow: 1,
         display: 'flex',
@@ -264,6 +270,7 @@ export default function Sidebar({ role, activeTab, subTab, onSelectTab, onLogout
               <button
                 onClick={() => handleTabClick(item)}
                 className={`sidebar-nav-btn ${isParentActive ? 'active' : ''} ${isParentActive && hasSub ? 'parent-active' : ''}`}
+                title={isCollapsed ? item.label : undefined}
                 style={{
                   // Override active gradient for items WITH sub-items (use lighter style)
                   ...(isParentActive && hasSub ? {
@@ -293,10 +300,10 @@ export default function Sidebar({ role, activeTab, subTab, onSelectTab, onLogout
                       }}
                     />
                   </div>
-                  <span>{item.label}</span>
+                  <span className="sidebar-label">{item.label}</span>
                 </div>
                 {hasSub && (
-                  <div style={{
+                  <div className="sidebar-nav-chevron" style={{
                     color: isParentActive ? 'var(--primary)' : 'var(--text-muted)',
                     transition: 'transform 0.2s ease',
                     transform: isExpanded ? 'rotate(0deg)' : 'rotate(0deg)',
@@ -308,7 +315,7 @@ export default function Sidebar({ role, activeTab, subTab, onSelectTab, onLogout
 
               {/* Sub-items */}
               {hasSub && isExpanded && (
-                <div style={{
+                <div className="sidebar-submenu" style={{
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '1px',
@@ -344,12 +351,12 @@ export default function Sidebar({ role, activeTab, subTab, onSelectTab, onLogout
       </nav>
 
       {/* ── Sidebar Footer ── */}
-      <div style={{
+      <div className="sidebar-footer" style={{
         padding: '14px 20px',
         borderTop: '1px solid var(--border-color)',
         background: 'var(--bg-secondary)',
       }}>
-        <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+        <p className="sidebar-footer-copy" style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center' }}>
           {settings?.landing_school_name || 'Jere Model Academy'} · Portal v1.0
         </p>
       </div>
