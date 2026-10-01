@@ -305,7 +305,7 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
 
       {/* ── User Profile Modal ── */}
       {showProfileModal && (
-        <div className="modal-overlay no-print" style={{ zIndex: 1000 }}>
+        <div className="modal-overlay no-print">
           <div className="modal-content glass-panel" style={{ maxWidth: '500px', backgroundColor: 'var(--bg-surface)' }}>
             <button
               className="modal-close"

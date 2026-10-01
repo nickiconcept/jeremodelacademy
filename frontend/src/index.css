@@ -51,6 +51,8 @@
   --radius-xl: 28px;
   --radius-full: 9999px;
 
+  --mobile-page-gutter: 14px;
+
   --transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   --transition-fast: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -1624,6 +1626,15 @@ body.dark .dashboard-header__brand { border-color: var(--border-color); backgrou
 .receipt-meta-row > :last-child { min-width: 0; overflow-wrap: anywhere; text-align: right; }
 
 @media (max-width: 768px) {
+  .portal-page-content {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .portal-page-content .glass-panel:not(.modal-content) {
+    border-radius: var(--radius-lg) !important;
+  }
+
   .portal-page-content--detail .glass-panel:not(.modal-content):not(.glass-panel .glass-panel) {
     padding: 0 !important;
     border: 0 !important;
@@ -1632,6 +1643,13 @@ body.dark .dashboard-header__brand { border-color: var(--border-color); backgrou
     box-shadow: none !important;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
+  }
+
+  .portal-page-content--detail .glass-panel:not(.modal-content):not(.glass-panel .glass-panel) [style*="margin: -24px"],
+  .portal-page-content--detail .glass-panel:not(.modal-content):not(.glass-panel .glass-panel) [style*="margin: -20px"] {
+    margin: 0 0 16px !important;
+    padding: 16px !important;
+    border-radius: var(--radius-lg) !important;
   }
 
   .mobile-only {
@@ -1656,7 +1674,7 @@ body.dark .dashboard-header__brand { border-color: var(--border-color); backgrou
     display: none !important;
   }
 
-  .main-content { padding: 14px 14px calc(104px + env(safe-area-inset-bottom)) !important; flex: 1 0 auto !important; overflow: visible !important; min-height: 0 !important; }
+  .main-content { padding: 14px var(--mobile-page-gutter) calc(104px + env(safe-area-inset-bottom)) !important; flex: 1 0 auto !important; overflow: visible !important; min-height: 0 !important; }
 
   header.glass-panel {
     position: static !important;
@@ -2268,7 +2286,8 @@ body.dark .dashboard-header__brand { border-color: var(--border-color); backgrou
 }
 
 @media (max-width: 360px) {
-  .main-content { padding-left: 10px !important; padding-right: 10px !important; }
+  :root { --mobile-page-gutter: 10px; }
+  .main-content { padding-left: var(--mobile-page-gutter) !important; padding-right: var(--mobile-page-gutter) !important; }
   .attendance-geofence-settings__heading { align-items: flex-start; flex-direction: column; }
   .attendance-geofence-coordinates { grid-template-columns: 1fr; gap: 0; }
   .mobile-admin-overview__metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }

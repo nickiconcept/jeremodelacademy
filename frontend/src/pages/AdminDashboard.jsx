@@ -5176,7 +5176,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
 
             <form onSubmit={handleStudentRegister} style={{ marginTop: '20px' }}>
               <div className="student-registration-form__photo" style={{ display: 'flex', flexDirection: 'column', marginBottom: '15px' }}>
-                <label style={{ marginBottom: '5px', fontWeight: 'bold' }}>Passport Photo (Max 150kb):</label>
+                <label style={{ marginBottom: '5px', fontWeight: 'bold' }}>Passport Photo (Max 150 KB, JPG/PNG):</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                   {studentForm.passport_photo && (
                     <img src={studentForm.passport_photo} alt="Preview" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: '1px solid #ccc' }} />
@@ -5357,7 +5357,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
 
             <form className="teacher-registration-form" onSubmit={handleTeacherRegister} style={{ marginTop: '20px' }}>
               <div className="teacher-registration-form__photo" style={{ display: 'flex', alignItems: 'center', marginBottom: '15px' }}>
-                <label style={{ marginRight: '10px', fontWeight: 'bold' }}>Passport Photo:</label>
+                <label style={{ marginRight: '10px', fontWeight: 'bold' }}>Passport Photo (Max 150 KB, JPG/PNG):</label>
                 <input type="file" accept="image/*" className="form-control" onChange={(e) => {
                   const file = e.target.files[0];
                   if (file) {
