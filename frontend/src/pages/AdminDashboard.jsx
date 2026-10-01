@@ -456,7 +456,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
   const [teacherClassFilter, setTeacherClassFilter] = useState('');
   const [showArchivedTeachers, setShowArchivedTeachers] = useState(false);
   
-  const [feeSearch, setFeeSearch] = useState('');
+  const [feeStudentFilter, setFeeStudentFilter] = useState('');
   const [feeClassFilter, setFeeClassFilter] = useState('');
   const [feeCategoryFilter, setFeeCategoryFilter] = useState('');
   
@@ -3151,11 +3151,17 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
               }
             });
 
-            const uniqueStudentList = Object.values(studentMap).filter(st => {
-              const matchesSearch = (st.full_name || '').toLowerCase().includes(feeSearch.toLowerCase()) ||
-                                    (st.admission_number || '').toLowerCase().includes(feeSearch.toLowerCase());
+            const invoiceStudents = Object.values(studentMap).sort((first, second) =>
+              (first.full_name || '').localeCompare(second.full_name || '')
+            );
+            const selectedInvoiceClassName = classes.find(c => c.id === parseInt(feeClassFilter))?.name;
+            const visibleInvoiceStudents = invoiceStudents.filter(student =>
+              !selectedInvoiceClassName || student.class_name === selectedInvoiceClassName
+            );
+            const uniqueStudentList = invoiceStudents.filter(st => {
+              const matchesStudent = feeStudentFilter === '' || String(st.student_id) === feeStudentFilter;
               const matchesClass = feeClassFilter === '' || st.class_name === classes.find(c => c.id === parseInt(feeClassFilter))?.name;
-              return matchesSearch && matchesClass;
+              return matchesStudent && matchesClass;
             });
 
             return (
@@ -3178,20 +3184,34 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                 </div>
 
                 {/* Search & Filter Controls */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
-                  <input
-                    type="text"
+                <div className="invoice-ledger-filters" style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
+                  <select
                     className="form-control"
                     style={{ flex: 1, minWidth: '220px', padding: '10px' }}
-                    placeholder="Search student by name or admission number..."
-                    value={feeSearch}
-                    onChange={(e) => setFeeSearch(e.target.value)}
-                  />
+                    aria-label="Filter invoices by student"
+                    value={feeStudentFilter}
+                    onChange={(e) => {
+                      setFeeStudentFilter(e.target.value);
+                      setBillingPage(1);
+                    }}
+                  >
+                    <option value="">{selectedInvoiceClassName ? `All Students in ${selectedInvoiceClassName}` : 'All Students'}</option>
+                    {visibleInvoiceStudents.map(student => (
+                      <option key={student.student_id} value={student.student_id}>
+                        {student.full_name} ({student.admission_number || 'No admission number'})
+                      </option>
+                    ))}
+                  </select>
                   <select
                     className="form-control"
                     style={{ width: '200px', padding: '10px' }}
+                    aria-label="Filter invoices by class"
                     value={feeClassFilter}
-                    onChange={(e) => setFeeClassFilter(e.target.value)}
+                    onChange={(e) => {
+                      setFeeClassFilter(e.target.value);
+                      setFeeStudentFilter('');
+                      setBillingPage(1);
+                    }}
                   >
                     <option value="">All Class Streams</option>
                     {classes.map((cls, idx) => (
@@ -3975,6 +3995,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                 <ReportCard
                   data={singleReportCardData}
                   settings={settings}
+                  allowAiGeneration
                   onClose={() => setSingleReportCardData(null)}
                 />
               ) : (

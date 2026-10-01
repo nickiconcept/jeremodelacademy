@@ -38,7 +38,7 @@ export default function RemarksManager({ classId, term, session, type, generatio
     try {
       const remarks = await api.getStudentRemarks(student.id, term, session);
       if (remarks) {
-        setCurrentRemark(type === 'teacher' ? (remarks.teacher_remark || '') : (remarks.principal_remark || ''));
+        setCurrentRemark(type === 'teacher' ? (remarks.class_teacher_remark || '') : (remarks.principal_remark || ''));
       }
     } catch (err) {
       // Ignore if no remarks found (404)
@@ -55,7 +55,8 @@ export default function RemarksManager({ classId, term, session, type, generatio
         academic_year: session,
         type
       });
-      setCurrentRemark(result.remark);
+      const remarkField = type === 'teacher' ? 'class_teacher_remark' : 'principal_remark';
+      setCurrentRemark(result.remark?.[remarkField] || '');
       setNotify('AI Remark generated successfully! Please review and save.');
     } catch (err) {
       setErrorMsg('Failed to generate remark: ' + (err.response?.data?.error || err.message));
@@ -71,7 +72,7 @@ export default function RemarksManager({ classId, term, session, type, generatio
         student_id: selectedStudent.id,
         term,
         academic_year: session,
-        teacher_remark: type === 'teacher' ? currentRemark : undefined,
+        class_teacher_remark: type === 'teacher' ? currentRemark : undefined,
         principal_remark: type === 'principal' ? currentRemark : undefined
       });
       setNotify('Remark saved successfully!');

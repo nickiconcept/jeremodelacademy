@@ -1,13 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { ArrowLeft, Award, X, Download } from 'lucide-react';
+import { ArrowLeft, Award, Download } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 import api from '../utils/api';
 
-export default function ReportCard({ data, settings, onClose, closeLabel, isBulk = false, autoDownload = false }) {
-  if (!data) return null;
-
-  const { student, grades, attendance, term, academic_year, position, total_students, class_average, behavioral } = data;
+export default function ReportCard({ data, settings, onClose, closeLabel, isBulk = false, autoDownload = false, allowAiGeneration = false }) {
+  const { student = {}, grades = [], attendance, term, academic_year, position, total_students, class_average, behavioral } = data || {};
 
   const isSecondary = (student.tier || '').toLowerCase() === 'jss' || (student.tier || '').toLowerCase() === 'sss';
   const behaviorMainHeading = isSecondary 
@@ -21,63 +19,54 @@ export default function ReportCard({ data, settings, onClose, closeLabel, isBulk
     return photo.startsWith('data:') ? photo : `http://localhost:5000${photo}`;
   };
 
-  const [localRemarks, setLocalRemarks] = useState(data.remarks || {});
+  const [localRemarks, setLocalRemarks] = useState(data?.remarks || {});
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const reportRef = React.useRef(null);
   const autoDownloadedRef = React.useRef(false);
+
+  useEffect(() => {
+    setLocalRemarks(data?.remarks || {});
+  }, [student.id, term, academic_year, data?.remarks]);
   
   // Term Average score
   const activeTermAverage = grades && grades.length > 0 
     ? (grades.reduce((sum, g) => sum + (g.total_score || 0), 0) / grades.length).toFixed(1)
     : '0.0';
 
+  const missingTeacherRemark = !data?.remarks?.class_teacher_remark;
+  const missingPrincipalRemark = !data?.remarks?.principal_remark;
+
   useEffect(() => {
-    const shouldGenerateAi = settings?.remark_generation_mode === 'ai' && !data.remarks?.is_ai_generated;
-    
-    if (shouldGenerateAi) {
-      const generateMissingRemarks = async () => {
-        setIsGeneratingAi(true);
+    if (!data || !allowAiGeneration || settings?.remark_generation_mode !== 'ai' || (!missingTeacherRemark && !missingPrincipalRemark)) return;
+
+    let isMounted = true;
+    const generateMissingRemarks = async () => {
+      setIsGeneratingAi(true);
+      for (const type of ['teacher', 'principal']) {
+        if ((type === 'teacher' && !missingTeacherRemark) || (type === 'principal' && !missingPrincipalRemark)) continue;
         try {
-          const perfSummary = `Student Name: ${student.full_name}, Term Average: ${activeTermAverage}%, Total Subjects: ${grades?.length || 0}. Please provide a constructive remark based on this performance.`;
-          
-          // Call generation for Teacher
-          const tRes = await api.generateAIRemark({
+          const result = await api.generateAiRemark({
             student_id: student.id,
-            term: term,
-            academic_year: academic_year,
-            performance_summary: perfSummary,
-            type: 'teacher'
+            term,
+            academic_year,
+            type
           });
-          
-          if (tRes && tRes.remark) {
-            setLocalRemarks(prev => ({...prev, class_teacher_remark: tRes.remark.class_teacher_remark, is_ai_generated: 1}));
+          const remarkField = type === 'teacher' ? 'class_teacher_remark' : 'principal_remark';
+          if (isMounted && result.remark?.[remarkField]) {
+            setLocalRemarks(previous => ({ ...previous, ...result.remark }));
           }
-
-          // Call generation for Principal
-          const pRes = await api.generateAIRemark({
-            student_id: student.id,
-            term: term,
-            academic_year: academic_year,
-            performance_summary: perfSummary,
-            type: 'principal'
-          });
-          
-          if (pRes && pRes.remark) {
-            setLocalRemarks(prev => ({...prev, principal_remark: pRes.remark.principal_remark, is_ai_generated: 1}));
-          }
-
-        } catch (err) {
-          console.error("Failed to generate AI remarks dynamically:", err);
-        } finally {
-          setIsGeneratingAi(false);
+        } catch (error) {
+          console.error(`Failed to generate ${type} AI remark:`, error);
         }
-      };
+      }
+      if (isMounted) setIsGeneratingAi(false);
+    };
 
-      generateMissingRemarks();
-    }
-  }, [settings?.remark_generation_mode, data.remarks, student.id, term, academic_year, activeTermAverage, student.full_name, grades?.length]);
+    generateMissingRemarks();
+    return () => { isMounted = false; };
+  }, [data, allowAiGeneration, settings?.remark_generation_mode, missingTeacherRemark, missingPrincipalRemark, student.id, term, academic_year]);
 
-  const handleExportPDF = () => {
+  const handleExportPDF = useCallback(() => {
     const element = reportRef.current;
     if (!element) return;
     
@@ -90,11 +79,11 @@ export default function ReportCard({ data, settings, onClose, closeLabel, isBulk
     };
     
     return html2pdf().set(opt).from(element).save();
-  };
+  }, [student?.admission_number]);
 
   // Student result access downloads the official A4 card directly instead of opening it onscreen.
   useEffect(() => {
-    if (!autoDownload || autoDownloadedRef.current) return undefined;
+    if (!data || !autoDownload || autoDownloadedRef.current) return undefined;
     autoDownloadedRef.current = true;
     const startDownload = window.setTimeout(() => {
       const download = handleExportPDF();
@@ -102,7 +91,9 @@ export default function ReportCard({ data, settings, onClose, closeLabel, isBulk
       else onClose?.();
     }, 120);
     return () => window.clearTimeout(startDownload);
-  }, [autoDownload, onClose]);
+  }, [autoDownload, onClose, data, handleExportPDF]);
+
+  if (!data) return null;
 
   const is3rdTerm = term === '3rd Term';
   const classTier = (student?.tier || 'jss').toLowerCase();
@@ -267,7 +258,6 @@ export default function ReportCard({ data, settings, onClose, closeLabel, isBulk
                     </tr>
                   ) : (
                     grades.map((g, idx) => {
-                      const caTotal = (g.ca1 || 0) + (g.ca2 || 0) + (g.ca3 || 0) + (g.ca4 || 0);
                       const badgeStyle = getGradeBadgeStyle(is3rdTerm ? g.cum_grade : g.grade_letter);
 
                       if (is3rdTerm) {

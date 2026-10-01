@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Models\SystemSetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class SecurityAuthorizationTest extends TestCase
@@ -196,6 +198,78 @@ class SecurityAuthorizationTest extends TestCase
             ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('attendance_geofencing_enabled');
+    }
+
+    public function test_admin_can_generate_a_principal_remark_from_saved_student_performance(): void
+    {
+        $admin = $this->createUser('admin');
+        $student = $this->createUser('student');
+        $classId = $this->createClass();
+        $subjectId = $this->createSubject();
+        $this->createStudentProfile($student->id, $classId, 'STU-REMARK-001');
+        DB::table('grades')->insert([
+            'student_id' => $student->id,
+            'subject_id' => $subjectId,
+            'term' => '1st Term',
+            'academic_year' => '2026/2027',
+            'total_score' => 88,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        SystemSetting::create([
+            'active_session' => '2026/2027',
+            'active_term' => '1st Term',
+            'remark_generation_mode' => 'ai',
+        ]);
+        config()->set('services.gemini.api_key', 'test-gemini-key');
+        config()->set('services.gemini.model', 'gemini-3.5-flash-lite');
+        Http::fake([
+            'generativelanguage.googleapis.com/*' => Http::response([
+                'candidates' => [[
+                    'content' => ['parts' => [['text' => 'Shows strong progress in Mathematics and should continue practising consistently.']]],
+                ]],
+            ], 200),
+        ]);
+
+        $this->actingAs($admin, 'api')
+            ->postJson('/api/remarks/generate-ai', [
+                'student_id' => $student->id,
+                'term' => '1st Term',
+                'academic_year' => '2026/2027',
+                'type' => 'principal',
+            ])
+            ->assertOk()
+            ->assertJsonPath('remark.principal_remark', 'Shows strong progress in Mathematics and should continue practising consistently.');
+
+        $subjectName = DB::table('subjects')->where('id', $subjectId)->value('name');
+        Http::assertSent(function (HttpRequest $request) use ($subjectName): bool {
+            return $request->hasHeader('x-goog-api-key', 'test-gemini-key')
+                && str_contains($request->body(), $subjectName)
+                && str_contains($request->body(), '88');
+        });
+        $this->assertDatabaseHas('report_card_remarks', [
+            'student_id' => $student->id,
+            'term' => '1st Term',
+            'academic_year' => '2026/2027',
+            'principal_remark' => 'Shows strong progress in Mathematics and should continue practising consistently.',
+            'is_ai_generated' => 1,
+        ]);
+    }
+
+    public function test_student_cannot_generate_an_ai_report_card_remark(): void
+    {
+        $student = $this->createUser('student');
+        $classId = $this->createClass();
+        $this->createStudentProfile($student->id, $classId, 'STU-REMARK-002');
+
+        $this->actingAs($student, 'api')
+            ->postJson('/api/remarks/generate-ai', [
+                'student_id' => $student->id,
+                'term' => '1st Term',
+                'academic_year' => '2026/2027',
+                'type' => 'teacher',
+            ])
+            ->assertForbidden();
     }
 
     private function createUser(string $role): User

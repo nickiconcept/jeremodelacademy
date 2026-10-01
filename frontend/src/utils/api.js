@@ -448,6 +448,29 @@ const api = {
     return handleResponse(res);
   },
 
+  getStudentRemarks: async (studentId, term, year) => {
+    const res = await fetch(`${API_BASE}/remarks/${studentId}?term=${encodeURIComponent(term)}&year=${encodeURIComponent(year)}`, { headers: getHeaders() });
+    return handleResponse(res);
+  },
+
+  saveRemark: async (remarkData) => {
+    const res = await fetch(`${API_BASE}/remarks/save`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(remarkData)
+    });
+    return handleResponse(res);
+  },
+
+  generateAiRemark: async (remarkData) => {
+    const res = await fetch(`${API_BASE}/remarks/generate-ai`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(remarkData)
+    });
+    return handleResponse(res);
+  },
+
   getBulkReportCards: async (classId, term, year) => {
     const res = await fetch(`${API_BASE}/report-cards/bulk?class_id=${classId}&term=${encodeURIComponent(term)}&year=${encodeURIComponent(year)}`, { headers: getHeaders() });
     return handleResponse(res);
