@@ -27,7 +27,7 @@ function AppContent() {
   const [loading, setLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [settingsError, setSettingsError] = useState(false);
-  const [sessionRestoreError, setSessionRestoreError] = useState(false);
+  const [sessionRestoreError, setSessionRestoreError] = useState('');
 
   // Sync settings and token session on mount
   useEffect(() => {
@@ -142,7 +142,18 @@ function AppContent() {
       } else {
         // Keep the token: a cPanel HTML response or network outage is not proof
         // that the user's Laravel session has expired.
-        setSessionRestoreError(true);
+        let endpoint = 'API endpoint unavailable';
+        try {
+          if (err.url) {
+            const responseUrl = new URL(err.url);
+            endpoint = `${responseUrl.host}${responseUrl.pathname}`;
+          }
+        } catch {
+          // Keep the recovery state usable even if the response URL is malformed.
+        }
+        const status = err.status ? `HTTP ${err.status}` : 'No HTTP response';
+        const contentType = err.contentType || 'unknown content type';
+        setSessionRestoreError(`${status} · ${contentType} · ${endpoint}`);
       }
     } finally {
       setLoading(false);
@@ -173,7 +184,7 @@ function AppContent() {
   };
 
   const retrySessionRestore = () => {
-    setSessionRestoreError(false);
+    setSessionRestoreError('');
     setSettingsError(false);
     setLoading(true);
     fetchPublicSettings();
@@ -217,6 +228,9 @@ function AppContent() {
         <h2 style={{ marginBottom: '10px' }}>Could not restore your session</h2>
         <p style={{ color: 'var(--text-muted, #6b7280)', marginBottom: '20px', maxWidth: '520px' }}>
           Your saved sign-in has been kept on this device. The server did not return a valid session response. Check your connection and try again.
+        </p>
+        <p role="status" style={{ color: 'var(--text-muted, #6b7280)', margin: '0 0 20px', maxWidth: '520px', fontSize: '0.82rem', overflowWrap: 'anywhere' }}>
+          Diagnostic: {sessionRestoreError}
         </p>
         <button
           onClick={retrySessionRestore}
