@@ -5345,7 +5345,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
           ======================================================= */}
       {showTeacherModal && (
         <div className="modal-overlay">
-          <div className="modal-content glass-panel" style={{ backgroundColor: 'var(--bg-surface)' }}>
+          <div className="modal-content glass-panel teacher-registration-modal" style={{ backgroundColor: 'var(--bg-surface)' }}>
             <button className="modal-close" onClick={() => setShowTeacherModal(false)}>✕</button>
             <h3>Register Teacher</h3>
 

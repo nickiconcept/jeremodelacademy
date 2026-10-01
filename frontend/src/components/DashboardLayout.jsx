@@ -22,11 +22,8 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
 
   // Fix: Scroll to top only when the main activeTab changes to prevent the SPA scroll-state bug
   useEffect(() => {
-    if (window.matchMedia('(max-width: 768px)').matches && mainContentRef.current) {
-      mainContentRef.current.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    } else {
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    mainContentRef.current?.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [activeTab]);
 
 
