@@ -202,14 +202,14 @@ export default function Login({ onLoginSuccess, onBack, settings }) {
                 type="text"
                 id="identifier"
                 className="form-control"
-                placeholder="e.g. admin or JMA/2026/0001"
+                placeholder="Enter your username or admission number"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 disabled={loading}
                 required
               />
               <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '5px', display: 'block' }}>
-                New students and staff: your initial password is your admission number or staff ID. You will be prompted to change it after signing in.
+                Enter the username or admission number provided by the school. For sign-in help, contact the school administrator.
               </small>
             </div>
 

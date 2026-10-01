@@ -1,10 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { Printer, ArrowLeft, Key, ShieldCheck } from 'lucide-react';
 import QRCode from 'react-qr-code';
 
 export default function PrintPinCards({ pins, settings, onClose }) {
-  const printRef = useRef();
-
   useEffect(() => {
     // Inject print styles dynamically
     const style = document.createElement('style');
@@ -110,7 +108,7 @@ export default function PrintPinCards({ pins, settings, onClose }) {
                   {/* QR Code Section */}
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                     <div style={{ padding: '4px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                       <QRCode value={`https://jereacademy.com/?pin=${pin.pin}`} size={36} />
+                       <QRCode value={`https://jeremodelacademy.com.ng/?pin=${pin.pin}`} size={36} />
                     </div>
                     <span style={{ fontSize: '0.45rem', color: '#94a3b8', fontWeight: '600', letterSpacing: '0.5px' }}>SCAN TO VERIFY</span>
                   </div>
@@ -134,7 +132,7 @@ export default function PrintPinCards({ pins, settings, onClose }) {
                     <ShieldCheck size={10} /> Valid for {settings?.pin_max_checks || 5} checks. Do not share.
                   </div>
                   <div>
-                    Visit <strong style={{ color: '#0f172a' }}>jereacademy.com</strong> to check your result.
+                    Visit <strong style={{ color: '#0f172a' }}>https://jeremodelacademy.com.ng</strong> to check your result.
                   </div>
                 </div>
 
