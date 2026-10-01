@@ -15,7 +15,9 @@ async function handleResponse(response) {
     const data = await response.json();
     if (!response.ok) {
       const error = new Error(data.error || data.message || 'Something went wrong');
-      error.response = { data };
+      error.status = response.status;
+      error.contentType = contentType;
+      error.response = { data, status: response.status, contentType };
       throw error;
     }
     // Auto-cast Laravel decimal strings to Numbers to prevent string concatenation math bugs in React
@@ -40,7 +42,11 @@ async function handleResponse(response) {
   } else {
     const text = await response.text();
     if (!response.ok) {
-      throw new Error(`Server error (${response.status}): ${text.slice(0, 150)}`);
+      const error = new Error(`Server error (${response.status}): ${text.slice(0, 150)}`);
+      error.status = response.status;
+      error.contentType = contentType;
+      error.response = { status: response.status, contentType };
+      throw error;
     }
     throw new Error('Server returned non-JSON response');
   }

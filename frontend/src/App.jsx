@@ -27,6 +27,7 @@ function AppContent() {
   const [loading, setLoading] = useState(true);
   const [showLogin, setShowLogin] = useState(false);
   const [settingsError, setSettingsError] = useState(false);
+  const [sessionRestoreError, setSessionRestoreError] = useState(false);
 
   // Sync settings and token session on mount
   useEffect(() => {
@@ -97,41 +98,55 @@ function AppContent() {
 
   const verifySession = async () => {
     const token = localStorage.getItem('jma_token');
-    if (token) {
-      try {
-        const parts = token.split('.');
-        if (parts.length !== 3) {
-          throw new Error('Invalid token format');
-        }
-
-        const base64Url = parts[1];
-        let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const pad = base64.length % 4;
-        if (pad) {
-          base64 += new Array(5 - pad).join('=');
-        }
-        const payload = JSON.parse(window.atob(base64));
-
-        if (payload.exp * 1000 < Date.now()) {
-          handleLogout();
-          return;
-        }
-
-        // Do not render a role dashboard from unverified cached/token claims.
-        const freshUser = await api.getMe();
-        setUser(freshUser);
-        if (!freshUser.must_change_password) {
-          await fetchSettings();
-        }
-      } catch (err) {
-        console.error('Invalid session token:', err);
-        handleLogout();
-      } finally {
-        setLoading(false);
-      }
+    if (!token) {
+      setLoading(false);
       return;
     }
-    setLoading(false);
+
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        throw new Error('Invalid token format');
+      }
+
+      const base64Url = parts[1];
+      let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const pad = base64.length % 4;
+      if (pad) {
+        base64 += '='.repeat(4 - pad);
+      }
+      JSON.parse(window.atob(base64));
+    } catch (err) {
+      console.error('Invalid saved session token:', err);
+      api.logout();
+      setShowLogin(true);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Do not render a role dashboard from unverified cached/token claims.
+      const freshUser = await api.getMe();
+      setUser(freshUser);
+      if (!freshUser.must_change_password) {
+        await fetchSettings();
+      }
+    } catch (err) {
+      console.error('Failed to restore saved session:', err);
+      const isLaravelUnauthorized = err.status === 401
+        && (err.contentType || '').toLowerCase().includes('application/json');
+
+      if (isLaravelUnauthorized) {
+        api.logout();
+        setShowLogin(true);
+      } else {
+        // Keep the token: a cPanel HTML response or network outage is not proof
+        // that the user's Laravel session has expired.
+        setSessionRestoreError(true);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLoginSuccess = async (loggedInUser) => {
@@ -148,12 +163,21 @@ function AppContent() {
   const handleLogout = () => {
     api.logout();
     setUser(null);
+    setShowLogin(false);
     setActiveTab('dashboard');
     setSubTab(null);
     localStorage.removeItem('jma_active_tab');
     localStorage.removeItem('jma_active_subtab');
     localStorage.removeItem('jma_user');
     window.history.pushState(null, '', `#/dashboard`);
+  };
+
+  const retrySessionRestore = () => {
+    setSessionRestoreError(false);
+    setSettingsError(false);
+    setLoading(true);
+    fetchPublicSettings();
+    verifySession();
   };
 
   const handlePasswordChangeComplete = async () => {
@@ -178,6 +202,27 @@ function AppContent() {
           style={{ padding: '10px 20px', background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}
         >
           Retry Connection
+        </button>
+      </div>
+    );
+  }
+
+  if (sessionRestoreError) {
+    return (
+      <div style={{
+        minHeight: '100vh', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', padding: '24px',
+        background: 'var(--bg-primary, #f9fafb)', color: 'var(--text-primary, #111827)', textAlign: 'center'
+      }}>
+        <h2 style={{ marginBottom: '10px' }}>Could not restore your session</h2>
+        <p style={{ color: 'var(--text-muted, #6b7280)', marginBottom: '20px', maxWidth: '520px' }}>
+          Your saved sign-in has been kept on this device. The server did not return a valid session response. Check your connection and try again.
+        </p>
+        <button
+          onClick={retrySessionRestore}
+          style={{ padding: '10px 20px', background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}
+        >
+          Retry
         </button>
       </div>
     );
