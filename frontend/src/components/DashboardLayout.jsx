@@ -282,7 +282,7 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
         </header>
 
         {/* Dynamic Inner Page View */}
-        <main className="portal-page-content">
+        <main className={`portal-page-content ${activeTab !== 'dashboard' ? 'portal-page-content--detail' : ''}`}>
           {children}
         </main>
       </div>
