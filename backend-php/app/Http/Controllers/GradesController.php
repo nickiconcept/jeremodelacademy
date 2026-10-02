@@ -61,6 +61,7 @@ class GradesController extends Controller
                 'total_score' => $grade ? $grade->total_score : 0,
                 'grade_letter' => $grade ? $grade->grade_letter : null,
                 'remark' => $grade ? $grade->remark : null,
+                'updated_at' => $grade?->updated_at,
             ];
         })->values();
 
@@ -125,14 +126,12 @@ class GradesController extends Controller
             'grades.*.ca4' => ['nullable', 'numeric', 'between:0,10'],
             'grades.*.exam_score' => ['nullable', 'numeric', 'between:0,60'],
             'grades.*.remark' => ['nullable', 'string', 'max:500'],
+            'grades.*.updated_at' => ['nullable', 'date'],
+            'offline_sync' => ['sometimes', 'boolean'],
+            'offline_sync_id' => ['required_if:offline_sync,true', 'nullable', 'uuid'],
         ]);
 
         $this->requireAdminOrAssignedTeacher($validated['class_id'], $validated['subject_id']);
-
-        if ($user->role === 'teacher') {
-            $settings = DB::table('system_settings')->orderByDesc('id')->first();
-            abort_if(! $settings || ! $settings->result_entry_open, 403, 'Result entry is currently closed.');
-        }
 
         $studentIds = collect($validated['grades'])->pluck('student_id')->unique();
         $classStudentIds = DB::table('students')
@@ -144,7 +143,51 @@ class GradesController extends Controller
 
         abort_unless(count($classStudentIds) === $studentIds->count(), 403, 'One or more students do not belong to the selected class.');
 
-        DB::transaction(function () use ($validated) {
+        $offlineSync = (bool) ($validated['offline_sync'] ?? false);
+        $offlineSyncId = $validated['offline_sync_id'] ?? null;
+        if ($offlineSync) {
+            $completedSync = DB::table('offline_sync_receipts')->where('sync_id', $offlineSyncId)->first();
+            if ($completedSync) {
+                abort_unless(
+                    (string) $completedSync->user_id === (string) $user->id && $completedSync->operation === 'grades',
+                    409,
+                    'This offline sync ID was already used for a different action.'
+                );
+
+                return response()->json(['message' => 'This offline grade batch was already synchronized.', 'already_synced' => true]);
+            }
+        }
+
+        if ($user->role === 'teacher') {
+            $settings = DB::table('system_settings')->orderByDesc('id')->first();
+            abort_if(! $settings || ! $settings->result_entry_open, 403, 'Result entry is currently closed.');
+        }
+
+        if ($offlineSync) {
+            $conflictingStudentIds = [];
+            foreach ($validated['grades'] as $gradeData) {
+                $existingGrade = DB::table('grades')
+                    ->where('student_id', $gradeData['student_id'])
+                    ->where('subject_id', $validated['subject_id'])
+                    ->where('term', $validated['term'])
+                    ->where('academic_year', $validated['academic_year'])
+                    ->first(['updated_at']);
+                $cachedUpdatedAt = $gradeData['updated_at'] ?? null;
+
+                if (($existingGrade->updated_at ?? null) !== $cachedUpdatedAt) {
+                    $conflictingStudentIds[] = $gradeData['student_id'];
+                }
+            }
+
+            if ($conflictingStudentIds !== []) {
+                return response()->json([
+                    'message' => 'Some grades changed on the server while this device was offline. Reload the gradebook and review the affected students before saving again.',
+                    'conflicting_student_ids' => $conflictingStudentIds,
+                ], 409);
+            }
+        }
+
+        DB::transaction(function () use ($validated, $offlineSync, $offlineSyncId, $user) {
             foreach ($validated['grades'] as $gradeData) {
                 $scores = [
                     'ca1' => (float) ($gradeData['ca1'] ?? 0),
@@ -174,6 +217,16 @@ class GradesController extends Controller
                     ->where('academic_year', $validated['academic_year'])
                     ->where('is_ai_generated', true)
                     ->delete();
+            }
+
+            if ($offlineSync) {
+                DB::table('offline_sync_receipts')->insert([
+                    'sync_id' => $offlineSyncId,
+                    'user_id' => $user->id,
+                    'operation' => 'grades',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
             }
         });
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jma-portal-shell-v2';
+const CACHE_NAME = 'jma-portal-shell-v3';
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/jma-app-icon.svg', '/favicon.svg'];
 
 self.addEventListener('install', (event) => {

@@ -444,6 +444,8 @@ class SecurityAuthorizationTest extends TestCase
                 'class_id' => $classId,
                 'academic_session' => '2026/2027',
                 'note' => 'Students used fraction strips in pairs.',
+                'offline_sync' => true,
+                'offline_sync_id' => 'aa113d66-bde4-4db8-af8d-e35a10478c3a',
             ])
             ->assertOk();
 
@@ -454,6 +456,12 @@ class SecurityAuthorizationTest extends TestCase
             'teacher_id' => $teacher->id,
             'status' => 'completed',
             'note' => 'Students used fraction strips in pairs.',
+        ]);
+        $this->assertDatabaseHas('offline_sync_receipts', [
+            'sync_id' => 'aa113d66-bde4-4db8-af8d-e35a10478c3a',
+            'user_id' => $teacher->id,
+            'operation' => 'scheme',
+            'class_id' => $classId,
         ]);
     }
 
@@ -503,6 +511,70 @@ class SecurityAuthorizationTest extends TestCase
             ->assertJsonPath('tiers_without_structures.0', 'jss');
 
         $this->assertDatabaseCount('fee_invoices', 0);
+    }
+
+    public function test_offline_grade_sync_is_idempotent_after_result_entry_closes(): void
+    {
+        $teacher = $this->createUser('teacher');
+        $student = $this->createUser('student');
+        $classId = $this->createClass();
+        $subjectId = $this->createSubject();
+        $this->createStudentProfile($student->id, $classId, 'STU-OFFLINE-GRADE-001');
+        DB::table('class_subjects')->insert([
+            'class_id' => $classId,
+            'subject_id' => $subjectId,
+            'teacher_id' => $teacher->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $settings = SystemSetting::create([
+            'active_session' => '2026/2027',
+            'active_term' => '1st Term',
+            'result_entry_open' => true,
+        ]);
+        $payload = [
+            'class_id' => $classId,
+            'subject_id' => $subjectId,
+            'term' => '1st Term',
+            'academic_year' => '2026/2027',
+            'offline_sync' => true,
+            'offline_sync_id' => '02b6cd90-1e2a-4f4b-9c66-9710e5e02af1',
+            'grades' => [[
+                'student_id' => $student->id,
+                'ca1' => 8,
+                'ca2' => 7,
+                'ca3' => 0,
+                'ca4' => 0,
+                'exam_score' => 50,
+                'remark' => 'Good work',
+                'updated_at' => null,
+            ]],
+        ];
+
+        $this->actingAs($teacher, 'api')
+            ->postJson('/api/grades/save', $payload)
+            ->assertOk();
+
+        $settings->update(['result_entry_open' => false]);
+
+        $this->actingAs($teacher, 'api')
+            ->postJson('/api/grades/save', $payload)
+            ->assertOk()
+            ->assertJsonPath('already_synced', true);
+
+        $this->assertDatabaseHas('grades', [
+            'student_id' => $student->id,
+            'subject_id' => $subjectId,
+            'term' => '1st Term',
+            'academic_year' => '2026/2027',
+            'total_score' => 65,
+        ]);
+        $this->assertDatabaseHas('offline_sync_receipts', [
+            'sync_id' => '02b6cd90-1e2a-4f4b-9c66-9710e5e02af1',
+            'user_id' => $teacher->id,
+            'operation' => 'grades',
+        ]);
+        $this->assertDatabaseCount('offline_sync_receipts', 1);
     }
 
     private function createUser(string $role): User

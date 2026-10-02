@@ -1642,6 +1642,35 @@ body.dark .icon-3d {
 .dashboard-theme-button { width: 38px; min-width: 38px; height: 38px; min-height: 38px; padding: 8px !important; border-radius: 12px !important; }
 body.dark .dashboard-header__brand { border-color: var(--border-color); background: var(--bg-surface); }
 
+.offline-sync-control { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -10px 0 18px; padding: 9px 12px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--bg-surface); box-shadow: var(--shadow-sm); }
+.offline-sync-control.is-offline { border-color: rgba(245,158,11,.4); background: var(--warning-light); }
+.offline-sync-control__status { min-width: 0; display: flex; align-items: center; gap: 9px; color: var(--primary); }
+.offline-sync-control.is-offline .offline-sync-control__status { color: #92400e; }
+.offline-sync-control__status div { min-width: 0; }
+.offline-sync-control__status strong, .offline-sync-control__status span { display: block; }
+.offline-sync-control__status strong { font-size: .76rem; }
+.offline-sync-control__status span { margin-top: 1px; color: var(--text-muted); font-size: .68rem; overflow-wrap: anywhere; }
+.offline-sync-control__status svg { flex: 0 0 auto; }
+.offline-sync-control__message { flex: 1; margin: 0; color: var(--text-secondary); font-size: .7rem; }
+.offline-sync-control__issues { flex: 1; color: var(--danger); font-size: .7rem; }
+.offline-sync-control__issues ul { margin: 6px 0 0; padding-left: 18px; }
+.offline-sync-control__issues li { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 6px; }
+.offline-sync-control__discard { flex: 0 0 auto; border: 0; padding: 4px 7px; border-radius: 7px; color: var(--danger); background: var(--danger-light); font: inherit; font-size: .65rem; font-weight: 700; cursor: pointer; }
+.offline-sync-control .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; flex: 0 0 auto; }
+.offline-sync-control .is-spinning { animation: offlineSyncSpin 1s linear infinite; }
+.offline-row-status { display: block; margin-top: 3px; color: #a16207; font-size: .66rem; font-weight: 700; white-space: normal; }
+.offline-row-status.is-blocked { color: var(--danger); }
+.teacher-scheme-pending-badge { color: #a16207; background: var(--warning-light); padding: 4px 10px; border-radius: 20px; font-size: .72rem; font-weight: 700; }
+.teacher-scheme-pending-badge.is-blocked { color: var(--danger); background: var(--danger-light); }
+.teacher-scheme-week__status.is-blocked { color: var(--danger); background: var(--danger-light); }
+.teacher-scheme-week__pending-copy { margin: 0; color: #a16207; font-size: .73rem; }
+.teacher-scheme-week__pending-copy.is-blocked { color: var(--danger); }
+.pwa-update-prompt { position: fixed; top: calc(12px + env(safe-area-inset-top)); right: 12px; z-index: 15000; display: flex; align-items: center; gap: 10px; max-width: min(460px, calc(100vw - 24px)); padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 14px; background: var(--bg-surface); color: var(--text-primary); box-shadow: var(--shadow-lg); font-size: .78rem; }
+.pwa-update-prompt > span { flex: 1; }
+.pwa-update-prompt .btn { min-height: 36px; display: inline-flex; align-items: center; gap: 6px; }
+.pwa-update-prompt__dismiss { width: 34px; height: 34px; flex: 0 0 auto; border: 0; border-radius: 50%; background: var(--bg-secondary); color: var(--text-secondary); display: grid; place-items: center; }
+@keyframes offlineSyncSpin { to { transform: rotate(360deg); } }
+
 /* Consistent blue context headers for portal pages such as the timetable. */
 .portal-hero {
   display: flex;
@@ -1666,6 +1695,12 @@ body.dark .dashboard-header__brand { border-color: var(--border-color); backgrou
 .receipt-meta-row > :last-child { min-width: 0; overflow-wrap: anywhere; text-align: right; }
 
 @media (max-width: 768px) {
+  .offline-sync-control { align-items: flex-start; flex-wrap: wrap; margin: 0 0 12px; padding: 8px 10px; }
+  .offline-sync-control__message, .offline-sync-control__issues { flex-basis: 100%; }
+  .offline-sync-control .btn { min-height: 40px; }
+  .offline-sync-control__issues li { align-items: flex-start; }
+  .pwa-update-prompt { left: 12px; right: 12px; max-width: none; }
+
   .teacher-scheme-desktop { display: none !important; }
   .teacher-scheme-mobile { display: grid; gap: 10px; padding: 12px; }
   .teacher-scheme-week { overflow: hidden; border: 1px solid var(--border-color); border-radius: 13px; background: var(--bg-surface); }

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import Sidebar from './Sidebar';
 import MobileBottomNav from './MobileBottomNav';
 import MobileMoreSheet from './MobileMoreSheet';
+import OfflineSyncControl from './OfflineSyncControl';
 import api from '../utils/api';
 import { Sun, Moon, User, LogOut, ShieldAlert, Bell, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -280,6 +281,8 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
             </button>
           </div>
         </header>
+
+        <OfflineSyncControl user={user} />
 
         {/* Dynamic Inner Page View */}
         <main className={`portal-page-content ${activeTab !== 'dashboard' ? 'portal-page-content--detail' : ''}`}>

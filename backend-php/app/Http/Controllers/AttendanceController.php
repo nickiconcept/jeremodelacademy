@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -147,8 +148,14 @@ class AttendanceController extends Controller
             'records' => ['required', 'array', 'min:1', 'max:500'],
             'records.*.student_id' => ['required', 'integer', 'distinct', 'exists:students,id'],
             'records.*.status' => ['required', 'in:present,absent,late'],
+            'records.*.original_status' => ['nullable', 'in:present,absent,late'],
             'lat' => ['nullable', 'numeric', 'between:-90,90'],
             'lng' => ['nullable', 'numeric', 'between:-180,180'],
+            'location_accuracy' => ['nullable', 'numeric', 'min:0', 'max:100000'],
+            'offline_sync' => ['sometimes', 'boolean'],
+            'offline_sync_id' => ['required_if:offline_sync,true', 'nullable', 'uuid'],
+            'captured_at' => ['required_if:offline_sync,true', 'nullable', 'date'],
+            'timezone_offset_minutes' => ['required_if:offline_sync,true', 'nullable', 'integer', 'between:-840,840'],
         ]);
 
         $class_id = $request->input('class_id');
@@ -156,6 +163,20 @@ class AttendanceController extends Controller
         $records = $request->input('records'); // array of {student_id, status}
         $userLat = $request->input('lat');
         $userLng = $request->input('lng');
+        $locationAccuracy = $validated['location_accuracy'] ?? null;
+        $offlineSync = (bool) ($validated['offline_sync'] ?? false);
+        $offlineSyncId = $validated['offline_sync_id'] ?? null;
+        $capturedAt = null;
+        if ($offlineSync) {
+            $capturedAt = Carbon::parse($validated['captured_at'])->utc();
+            if ($capturedAt->greaterThan(now()->addMinutes(5)) || $capturedAt->lessThan(now()->subHours(24))) {
+                return response()->json(['error' => 'Offline attendance must be synced within 24 hours of capture.'], 422);
+            }
+            $localCapturedDate = $capturedAt->copy()->subMinutes((int) $validated['timezone_offset_minutes'])->toDateString();
+            if ($localCapturedDate !== $date) {
+                return response()->json(['error' => 'The captured attendance date does not match the selected attendance date.'], 422);
+            }
+        }
         $user = auth('api')->user();
         abort_unless($user && in_array($user->role, ['admin', 'teacher'], true), 403);
 
@@ -168,6 +189,38 @@ class AttendanceController extends Controller
         abort_unless($classStudentIds->count() === $studentIds->count(), 403, 'Attendance includes students outside the authorized class.');
 
         try {
+            if ($offlineSync) {
+                $existingReceipt = DB::table('offline_sync_receipts')->where('sync_id', $offlineSyncId)->first();
+                if ($existingReceipt) {
+                    if ((string) $existingReceipt->user_id !== (string) $user->id || $existingReceipt->operation !== 'attendance') {
+                        return response()->json(['error' => 'This offline sync ID was already used for a different action.'], 409);
+                    }
+
+                    return response()->json(['message' => 'This attendance batch was already synchronized.', 'already_synced' => true]);
+                }
+
+                $conflictingStudentIds = [];
+                foreach ($records as $record) {
+                    if (! array_key_exists('original_status', $record)) {
+                        return response()->json(['error' => 'Offline attendance is missing its original status snapshot. Refresh the roster and retry.'], 422);
+                    }
+                    $existingAttendance = DB::table('attendance')
+                        ->where('student_id', $record['student_id'])
+                        ->where('date', $date)
+                        ->first(['status']);
+                    if (($existingAttendance->status ?? null) !== ($record['original_status'] ?? null)) {
+                        $conflictingStudentIds[] = $record['student_id'];
+                    }
+                }
+
+                if ($conflictingStudentIds !== []) {
+                    return response()->json([
+                        'error' => 'Some attendance statuses changed on the server while this device was offline. Review the roster before syncing again.',
+                        'conflicting_student_ids' => $conflictingStudentIds,
+                    ], 409);
+                }
+            }
+
             if ($user->role === 'teacher') {
                 $cls = DB::table('classes')->where('id', $class_id)->first();
                 if (! $cls || $cls->form_master_id != $user->id) {
@@ -177,7 +230,11 @@ class AttendanceController extends Controller
                 $settings = DB::table('system_settings')->first();
                 $today = date('Y-m-d');
                 $perms = $user->permissions ?? [];
-                if ($date < $today && (! $settings || ! $settings->allow_past_attendance) && ! in_array('can_take_past_attendance', $perms)) {
+                if ($date < $today
+                    && (! $settings || ! $settings->allow_past_attendance)
+                    && ! in_array('can_take_past_attendance', $perms)
+                    && ! $offlineSync
+                ) {
                     return response()->json(['error' => 'Access denied: Past attendance is not permitted by global settings.'], 403);
                 }
 
@@ -202,10 +259,15 @@ class AttendanceController extends Controller
                     }
 
                     $radius = (int) ($settings->attendance_radius ?: 100);
+                    if ($offlineSync && ($locationAccuracy === null || $locationAccuracy > $radius)) {
+                        return response()->json(['error' => 'The saved GPS accuracy is not sufficient to verify this offline attendance.'], 422);
+                    }
                     $withinSchoolSite = false;
 
                     foreach ($configuredLocations as [$locationLat, $locationLng]) {
-                        if ($this->calculateDistance($userLat, $userLng, $locationLat, $locationLng) <= $radius) {
+                        $distance = $this->calculateDistance($userLat, $userLng, $locationLat, $locationLng);
+                        $distanceWithAccuracy = $distance + ($offlineSync ? (float) $locationAccuracy : 0);
+                        if ($distanceWithAccuracy <= $radius) {
                             $withinSchoolSite = true;
                             break;
                         }
@@ -241,6 +303,22 @@ class AttendanceController extends Controller
                         'marked_by' => $user->id,
                     ]);
                 }
+            }
+
+            if ($offlineSync) {
+                DB::table('offline_sync_receipts')->insert([
+                    'sync_id' => $offlineSyncId,
+                    'user_id' => $user->id,
+                    'operation' => 'attendance',
+                    'class_id' => $class_id,
+                    'attendance_date' => $date,
+                    'captured_at' => $capturedAt,
+                    'location_lat' => $userLat,
+                    'location_lng' => $userLng,
+                    'location_accuracy' => $locationAccuracy,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
             }
 
             DB::commit();

@@ -79,16 +79,33 @@ class SchemeOfWorkController extends Controller
             'class_id' => 'required|integer',
             'academic_session' => 'required|string',
             'note' => 'nullable|string|max:2000',
+            'offline_sync' => 'sometimes|boolean',
+            'offline_sync_id' => 'required_if:offline_sync,true|nullable|uuid',
         ]);
 
         $sowId = $request->input('scheme_of_work_id');
         $classId = $request->input('class_id');
         $session = $request->input('academic_session');
         $teacherId = $request->user()->id;
+        $offlineSync = (bool) $request->input('offline_sync', false);
+        $offlineSyncId = $request->input('offline_sync_id');
         $scheme = DB::table('scheme_of_works')->where('id', $sowId)->first();
         abort_unless($scheme, 404, 'Scheme topic not found.');
 
         abort_unless($this->teacherHasAssignment($classId, $scheme->subject_id), 403, 'You are not assigned to this class and subject.');
+
+        if ($offlineSync) {
+            $completedSync = DB::table('offline_sync_receipts')->where('sync_id', $offlineSyncId)->first();
+            if ($completedSync) {
+                abort_unless(
+                    (string) $completedSync->user_id === (string) $teacherId && $completedSync->operation === 'scheme',
+                    409,
+                    'This offline sync ID was already used for a different action.'
+                );
+
+                return response()->json(['message' => 'This scheme update was already synchronized.', 'already_synced' => true]);
+            }
+        }
 
         $exists = DB::table('sow_progress')
             ->where('scheme_of_work_id', $sowId)
@@ -96,27 +113,41 @@ class SchemeOfWorkController extends Controller
             ->where('academic_session', $session)
             ->first();
 
-        if ($exists) {
-            DB::table('sow_progress')->where('id', $exists->id)->update([
-                'status' => 'completed',
-                'completed_at' => now(),
-                'teacher_id' => $teacherId,
-                'note' => $request->input('note'),
-                'updated_at' => now(),
-            ]);
-        } else {
-            DB::table('sow_progress')->insert([
-                'scheme_of_work_id' => $sowId,
-                'class_id' => $classId,
-                'academic_session' => $session,
-                'teacher_id' => $teacherId,
-                'status' => 'completed',
-                'completed_at' => now(),
-                'note' => $request->input('note'),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
+        DB::transaction(function () use ($exists, $sowId, $classId, $session, $teacherId, $request, $offlineSync, $offlineSyncId): void {
+            $now = now();
+            if ($exists) {
+                DB::table('sow_progress')->where('id', $exists->id)->update([
+                    'status' => 'completed',
+                    'completed_at' => $now,
+                    'teacher_id' => $teacherId,
+                    'note' => $request->input('note'),
+                    'updated_at' => $now,
+                ]);
+            } else {
+                DB::table('sow_progress')->insert([
+                    'scheme_of_work_id' => $sowId,
+                    'class_id' => $classId,
+                    'academic_session' => $session,
+                    'teacher_id' => $teacherId,
+                    'status' => 'completed',
+                    'completed_at' => $now,
+                    'note' => $request->input('note'),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
+
+            if ($offlineSync) {
+                DB::table('offline_sync_receipts')->insert([
+                    'sync_id' => $offlineSyncId,
+                    'user_id' => $teacherId,
+                    'operation' => 'scheme',
+                    'class_id' => $classId,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            }
+        });
 
         return response()->json(['message' => 'Topic marked as treated']);
     }

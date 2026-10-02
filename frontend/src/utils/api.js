@@ -1,4 +1,42 @@
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
+import {
+  cacheOfflineValue,
+  enqueueOfflineRequest,
+  getOfflineQueue,
+  readOfflineValue,
+  removeOfflineRequest,
+  updateOfflineRequest,
+} from './offlineStore';
+
+const OFFLINE_QUEUEABLE_ENDPOINTS = new Set([
+  '/attendance/save',
+  '/grades/save',
+  '/sow/mark-treated',
+]);
+let activeSyncPromise = null;
+
+function isNetworkFailure(error) {
+  return error?.status == null && (error instanceof TypeError || (typeof navigator !== 'undefined' && !navigator.onLine));
+}
+
+function getOfflineSessionUserId() {
+  try {
+    const session = JSON.parse(localStorage.getItem('jma_offline_session') || '{}');
+    if (session.user?.role !== 'teacher' || !session.user.id) return null;
+    const token = localStorage.getItem('jma_token');
+    const payload = token?.split('.')[1];
+    if (!payload) return null;
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const claims = JSON.parse(window.atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '=')));
+    return String(claims.sub) === String(session.user.id) ? session.user.id : null;
+  } catch {
+    return null;
+  }
+}
+
+function emitOfflineQueueChange() {
+  window.dispatchEvent(new CustomEvent('jma-offline-queue-change'));
+}
 
 function getHeaders() {
   const token = localStorage.getItem('jma_token');
@@ -71,6 +109,109 @@ async function fetchAPI(endpoint, options = {}) {
   return { data: data?.data || data };
 }
 
+async function requestWithOfflineSupport(endpoint, options = {}, { cacheKey = null, queueWhenOffline = false } = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  const headers = { ...getHeaders(), ...(options.headers || {}) };
+
+  try {
+    const response = await fetch(`${API_BASE}${endpoint}`, { ...options, method, headers });
+    const data = await handleResponse(response);
+    if (method === 'GET' && cacheKey) {
+      await cacheOfflineValue(cacheKey, data).catch(() => {});
+    }
+    return data;
+  } catch (error) {
+    if (!isNetworkFailure(error)) throw error;
+
+    if (method === 'GET' && cacheKey) {
+      const cachedValue = await readOfflineValue(cacheKey).catch(() => null);
+      if (cachedValue !== null) return cachedValue;
+    }
+
+    if (method !== 'GET' && queueWhenOffline) {
+      let body = options.body;
+      if (typeof body === 'string') {
+        try { body = JSON.parse(body); } catch { throw error; }
+      }
+      if (endpoint === '/attendance/save' && body && typeof body === 'object') {
+        body = { ...body, offline_sync: true, captured_at: body.captured_at || new Date().toISOString() };
+      }
+      const queuedRequest = await enqueueOfflineRequest({ endpoint, method, body });
+      emitOfflineQueueChange();
+      return {
+        offlineQueued: true,
+        queueId: queuedRequest.id,
+        message: 'Saved on this device. It will sync when you are online.',
+      };
+    }
+
+    throw error;
+  }
+}
+
+async function syncOfflineRequests() {
+  if (activeSyncPromise) return activeSyncPromise;
+  const userId = getOfflineSessionUserId();
+  if (!userId) return { synced: 0, pending: 0, needsAttention: 0, message: 'Sign in online to sync pending work.' };
+  if (!navigator.onLine) {
+    const queue = await getOfflineQueue(userId);
+    return { synced: 0, pending: queue.filter((item) => !item.blocked).length, needsAttention: queue.filter((item) => item.blocked).length, message: 'Connect to the internet before syncing.' };
+  }
+
+  activeSyncPromise = (async () => {
+    const queue = await getOfflineQueue(userId);
+    let synced = 0;
+    let needsAttention = 0;
+    let message = '';
+
+    for (const item of queue) {
+      if (item.blocked) {
+        needsAttention += 1;
+        continue;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}${item.endpoint}`, {
+          method: item.method,
+          headers: getHeaders(),
+          body: JSON.stringify(item.body),
+        });
+        await handleResponse(response);
+        await removeOfflineRequest(item.id);
+        synced += 1;
+      } catch (error) {
+        const blocked = [403, 409, 422].includes(error?.status);
+        await updateOfflineRequest({
+          ...item,
+          attempts: (item.attempts || 0) + 1,
+          lastError: error.message || 'Sync failed.',
+          blocked,
+        });
+        if (blocked) needsAttention += 1;
+        if (error?.status === 401) {
+          message = 'Sign in again to sync pending work.';
+          break;
+        }
+        if (isNetworkFailure(error)) {
+          message = 'Connection lost. Remaining work is still saved on this device.';
+          break;
+        }
+      }
+    }
+
+    emitOfflineQueueChange();
+    const remaining = await getOfflineQueue(userId);
+    window.dispatchEvent(new CustomEvent('jma-offline-sync-complete', { detail: { synced } }));
+    return { synced, pending: remaining.filter((item) => !item.blocked).length, needsAttention: remaining.filter((item) => item.blocked).length, message };
+  })();
+
+  try {
+    return await activeSyncPromise;
+  } finally {
+    activeSyncPromise = null;
+  }
+}
+
 const api = {
   // Authentication
   getMe: async () => {
@@ -97,22 +238,11 @@ const api = {
 
   // System Settings
   getSettings: async () => {
-    const res = await fetch(`${API_BASE}/settings`, { headers: getHeaders() });
-    return handleResponse(res);
+    return requestWithOfflineSupport('/settings', {}, { cacheKey: '/settings' });
   },
 
   getPublicSettings: async () => {
-    const res = await fetch(`${API_BASE}/settings/public`, {
-      headers: { 'Accept': 'application/json' }
-    });
-    return handleResponse(res);
-  },
-
-  getPublicSettings: async () => {
-    const res = await fetch(`${API_BASE}/settings/public`, {
-      headers: { 'Accept': 'application/json' },
-    });
-    return handleResponse(res);
+    return requestWithOfflineSupport('/settings/public', {}, { cacheKey: '/settings/public' });
   },
 
   updateSettings: async (settings) => {
@@ -369,31 +499,66 @@ const api = {
   },
 
   getTeacherAssignments: async () => {
-    const res = await fetch(`${API_BASE}/teacher/assignments`, { headers: getHeaders() });
-    return handleResponse(res);
+    return requestWithOfflineSupport('/teacher/assignments', {}, { cacheKey: '/teacher/assignments' });
   },
 
   // Grades entry
   getGradesForEntry: async (classId, subjectId, term, session) => {
-    const res = await fetch(`${API_BASE}/grades/class-subject/${classId}/${subjectId}?term=${term}&session=${session}`, {
-      headers: getHeaders()
+    const query = new URLSearchParams({ term, session }).toString();
+    const endpoint = `/grades/class-subject/${classId}/${subjectId}?${query}`;
+    const grades = await requestWithOfflineSupport(endpoint, {}, { cacheKey: endpoint });
+    const queuedGrades = new Map();
+    (await getOfflineQueue()).forEach((item) => {
+      const payload = item.body;
+      if (item.endpoint !== '/grades/save'
+        || String(payload.class_id) !== String(classId)
+        || String(payload.subject_id) !== String(subjectId)
+        || payload.term !== term
+        || payload.academic_year !== session) return;
+      payload.grades.forEach((grade) => queuedGrades.set(String(grade.student_id), {
+        grade,
+        blocked: item.blocked,
+        error: item.lastError,
+      }));
     });
-    return handleResponse(res);
+    return grades.map((grade) => {
+      const queued = queuedGrades.get(String(grade.student_id));
+      return queued
+        ? { ...grade, ...queued.grade, offline_pending: true, offline_sync_blocked: queued.blocked, offline_sync_error: queued.error }
+        : grade;
+    });
   },
 
   saveGrades: async (gradePayload) => {
-    const res = await fetch(`${API_BASE}/grades/save`, {
+    return requestWithOfflineSupport('/grades/save', {
       method: 'POST',
-      headers: getHeaders(),
       body: JSON.stringify(gradePayload)
-    });
-    return handleResponse(res);
+    }, { queueWhenOffline: true });
   },
 
   // Attendance
   getAttendance: async (classId, date) => {
-    const res = await fetch(`${API_BASE}/attendance/${classId}/${date}`, { headers: getHeaders() });
-    return handleResponse(res);
+    const endpoint = `/attendance/${classId}/${date}`;
+    const roster = await requestWithOfflineSupport(endpoint, {}, { cacheKey: endpoint });
+    const queuedStatuses = new Map();
+    (await getOfflineQueue()).forEach((item) => {
+      const payload = item.body;
+      if (item.endpoint !== '/attendance/save'
+        || String(payload.class_id) !== String(classId)
+        || payload.date !== date) return;
+      payload.records.forEach((record) => queuedStatuses.set(String(record.student_id), {
+        status: record.status,
+        originalStatus: record.original_status ?? null,
+        blocked: item.blocked,
+        error: item.lastError,
+      }));
+    });
+    return roster.map((student) => {
+      const queued = queuedStatuses.get(String(student.student_id));
+      return queued
+        ? { ...student, status: queued.status, original_status: queued.originalStatus, offline_pending: true, offline_sync_blocked: queued.blocked, offline_sync_error: queued.error }
+        : student;
+    });
   },
 
   getStudentAttendance: async (studentId) => {
@@ -402,12 +567,10 @@ const api = {
   },
 
   saveAttendance: async (attendancePayload) => {
-    const res = await fetch(`${API_BASE}/attendance/save`, {
+    return requestWithOfflineSupport('/attendance/save', {
       method: 'POST',
-      headers: getHeaders(),
       body: JSON.stringify(attendancePayload)
-    });
-    return handleResponse(res);
+    }, { queueWhenOffline: true });
   },
 
   // Broadsheets
@@ -637,8 +800,24 @@ const api = {
   // Schemes of Work
   getSchemes: async (filters = {}) => {
     const query = new URLSearchParams(filters).toString();
-    const res = await fetch(`${API_BASE}/schemes?${query}`, { headers: getHeaders() });
-    return handleResponse(res);
+    const endpoint = `/schemes?${query}`;
+    const schemes = await requestWithOfflineSupport(endpoint, {}, { cacheKey: endpoint });
+    const queuedSchemeProgress = new Map();
+    (await getOfflineQueue()).forEach((item) => {
+      const payload = item.body;
+      if (item.endpoint !== '/sow/mark-treated'
+        || String(payload.class_id) !== String(filters.class_id)
+        || payload.academic_session !== filters.academic_session) return;
+      queuedSchemeProgress.set(String(payload.scheme_of_work_id), {
+        status: item.blocked ? 'sync_blocked' : 'pending_sync',
+        note: payload.note || '',
+        completed_at: item.createdAt,
+        sync_error: item.lastError,
+      });
+    });
+    return schemes.map((scheme) => queuedSchemeProgress.has(String(scheme.id))
+      ? { ...scheme, progress: queuedSchemeProgress.get(String(scheme.id)) }
+      : scheme);
   },
 
   saveScheme: async (schemeData) => {
@@ -787,23 +966,30 @@ const api = {
 
   // Generic methods for one-off endpoints
   get: async (endpoint, config = {}) => {
-    let url = `${API_BASE}${endpoint}`;
+    let requestEndpoint = endpoint;
     if (config.params) {
       const qs = new URLSearchParams(config.params).toString();
-      if (qs) url += `?${qs}`;
+      if (qs) requestEndpoint += `${requestEndpoint.includes('?') ? '&' : '?'}${qs}`;
     }
-    const res = await fetch(url, { headers: getHeaders() });
-    return { data: await handleResponse(res) };
+    const data = await requestWithOfflineSupport(requestEndpoint);
+    return { data };
   },
   
   post: async (endpoint, data = {}) => {
-    const res = await fetch(`${API_BASE}${endpoint}`, {
+    const queueWhenOffline = OFFLINE_QUEUEABLE_ENDPOINTS.has(endpoint);
+    const responseData = await requestWithOfflineSupport(endpoint, {
       method: 'POST',
-      headers: getHeaders(),
       body: JSON.stringify(data)
-    });
-    return { data: await handleResponse(res) };
+    }, { queueWhenOffline });
+    return { data: responseData };
   },
+
+  getOfflineQueue: async () => getOfflineQueue(),
+  discardOfflineRequest: async (id) => {
+    await removeOfflineRequest(id);
+    emitOfflineQueueChange();
+  },
+  syncOfflineRequests,
 
   // Upload School Logo
   uploadLogo: async (file) => {
@@ -887,9 +1073,10 @@ const api = {
   },
   deleteEvent: (id) => fetchAPI(`/events/${id}`, { method: 'DELETE' }),
 
-  getTimetables: (filters = {}) => {
+    getTimetables: (filters = {}) => {
       const params = new URLSearchParams(filters).toString();
-      return fetchAPI(`/timetables?${params}`);
+      const endpoint = `/timetables?${params}`;
+      return requestWithOfflineSupport(endpoint, {}, { cacheKey: endpoint }).then(data => ({ data: data?.data || data }));
   },
   addTimetable: (data) => fetchAPI('/timetables', {
       method: 'POST',

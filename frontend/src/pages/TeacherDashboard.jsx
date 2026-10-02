@@ -16,6 +16,13 @@ import MobileTeacherOverview from '../components/MobileTeacherOverview';
 import StudentRegistrationForm from '../components/StudentRegistrationForm';
 import RemarksManager from '../components/RemarksManager';
 
+const getLocalDateString = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function TeacherDashboard({ user, settings, activeTab, subTab, onSelectTab }) {
   const [activeSubTab, setActiveSubTab] = useState('overview');
   
@@ -59,7 +66,7 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
   const [studentsGrades, setStudentsGrades] = useState([]);
   
   // Attendance States
-  const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
+  const [attendanceDate, setAttendanceDate] = useState(() => getLocalDateString());
   const [attendanceRoster, setAttendanceRoster] = useState([]);
   const [attendanceReport, setAttendanceReport] = useState([]);
   const [attendanceReportStartDate, setAttendanceReportStartDate] = useState('');
@@ -273,13 +280,19 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
     setNotify('');
     setErrorMsg('');
     try {
-      await api.saveGrades({
+      const result = await api.saveGrades({
         class_id: selectedClassSubject.class_id,
         subject_id: selectedClassSubject.subject_id,
         term: settings.active_term,
         academic_year: settings.active_session,
         grades: studentsGrades
       });
+      if (result.offlineQueued) {
+        setStudentsGrades(prev => prev.map(grade => ({ ...grade, offline_pending: true })));
+        setNotify('Grades saved on this device. They are not submitted until you sync.');
+        return;
+      }
+      setStudentsGrades(prev => prev.map(grade => ({ ...grade, offline_pending: false })));
       setNotify('Grades submitted and saved successfully!');
       // Reload broadsheet to keep synchronized
       if (assignments.formClass) fetchBroadsheet(assignments.formClass.id);
@@ -301,26 +314,41 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
   };
 
   const handleAttendanceChange = (studentId, status) => {
-    setAttendanceRoster(prev => prev.map(r => r.student_id === studentId ? { ...r, status } : r));
+    setAttendanceRoster(prev => prev.map(r => r.student_id === studentId
+      ? { ...r, original_status: r.original_status ?? r.status ?? null, status }
+      : r));
   };
 
   const handleSaveAttendance = async () => {
     if (!assignments.formClass) return;
 
-    const submitAttendance = async (lat = null, lng = null) => {
+    const submitAttendance = async (lat = null, lng = null, accuracy = null, capturedAt = new Date().toISOString()) => {
+      if (settings?.attendance_geofencing_enabled && (lat === null || lng === null)) {
+        setErrorMsg('Location is required for attendance. Get a GPS fix before saving this attendance offline.');
+        return;
+      }
       try {
         const records = attendanceRoster.map(r => ({
           student_id: r.student_id,
-          status: r.status || 'present'
+          status: r.status || 'present',
+          original_status: r.original_status ?? r.status ?? null,
         }));
-        await api.saveAttendance({
+        const result = await api.saveAttendance({
           class_id: assignments.formClass.id,
           date: attendanceDate,
           records,
           lat,
-          lng
+          lng,
+          location_accuracy: accuracy,
+          captured_at: capturedAt
         });
-        setNotify(`Attendance successfully registered for ${attendanceDate}!`);
+        if (result.offlineQueued) {
+          setAttendanceRoster(prev => prev.map(record => ({ ...record, offline_pending: true })));
+          setNotify(`Attendance for ${attendanceDate} is saved on this device and pending sync.`);
+        } else {
+          setAttendanceRoster(prev => prev.map(record => ({ ...record, offline_pending: false })));
+          setNotify(`Attendance successfully registered for ${attendanceDate}!`);
+        }
       } catch (err) {
         setErrorMsg(err.message);
       }
@@ -330,7 +358,12 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
       setNotify("Verifying your location...");
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          submitAttendance(position.coords.latitude, position.coords.longitude);
+          submitAttendance(
+            position.coords.latitude,
+            position.coords.longitude,
+            position.coords.accuracy,
+            new Date(position.timestamp).toISOString()
+          );
         },
         (error) => {
           // If user denies or error occurs, try submitting anyway.
@@ -513,19 +546,20 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
     const assign = assignments.subjects[teacherSchemeAssignIdx];
     if (!assign) return;
     try {
-      await api.post('/sow/mark-treated', {
+      const result = await api.post('/sow/mark-treated', {
         scheme_of_work_id: schemeId,
         class_id: assign.class_id,
         academic_session: settings?.active_session,
         note
       });
+      const pendingSync = Boolean(result.data?.offlineQueued);
       // Update local state to reflect change immediately
       setTeacherSchemeWeeks(prev => prev.map(s =>
         s.id === schemeId
-          ? { ...s, note, progress: { ...s.progress, status: 'completed', note, completed_at: new Date().toISOString() } }
+          ? { ...s, note, progress: { ...s.progress, status: pendingSync ? 'pending_sync' : 'completed', note, completed_at: new Date().toISOString() } }
           : s
       ));
-      setNotify("Topic marked as successfully treated!");
+      setNotify(pendingSync ? 'Treatment saved on this device and pending sync.' : 'Topic marked as successfully treated!');
     } catch (err) {
       console.error(err);
       setErrorMsg("Failed to mark topic as treated.");
@@ -539,6 +573,26 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
       loadTeacherSchemes();
     }
   }, [activeSubTab, teacherSchemeAssignIdx, teacherSchemeTerm]);
+
+  useEffect(() => {
+    const refreshAfterOfflineSync = () => {
+      if (activeSubTab === 'attendance' && assignments.formClass) {
+        fetchAttendance(assignments.formClass.id, attendanceDate);
+      }
+      if (activeSubTab === 'grades' && selectedClassSubject) {
+        handleSelectClassSubjectForGrades(selectedClassSubject);
+      }
+      if (activeSubTab === 'schemes' && teacherSchemeAssignIdx !== '') {
+        loadTeacherSchemes();
+      }
+    };
+    window.addEventListener('jma-offline-queue-change', refreshAfterOfflineSync);
+    window.addEventListener('jma-offline-sync-complete', refreshAfterOfflineSync);
+    return () => {
+      window.removeEventListener('jma-offline-queue-change', refreshAfterOfflineSync);
+      window.removeEventListener('jma-offline-sync-complete', refreshAfterOfflineSync);
+    };
+  }, [activeSubTab, assignments.formClass, attendanceDate, selectedClassSubject, teacherSchemeAssignIdx, teacherSchemeTerm]);
 
   if (isInitialLoad) return <LoadingSpinner />;
 
@@ -969,7 +1023,14 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                       g.admission_number.toLowerCase().includes(gradesSearch.toLowerCase())
                     ).map((g, idx) => (
                       <tr key={idx}>
-                        <td style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{g.full_name}</td>
+                        <td style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
+                          {g.full_name}
+                          {g.offline_pending && (
+                            <small className={`offline-row-status ${g.offline_sync_blocked ? 'is-blocked' : ''}`}>
+                              {g.offline_sync_blocked ? `Needs attention: ${g.offline_sync_error}` : 'Pending sync'}
+                            </small>
+                          )}
+                        </td>
                         <td><code>{g.admission_number}</code></td>
                         {(!settings.max_ca_count || settings.max_ca_count >= 1) && (
                           <td>
@@ -1089,8 +1150,8 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                     style={{ width: '170px' }}
                     value={attendanceDate}
                     onChange={(e) => { setAttendanceDate(e.target.value); fetchAttendance(assignments.formClass.id, e.target.value); }}
-                    min={(!settings.allow_past_attendance && !(user.permissions || []).includes('can_take_past_attendance')) ? new Date().toISOString().split('T')[0] : undefined}
-                    max={(!settings.allow_past_attendance && !(user.permissions || []).includes('can_take_past_attendance')) ? new Date().toISOString().split('T')[0] : undefined}
+                    min={(!settings.allow_past_attendance && !(user.permissions || []).includes('can_take_past_attendance')) ? getLocalDateString() : undefined}
+                    max={(!settings.allow_past_attendance && !(user.permissions || []).includes('can_take_past_attendance')) ? getLocalDateString() : undefined}
                   />
                   <button className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }} onClick={handleSaveAttendance}><Save size={15} /> Save Attendance</button>
                 </div>
@@ -1125,6 +1186,11 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                       <tr key={idx} style={{ transition: 'background-color 0.2s', borderBottom: '1px solid var(--border-color)' }} onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.01)'} onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                         <td style={{ fontWeight: '600', padding: '14px' }}>
                           {r.full_name}
+                          {r.offline_pending && (
+                            <small className={`offline-row-status ${r.offline_sync_blocked ? 'is-blocked' : ''}`}>
+                              {r.offline_sync_blocked ? `Needs attention: ${r.offline_sync_error}` : 'Pending sync'}
+                            </small>
+                          )}
                           <div className="mobile-only" style={{ marginTop: '4px', fontWeight: 'normal' }}>
                             <code style={{ backgroundColor: 'var(--bg-secondary)', padding: '3px 8px', borderRadius: '4px', fontSize: '0.82rem' }}>{r.admission_number}</code>
                           </div>
@@ -1609,6 +1675,11 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                               {w.progress?.status === 'completed' && (
                                 <span className="teacher-scheme-treated-badge"><CheckCircle size={14} /> Treated</span>
                               )}
+                              {(w.progress?.status === 'pending_sync' || w.progress?.status === 'sync_blocked') && (
+                                <span className={`teacher-scheme-pending-badge ${w.progress.status === 'sync_blocked' ? 'is-blocked' : ''}`}>
+                                  {w.progress.status === 'sync_blocked' ? 'Needs attention' : 'Pending sync'}
+                                </span>
+                              )}
                               <details className="teacher-scheme-note-editor">
                                 <summary>{w.progress?.note || w.note ? 'View / edit note' : 'Add note'}</summary>
                                 <textarea
@@ -1621,7 +1692,7 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                                   onChange={(e) => handleTeacherSchemeFieldChange(w.week, 'note', e.target.value)}
                                 />
                               </details>
-                              {w.progress?.status !== 'completed' ? (
+                              {w.progress?.status !== 'completed' && w.progress?.status !== 'pending_sync' && w.progress?.status !== 'sync_blocked' ? (
                                 <button
                                   className="btn btn-primary"
                                   style={{ fontSize: '0.75rem', padding: '6px 12px', borderRadius: '20px' }}
@@ -1629,7 +1700,7 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                                 >
                                   Mark Treated
                                 </button>
-                              ) : (w.note || '') !== (w.progress?.note || '') && (
+                              ) : w.progress?.status !== 'sync_blocked' && (w.note || '') !== (w.progress?.note || '') && (
                                 <button
                                   className="btn btn-secondary"
                                   style={{ fontSize: '0.75rem', padding: '6px 12px', borderRadius: '20px' }}
@@ -1650,6 +1721,8 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
               <div className="teacher-scheme-mobile">
                 {teacherSchemeWeeks.map((week) => {
                   const isTreated = week.progress?.status === 'completed';
+                  const isPendingSync = week.progress?.status === 'pending_sync';
+                  const isSyncBlocked = week.progress?.status === 'sync_blocked';
                   const note = week.note ?? week.progress?.note ?? '';
                   const noteChanged = note !== (week.progress?.note || '');
                   return (
@@ -1657,8 +1730,8 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                       <summary>
                         <span className="teacher-scheme-week__number">Week {week.week}</span>
                         <span className="teacher-scheme-week__title">{week.topic || 'Not planned yet'}</span>
-                        <span className={`teacher-scheme-week__status ${isTreated ? 'is-treated' : week.topic ? 'is-planned' : 'is-empty'}`}>
-                          {isTreated ? 'Treated' : week.topic ? 'Planned' : 'Not planned'}
+                        <span className={`teacher-scheme-week__status ${isTreated ? 'is-treated' : isSyncBlocked ? 'is-blocked' : isPendingSync ? 'is-pending' : week.topic ? 'is-planned' : 'is-empty'}`}>
+                          {isTreated ? 'Treated' : isSyncBlocked ? 'Needs attention' : isPendingSync ? 'Pending sync' : week.topic ? 'Planned' : 'Not planned'}
                         </span>
                       </summary>
                       <div className="teacher-scheme-week__body">
@@ -1679,7 +1752,11 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                               value={note}
                               onChange={(e) => handleTeacherSchemeFieldChange(week.week, 'note', e.target.value)}
                             />
-                            {!isTreated ? (
+                            {isSyncBlocked ? (
+                              <p className="teacher-scheme-week__pending-copy is-blocked">Sync needs attention: {week.progress?.sync_error}</p>
+                            ) : isPendingSync ? (
+                              <p className="teacher-scheme-week__pending-copy">This update is saved on this device and will be marked treated after sync.</p>
+                            ) : !isTreated ? (
                               <button type="button" className="btn btn-primary" onClick={() => handleMarkTreated(week.id, note)}>
                                 <CheckCircle size={15} /> Mark Treated
                               </button>

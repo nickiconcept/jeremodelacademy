@@ -34,5 +34,19 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 );
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js'));
+  let hasController = Boolean(navigator.serviceWorker.controller);
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hasController) window.dispatchEvent(new Event('jma-pwa-update-ready'));
+    hasController = true;
+  });
+
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then((registration) => {
+      const checkForUpdate = () => registration.update().catch(() => {});
+      checkForUpdate();
+      window.addEventListener('online', checkForUpdate);
+    }).catch((error) => {
+      console.error('Could not register the offline app shell:', error);
+    });
+  });
 }

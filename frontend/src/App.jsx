@@ -6,8 +6,35 @@ import AdminDashboard from './pages/AdminDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import StudentDashboard from './pages/StudentDashboard';
 import RequiredPasswordChange from './components/RequiredPasswordChange';
+import PwaUpdatePrompt from './components/PwaUpdatePrompt';
 import api from './utils/api';
 import { GlobalUIProvider } from './contexts/GlobalUIContext';
+
+const OFFLINE_SESSION_KEY = 'jma_offline_session';
+const OFFLINE_SETTINGS_KEY = 'jma_offline_settings';
+const PUBLIC_SETTINGS_CACHE_KEY = 'jma_public_settings_cache';
+const OFFLINE_SESSION_MAX_AGE = 12 * 60 * 60 * 1000;
+
+function readStoredJson(key) {
+  try {
+    return JSON.parse(localStorage.getItem(key) || 'null');
+  } catch {
+    return null;
+  }
+}
+
+function rememberTeacherSession(user) {
+  if (user?.role !== 'teacher' || user.must_change_password) return;
+  const offlineUser = {
+    id: user.id,
+    role: user.role,
+    full_name: user.full_name,
+    username: user.username,
+    passport_photo: user.passport_photo,
+    status: user.status,
+  };
+  localStorage.setItem(OFFLINE_SESSION_KEY, JSON.stringify({ user: offlineUser, verifiedAt: Date.now() }));
+}
 
 function AppContent() {
   const [user, setUser] = useState(null);
@@ -79,9 +106,18 @@ function AppContent() {
       const data = await api.getSettings();
       setSettings(data);
       setSettingsError(false);
+      if (user?.role === 'teacher' || readStoredJson(OFFLINE_SESSION_KEY)?.user?.role === 'teacher') {
+        localStorage.setItem(OFFLINE_SETTINGS_KEY, JSON.stringify({ data, savedAt: Date.now() }));
+      }
     } catch (err) {
       console.error('Failed to load system settings:', err);
-      setSettingsError(true);
+      const cached = readStoredJson(OFFLINE_SETTINGS_KEY);
+      if (cached?.data && Date.now() - cached.savedAt <= OFFLINE_SESSION_MAX_AGE) {
+        setSettings(cached.data);
+        setSettingsError(false);
+      } else {
+        setSettingsError(true);
+      }
     }
   };
 
@@ -90,9 +126,14 @@ function AppContent() {
       const data = await api.getPublicSettings();
       setSettings(data);
       setSettingsError(false);
+      localStorage.setItem(PUBLIC_SETTINGS_CACHE_KEY, JSON.stringify({ data, savedAt: Date.now() }));
     } catch (err) {
       console.error('Failed to load public school settings:', err);
-      setSettingsError(true);
+      const cached = readStoredJson(PUBLIC_SETTINGS_CACHE_KEY);
+      if (cached?.data) {
+        setSettings(cached.data);
+      }
+      setSettingsError(false);
     }
   };
 
@@ -128,6 +169,7 @@ function AppContent() {
       // Do not render a role dashboard from unverified cached/token claims.
       const freshUser = await api.getMe();
       setUser(freshUser);
+      rememberTeacherSession(freshUser);
       if (!freshUser.must_change_password) {
         await fetchSettings();
       }
@@ -138,8 +180,22 @@ function AppContent() {
 
       if (isLaravelUnauthorized) {
         api.logout();
+        localStorage.removeItem(OFFLINE_SESSION_KEY);
+        localStorage.removeItem(OFFLINE_SETTINGS_KEY);
         setShowLogin(true);
       } else {
+        const offlineSession = readStoredJson(OFFLINE_SESSION_KEY);
+        const offlineSettings = readStoredJson(OFFLINE_SETTINGS_KEY);
+        const sessionIsFresh = offlineSession?.user?.role === 'teacher'
+          && Date.now() - offlineSession.verifiedAt <= OFFLINE_SESSION_MAX_AGE;
+        if (sessionIsFresh && offlineSettings?.data && Date.now() - offlineSettings.savedAt <= OFFLINE_SESSION_MAX_AGE) {
+          setUser({ ...offlineSession.user, offlineMode: true });
+          setSettings(offlineSettings.data);
+          setSettingsError(false);
+          setSessionRestoreError('');
+          return;
+        }
+
         // Keep the token: a cPanel HTML response or network outage is not proof
         // that the user's Laravel session has expired.
         let endpoint = 'API endpoint unavailable';
@@ -161,6 +217,7 @@ function AppContent() {
   };
 
   const handleLoginSuccess = async (loggedInUser) => {
+    rememberTeacherSession(loggedInUser);
     if (!loggedInUser.must_change_password) {
       await fetchSettings();
     }
@@ -173,6 +230,8 @@ function AppContent() {
 
   const handleLogout = () => {
     api.logout();
+    localStorage.removeItem(OFFLINE_SESSION_KEY);
+    localStorage.removeItem(OFFLINE_SETTINGS_KEY);
     setUser(null);
     setShowLogin(false);
     setActiveTab('dashboard');
@@ -193,6 +252,7 @@ function AppContent() {
 
   const handlePasswordChangeComplete = async () => {
     const freshUser = await api.getMe();
+    rememberTeacherSession(freshUser);
     await fetchSettings();
     setUser(freshUser);
   };
@@ -378,6 +438,7 @@ export default function App() {
   return (
     <GlobalUIProvider>
       <AppContent />
+      <PwaUpdatePrompt />
     </GlobalUIProvider>
   );
 }
