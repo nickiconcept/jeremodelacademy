@@ -31,6 +31,7 @@ use App\Http\Controllers\GradesController;
 use App\Http\Controllers\PinController;
 use App\Http\Controllers\RemarkController;
 use App\Http\Controllers\ReportCardController;
+use App\Http\Controllers\ResultPublicationController;
 use App\Http\Controllers\SchemeOfWorkController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SkillController;
@@ -127,6 +128,11 @@ Route::group(['middleware' => ['auth:api', 'password.changed', 'throttle:60,1']]
     Route::get('/teacher/result-progress', [ReportCardController::class, 'teacherResultProgress']);
     Route::get('/admin/result-progress', [ReportCardController::class, 'adminResultProgress']);
     Route::get('/student/timeline/{studentId}', [ReportCardController::class, 'studentTimeline']);
+
+    // Result publication
+    Route::get('/results/publication-candidates', [ResultPublicationController::class, 'candidates']);
+    Route::post('/results/publish', [ResultPublicationController::class, 'publish']);
+    Route::post('/results/unpublish', [ResultPublicationController::class, 'unpublish']);
 
     // Remarks
     Route::get('/remarks/{studentId}', [RemarkController::class, 'getRemark']);

@@ -284,6 +284,16 @@ class ReportCardController extends Controller
 
         try {
             if ($user->role === 'student') {
+                $isPublished = DB::table('result_publications')
+                    ->where('student_id', $studentId)
+                    ->where('term', $term)
+                    ->where('academic_year', $year)
+                    ->exists();
+
+                if (! $isPublished) {
+                    return response()->json(['error' => 'This result has not been published yet.'], 403);
+                }
+
                 $unpaidTermFees = DB::table('fee_invoices')
                     ->where('student_id', $studentId)
                     ->where('status', '!=', 'paid')
@@ -686,12 +696,17 @@ class ReportCardController extends Controller
         $this->requireAdminOrOwnStudent($studentId);
 
         try {
-            $timeline = DB::table('grades')
-                ->where('student_id', $studentId)
-                ->select('term', 'academic_year')
+            $timeline = DB::table('grades as grades')
+                ->join('result_publications as publications', function ($join) {
+                    $join->on('publications.student_id', '=', 'grades.student_id')
+                        ->on('publications.term', '=', 'grades.term')
+                        ->on('publications.academic_year', '=', 'grades.academic_year');
+                })
+                ->where('grades.student_id', $studentId)
+                ->select('grades.term', 'grades.academic_year')
                 ->distinct()
-                ->orderByDesc('academic_year')
-                ->orderByDesc('term')
+                ->orderByDesc('grades.academic_year')
+                ->orderByDesc('grades.term')
                 ->get();
 
             $unlockedPins = DB::table('result_pins')

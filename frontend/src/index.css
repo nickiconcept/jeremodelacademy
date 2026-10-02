@@ -1425,6 +1425,39 @@ body.dark .icon-3d {
 .fee-summary-card--indigo { --fee-card-color: #4f46e5; --fee-card-bg: #eef2ff; --fee-card-border: #c7d2fe; }
 .fee-summary-card--debt { --fee-card-color: #dc2626; --fee-card-bg: #fef2f2; --fee-card-border: #fecaca; }
 
+.results-publication { min-width: 0; }
+.results-publication__hero { display: flex; justify-content: space-between; align-items: center; gap: 18px; margin: -24px -24px 22px; padding: 22px 24px; color: #fff; background: linear-gradient(125deg, #075c63, #0e8f94 60%, #0284c7); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+.results-publication__hero h2, .results-publication__hero p { margin: 0; }
+.results-publication__hero h2 { margin-top: 3px; font-size: 1.2rem; }
+.results-publication__hero p:last-child { margin-top: 5px; color: rgba(255,255,255,.84); font-size: .78rem; }
+.results-publication__eyebrow { color: rgba(255,255,255,.72); font-size: .64rem; font-weight: 800; }
+.results-publication__filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.results-publication__filters .form-group, .results-publication__class-select { margin: 0; }
+.results-publication__filters .form-group > span, .results-publication__class-select > span, .results-publication__student-filter .form-group > span { display: block; margin-bottom: 6px; color: var(--text-secondary); font-size: .8rem; font-weight: 700; }
+.results-publication__scopes { min-width: 0; margin: 20px 0; padding: 0; border: 0; display: flex; flex-wrap: wrap; gap: 9px; }
+.results-publication__scopes legend { margin-bottom: 9px; color: var(--text-secondary); font-size: .8rem; font-weight: 700; }
+.results-publication__scope { min-height: 42px; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 12px; color: var(--text-secondary); background: var(--bg-surface); display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.results-publication__scope.is-selected { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+.results-publication__scope input, .results-publication__acknowledge input { width: 18px; height: 18px; accent-color: var(--primary); }
+.results-publication__student-filter { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 16px; }
+.results-publication__student-filter .form-group { flex: 1; min-width: 0; margin: 0; }
+.results-publication__notice { display: flex; align-items: center; gap: 9px; }
+.results-publication__summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 18px 0; }
+.results-publication__summary div { min-width: 0; padding: 13px; border: 1px solid var(--border-color); border-radius: 13px; background: var(--bg-primary); }
+.results-publication__summary strong, .results-publication__summary span { display: block; }
+.results-publication__summary strong { color: var(--text-primary); font-size: 1.15rem; }
+.results-publication__summary span { margin-top: 2px; color: var(--text-muted); font-size: .72rem; }
+.results-publication__table { max-height: 52vh; }
+.results-publication__table td strong, .results-publication__admission { display: block; }
+.results-publication__admission { margin-top: 3px; color: var(--text-muted); font-size: .72rem; }
+.results-publication__table .badge { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.results-publication__acknowledge { display: flex; align-items: flex-start; gap: 9px; margin-top: 16px; padding: 12px; border: 1px solid rgba(245,158,11,.35); border-radius: 12px; color: var(--text-primary); background: var(--warning-light); font-size: .78rem; }
+.results-publication__acknowledge input { flex: 0 0 18px; }
+.results-publication__actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 18px; }
+.results-publication__actions > span { color: var(--text-muted); font-size: .75rem; }
+.results-publication__action-buttons { display: flex; align-items: center; gap: 8px; }
+.alert-warning { color: #92400e; border: 1px solid rgba(245,158,11,.35); background: var(--warning-light); }
+
 .mobile-bottom-nav {
   display: none;
 }
@@ -1626,6 +1659,21 @@ body.dark .dashboard-header__brand { border-color: var(--border-color); backgrou
 .receipt-meta-row > :last-child { min-width: 0; overflow-wrap: anywhere; text-align: right; }
 
 @media (max-width: 768px) {
+  .results-publication { padding: 16px !important; }
+  .results-publication__hero { align-items: flex-start; margin: -16px -16px 18px; padding: 18px 16px; }
+  .results-publication__filters { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .results-publication__scopes { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .results-publication__scope { width: 100%; }
+  .results-publication__student-filter { align-items: stretch; flex-direction: column; }
+  .results-publication__student-filter .btn { width: 100%; justify-content: center; }
+  .results-publication__summary { gap: 7px; }
+  .results-publication__summary div { padding: 10px 8px; }
+  .results-publication__summary strong { font-size: 1rem; }
+  .results-publication__summary span { font-size: .65rem; }
+  .results-publication__actions { align-items: stretch; flex-direction: column; }
+  .results-publication__action-buttons { flex-direction: column; }
+  .results-publication__action-buttons .btn { width: 100%; justify-content: center; }
+
   .portal-page-content {
     width: 100%;
     min-width: 0;

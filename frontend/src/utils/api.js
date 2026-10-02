@@ -481,6 +481,30 @@ const api = {
     return handleResponse(res);
   },
 
+  getResultPublicationCandidates: async (term, academicYear) => {
+    const params = new URLSearchParams({ term, academic_year: academicYear });
+    const res = await fetch(`${API_BASE}/results/publication-candidates?${params}`, { headers: getHeaders() });
+    return handleResponse(res);
+  },
+
+  publishResults: async (publicationData) => {
+    const res = await fetch(`${API_BASE}/results/publish`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(publicationData)
+    });
+    return handleResponse(res);
+  },
+
+  unpublishResults: async (publicationData) => {
+    const res = await fetch(`${API_BASE}/results/unpublish`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(publicationData)
+    });
+    return handleResponse(res);
+  },
+
   // Result Upload Progress Trackers
   getTeacherResultProgress: async () => {
     const res = await fetch(`${API_BASE}/teacher/result-progress`, { headers: getHeaders() });

@@ -24,6 +24,7 @@ import AdminWebsiteTab from './AdminWebsiteTab';
 import AdminTimetableTab from './AdminTimetableTab';
 import AdminSettingsTab from '../components/admin/AdminSettingsTab';
 import AdminManagementTab from '../components/admin/AdminManagementTab';
+import ResultsPublicationManager from '../components/admin/ResultsPublicationManager';
 import {
   ArrowLeft,
   LayoutDashboard,
@@ -3903,6 +3904,15 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
           {/* Sub-Tab Navigation handled by Sidebar */}
 
           {/* Sub-Tab: Single Student Result View */}
+          {resultsSubTab === 'publish' && (
+            <ResultsPublicationManager
+              classes={classes}
+              sessions={sessions}
+              currentTerm={settings?.active_term}
+              currentSession={settings?.active_session}
+            />
+          )}
+
           {resultsSubTab === 'single' && (
             <div className="glass-panel" style={{ padding: '24px', backgroundColor: 'var(--bg-surface)' }}>
               <div style={{ background: 'linear-gradient(135deg, var(--primary) 0%, #1e3a8a 100%)', padding: '24px', margin: '-24px -24px 24px -24px', borderTopLeftRadius: 'var(--radius-lg)', borderTopRightRadius: 'var(--radius-lg)', color: 'white', display: 'flex', alignItems: 'center', gap: '15px', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }}>

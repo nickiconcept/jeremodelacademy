@@ -79,6 +79,7 @@ export default function Sidebar({ role, activeTab, subTab, onSelectTab, onLogout
           { id: 'blank-scoresheet', label: 'Print Scoresheet', icon: Download },
           { id: 'broadsheet', label: 'Class Broadsheet', icon: Grid },
           { id: 'single', label: 'Single Result View', icon: FileText },
+          { id: 'publish', label: 'Publish Results', icon: CheckSquare },
           { id: 'bulk', label: 'Print Results', icon: Download },
           { id: 'promotions', label: 'Student Promotions', icon: TrendingUp },
           { id: 'pins', label: 'Scratch Cards / PINs', icon: Key },

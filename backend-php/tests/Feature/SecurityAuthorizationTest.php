@@ -272,6 +272,148 @@ class SecurityAuthorizationTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_unpublished_results_are_not_listed_or_accessible_by_students(): void
+    {
+        $student = $this->createUser('student');
+        $classId = $this->createClass();
+        $subjectId = $this->createSubject();
+        $this->createStudentProfile($student->id, $classId, 'STU-UNPUBLISHED-001');
+        DB::table('grades')->insert([
+            'student_id' => $student->id,
+            'subject_id' => $subjectId,
+            'term' => '1st Term',
+            'academic_year' => '2026/2027',
+            'total_score' => 76,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($student, 'api')
+            ->getJson('/api/student/timeline/'.$student->id)
+            ->assertOk()
+            ->assertJsonCount(0, 'timeline');
+
+        $this->actingAs($student, 'api')
+            ->postJson('/api/pins/verify', [
+                'pin' => 'ABCD-EFGH-IJKL',
+                'term' => '1st Term',
+                'academic_year' => '2026/2027',
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($student, 'api')
+            ->getJson('/api/report-card/'.$student->id.'?term=1st%20Term&year=2026%2F2027')
+            ->assertForbidden()
+            ->assertJsonPath('error', 'This result has not been published yet.');
+    }
+
+    public function test_admin_must_acknowledge_incomplete_results_and_can_publish_selected_students(): void
+    {
+        $admin = $this->createUser('admin');
+        $firstStudent = $this->createUser('student');
+        $secondStudent = $this->createUser('student');
+        $classId = $this->createClass();
+        $subjectId = $this->createSubject();
+        $this->createStudentProfile($firstStudent->id, $classId, 'STU-PUBLISH-001');
+        $this->createStudentProfile($secondStudent->id, $classId, 'STU-PUBLISH-002');
+        DB::table('class_subjects')->insert([
+            'class_id' => $classId,
+            'subject_id' => $subjectId,
+            'teacher_id' => $admin->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('grades')->insert([
+            'student_id' => $firstStudent->id,
+            'subject_id' => $subjectId,
+            'term' => '1st Term',
+            'academic_year' => '2026/2027',
+            'total_score' => 76,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        SystemSetting::create([
+            'active_session' => '2026/2027',
+            'active_term' => '1st Term',
+            'result_entry_open' => false,
+        ]);
+
+        $payload = [
+            'term' => '1st Term',
+            'academic_year' => '2026/2027',
+            'scope' => 'students',
+            'student_ids' => [$firstStudent->id],
+        ];
+
+        $this->actingAs($admin, 'api')
+            ->postJson('/api/results/publish', $payload)
+            ->assertUnprocessable()
+            ->assertJsonPath('incomplete_count', 1);
+
+        $this->actingAs($admin, 'api')
+            ->postJson('/api/results/publish', $payload + ['confirm_incomplete' => true])
+            ->assertOk()
+            ->assertJsonPath('published_count', 1);
+
+        $this->assertDatabaseHas('result_publications', [
+            'student_id' => $firstStudent->id,
+            'term' => '1st Term',
+            'academic_year' => '2026/2027',
+            'published_by' => $admin->id,
+        ]);
+        $this->assertDatabaseHas('result_publication_events', [
+            'student_id' => $firstStudent->id,
+            'action' => 'published',
+            'scope' => 'students',
+            'performed_by' => $admin->id,
+        ]);
+        $this->assertDatabaseMissing('result_publications', [
+            'student_id' => $secondStudent->id,
+            'term' => '1st Term',
+            'academic_year' => '2026/2027',
+        ]);
+
+        $this->actingAs($admin, 'api')
+            ->postJson('/api/results/unpublish', $payload)
+            ->assertOk()
+            ->assertJsonPath('unpublished_count', 1);
+
+        $this->assertDatabaseMissing('result_publications', [
+            'student_id' => $firstStudent->id,
+            'term' => '1st Term',
+            'academic_year' => '2026/2027',
+        ]);
+        $this->assertDatabaseHas('result_publication_events', [
+            'student_id' => $firstStudent->id,
+            'action' => 'unpublished',
+            'scope' => 'students',
+            'performed_by' => $admin->id,
+        ]);
+    }
+
+    public function test_admin_cannot_publish_results_while_result_entry_is_open(): void
+    {
+        $admin = $this->createUser('admin');
+        $student = $this->createUser('student');
+        $classId = $this->createClass();
+        $this->createStudentProfile($student->id, $classId, 'STU-OPEN-001');
+        SystemSetting::create([
+            'active_session' => '2026/2027',
+            'active_term' => '1st Term',
+            'result_entry_open' => true,
+        ]);
+
+        $this->actingAs($admin, 'api')
+            ->postJson('/api/results/publish', [
+                'term' => '1st Term',
+                'academic_year' => '2026/2027',
+                'scope' => 'school',
+            ])
+            ->assertStatus(409);
+
+        $this->assertDatabaseCount('result_publications', 0);
+    }
+
     private function createUser(string $role): User
     {
         return User::create([

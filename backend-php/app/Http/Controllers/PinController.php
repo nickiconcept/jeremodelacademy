@@ -81,6 +81,16 @@ class PinController extends Controller
             return response()->json(['error' => 'Term and academic session are required.'], 400);
         }
 
+        $isPublished = DB::table('result_publications')
+            ->where('student_id', $studentId)
+            ->where('term', $term)
+            ->where('academic_year', $academic_year)
+            ->exists();
+
+        if (! $isPublished) {
+            return response()->json(['error' => 'This result has not been published yet.'], 403);
+        }
+
         try {
             $pinRow = DB::table('result_pins')->where('pin', strtoupper($pin))->first();
 
