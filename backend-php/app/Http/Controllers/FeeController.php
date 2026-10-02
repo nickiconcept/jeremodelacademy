@@ -31,8 +31,37 @@ class FeeController extends Controller
                 ->select('s.id', 'c.tier', 'c.name as class_name')
                 ->get();
 
+            if ($students->isEmpty()) {
+                return response()->json([
+                    'message' => 'There are no active students to invoice for this term.',
+                    'count' => 0,
+                ]);
+            }
+
             // 1. Fetch all fee structures grouped by tier
             $allStructures = DB::table('fee_structures')->get()->groupBy('tier');
+            if ($allStructures->isEmpty()) {
+                return response()->json([
+                    'message' => 'No fee structures are configured. Add fee structures before generating termly invoices.',
+                ], 422);
+            }
+
+            $studentsWithoutTier = $students->whereNull('tier');
+            if ($studentsWithoutTier->isNotEmpty()) {
+                return response()->json([
+                    'message' => 'Some active students belong to classes without a fee tier. Configure those classes before generating invoices.',
+                    'classes_without_tier' => $studentsWithoutTier->pluck('class_name')->unique()->values(),
+                ], 422);
+            }
+
+            $configuredTiers = $allStructures->keys();
+            $unconfiguredTiers = $students->pluck('tier')->unique()->diff($configuredTiers)->values();
+            if ($unconfiguredTiers->isNotEmpty()) {
+                return response()->json([
+                    'message' => 'Fee structures are missing for one or more active class tiers. Add a structure for each listed tier before generating invoices.',
+                    'tiers_without_structures' => $unconfiguredTiers,
+                ], 422);
+            }
 
             // 2. Fetch all existing invoices for this term to avoid inserting duplicates
             $existingInvoices = DB::table('fee_invoices')
@@ -77,9 +106,9 @@ class FeeController extends Controller
 
             if ($generatedCount === 0) {
                 return response()->json([
-                    'message' => 'All invoices have already been generated for this term. No new invoices were created.',
+                    'message' => 'No new invoices were created because invoices already exist for all configured fees this term.',
                     'count' => 0,
-                ], 200);
+                ]);
             }
 
             // Bulk insert in chunks to avoid SQL query string size limits

@@ -457,6 +457,54 @@ class SecurityAuthorizationTest extends TestCase
         ]);
     }
 
+    public function test_termly_fee_generation_stops_when_no_fee_structures_exist(): void
+    {
+        $admin = $this->createUser('admin');
+        $student = $this->createUser('student');
+        $classId = $this->createClass();
+        $this->createStudentProfile($student->id, $classId, 'STU-FEE-EMPTY-001');
+        SystemSetting::create([
+            'active_session' => '2026/2027',
+            'active_term' => '1st Term',
+            'result_entry_open' => false,
+        ]);
+
+        $this->actingAs($admin, 'api')
+            ->postJson('/api/fees/generate-termly')
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'No fee structures are configured. Add fee structures before generating termly invoices.');
+
+        $this->assertDatabaseCount('fee_invoices', 0);
+    }
+
+    public function test_termly_fee_generation_stops_when_an_active_tier_has_no_structure(): void
+    {
+        $admin = $this->createUser('admin');
+        $student = $this->createUser('student');
+        $classId = $this->createClass();
+        $this->createStudentProfile($student->id, $classId, 'STU-FEE-TIER-001');
+        DB::table('fee_structures')->insert([
+            'title' => 'Primary School Fees',
+            'category' => 'School Fees',
+            'amount' => 10000,
+            'tier' => 'primary',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        SystemSetting::create([
+            'active_session' => '2026/2027',
+            'active_term' => '1st Term',
+            'result_entry_open' => false,
+        ]);
+
+        $this->actingAs($admin, 'api')
+            ->postJson('/api/fees/generate-termly')
+            ->assertUnprocessable()
+            ->assertJsonPath('tiers_without_structures.0', 'jss');
+
+        $this->assertDatabaseCount('fee_invoices', 0);
+    }
+
     private function createUser(string $role): User
     {
         return User::create([
