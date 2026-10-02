@@ -414,6 +414,49 @@ class SecurityAuthorizationTest extends TestCase
         $this->assertDatabaseCount('result_publications', 0);
     }
 
+    public function test_form_teacher_can_save_a_note_when_marking_a_scheme_topic_treated(): void
+    {
+        $teacher = $this->createUser('teacher');
+        $classId = $this->createClass();
+        $subjectId = $this->createSubject();
+        DB::table('class_subjects')->insert([
+            'class_id' => $classId,
+            'subject_id' => $subjectId,
+            'teacher_id' => $teacher->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $schemeId = DB::table('scheme_of_works')->insertGetId([
+            'subject_id' => $subjectId,
+            'tier' => 'jss1',
+            'term' => '1',
+            'week' => 1,
+            'topic' => 'Introduction to fractions',
+            'sub_topic' => null,
+            'objectives' => 'Identify equivalent fractions',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($teacher, 'api')
+            ->postJson('/api/sow/mark-treated', [
+                'scheme_of_work_id' => $schemeId,
+                'class_id' => $classId,
+                'academic_session' => '2026/2027',
+                'note' => 'Students used fraction strips in pairs.',
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('sow_progress', [
+            'scheme_of_work_id' => $schemeId,
+            'class_id' => $classId,
+            'academic_session' => '2026/2027',
+            'teacher_id' => $teacher->id,
+            'status' => 'completed',
+            'note' => 'Students used fraction strips in pairs.',
+        ]);
+    }
+
     private function createUser(string $role): User
     {
         return User::create([

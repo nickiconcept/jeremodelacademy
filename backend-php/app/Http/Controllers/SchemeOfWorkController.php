@@ -78,6 +78,7 @@ class SchemeOfWorkController extends Controller
             'scheme_of_work_id' => 'required|integer',
             'class_id' => 'required|integer',
             'academic_session' => 'required|string',
+            'note' => 'nullable|string|max:2000',
         ]);
 
         $sowId = $request->input('scheme_of_work_id');
@@ -100,6 +101,8 @@ class SchemeOfWorkController extends Controller
                 'status' => 'completed',
                 'completed_at' => now(),
                 'teacher_id' => $teacherId,
+                'note' => $request->input('note'),
+                'updated_at' => now(),
             ]);
         } else {
             DB::table('sow_progress')->insert([
@@ -109,6 +112,7 @@ class SchemeOfWorkController extends Controller
                 'teacher_id' => $teacherId,
                 'status' => 'completed',
                 'completed_at' => now(),
+                'note' => $request->input('note'),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -151,7 +155,8 @@ class SchemeOfWorkController extends Controller
                 'scheme_of_works.topic',
                 'scheme_of_works.sub_topic as subtitle',
                 'scheme_of_works.week',
-                'sow_progress.completed_at'
+                'sow_progress.completed_at',
+                'sow_progress.note'
             )
             ->get();
 
@@ -172,6 +177,7 @@ class SchemeOfWorkController extends Controller
                         'subtitle' => $item->subtitle,
                         'week' => $item->week,
                         'completed_at' => $item->completed_at,
+                        'note' => $item->note,
                     ];
                 })->values()->toArray(),
             ];

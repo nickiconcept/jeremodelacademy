@@ -1458,6 +1458,13 @@ body.dark .icon-3d {
 .results-publication__action-buttons { display: flex; align-items: center; gap: 8px; }
 .alert-warning { color: #92400e; border: 1px solid rgba(245,158,11,.35); background: var(--warning-light); }
 
+.teacher-scheme-mobile { display: none; }
+.teacher-scheme-progress-cell { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 145px; }
+.teacher-scheme-treated-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; color: var(--success); background: var(--success-light); font-size: .75rem; font-weight: 700; }
+.teacher-scheme-note-editor { width: 100%; text-align: left; }
+.teacher-scheme-note-editor summary { color: var(--primary); font-size: .72rem; cursor: pointer; }
+.teacher-scheme-note-editor textarea { margin-top: 6px; font-size: 14px; }
+
 .mobile-bottom-nav {
   display: none;
 }
@@ -1659,6 +1666,27 @@ body.dark .dashboard-header__brand { border-color: var(--border-color); backgrou
 .receipt-meta-row > :last-child { min-width: 0; overflow-wrap: anywhere; text-align: right; }
 
 @media (max-width: 768px) {
+  .teacher-scheme-desktop { display: none !important; }
+  .teacher-scheme-mobile { display: grid; gap: 10px; padding: 12px; }
+  .teacher-scheme-week { overflow: hidden; border: 1px solid var(--border-color); border-radius: 13px; background: var(--bg-surface); }
+  .teacher-scheme-week > summary { min-height: 58px; padding: 10px 11px; display: grid; grid-template-columns: 54px minmax(0, 1fr) auto; align-items: center; gap: 8px; cursor: pointer; list-style: none; }
+  .teacher-scheme-week > summary::-webkit-details-marker { display: none; }
+  .teacher-scheme-week[open] > summary { border-bottom: 1px solid var(--border-color); background: var(--bg-primary); }
+  .teacher-scheme-week__number { color: var(--primary); font-size: .72rem; font-weight: 800; white-space: nowrap; }
+  .teacher-scheme-week__title { min-width: 0; color: var(--text-primary); font-size: .78rem; font-weight: 700; overflow-wrap: anywhere; }
+  .teacher-scheme-week__status { padding: 4px 7px; border-radius: 99px; font-size: .58rem; font-weight: 800; white-space: nowrap; }
+  .teacher-scheme-week__status.is-treated { color: var(--success); background: var(--success-light); }
+  .teacher-scheme-week__status.is-planned { color: var(--primary); background: var(--primary-light); }
+  .teacher-scheme-week__status.is-empty { color: var(--text-muted); background: var(--bg-secondary); }
+  .teacher-scheme-week__body { display: grid; gap: 10px; padding: 12px; }
+  .teacher-scheme-week__subtitle { margin: 0; color: var(--primary); font-size: .74rem; }
+  .teacher-scheme-week__objectives { color: var(--text-secondary); font-size: .76rem; line-height: 1.45; white-space: pre-line; }
+  .teacher-scheme-week__objectives strong { display: block; margin-bottom: 4px; color: var(--text-primary); font-size: .72rem; }
+  .teacher-scheme-week__objectives p { margin: 0; }
+  .teacher-scheme-week__note-label { color: var(--text-secondary); font-size: .72rem; font-weight: 700; }
+  .teacher-scheme-week__body .btn { width: 100%; min-height: 42px; justify-content: center; }
+  .teacher-scheme-week__treated-date { color: var(--text-muted); font-size: .67rem; }
+
   .results-publication { padding: 16px !important; }
   .results-publication__hero { align-items: flex-start; margin: -16px -16px 18px; padding: 18px 16px; }
   .results-publication__filters { grid-template-columns: minmax(0, 1fr); gap: 10px; }

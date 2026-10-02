@@ -187,7 +187,7 @@ const AdminSowProgress = ({ activeSession }) => {
                       </tr>
                       {isExpanded && row.treated_topics_list && (
                         <tr>
-                          <td colSpan="5" style={{ padding: 0 }}>
+                          <td colSpan="6" style={{ padding: 0 }}>
                             <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderBottom: '1px solid var(--border-color)', boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.02)' }}>
                               <h4 style={{ margin: '0 0 15px 0', fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <CheckCircle size={16} color="var(--success)" />
@@ -199,6 +199,7 @@ const AdminSowProgress = ({ activeSession }) => {
                                     <tr>
                                       <th style={{ width: '80px', textAlign: 'center', padding: '10px' }}>Week</th>
                                       <th style={{ padding: '10px' }}>Topic & Subtitle</th>
+                                      <th style={{ padding: '10px' }}>Teacher Note</th>
                                       <th style={{ padding: '10px' }}>Date Treated</th>
                                     </tr>
                                   </thead>
@@ -213,6 +214,9 @@ const AdminSowProgress = ({ activeSession }) => {
                                         <td style={{ padding: '10px' }}>
                                           <div style={{ fontWeight: '600', fontSize: '0.85rem' }}>{t.topic}</div>
                                           {t.subtitle && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{t.subtitle}</div>}
+                                        </td>
+                                        <td style={{ padding: '10px', fontSize: '0.8rem', color: t.note ? 'var(--text-secondary)' : 'var(--text-muted)', whiteSpace: 'pre-line' }}>
+                                          {t.note || 'No note added'}
                                         </td>
                                         <td style={{ padding: '10px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                                           {new Date(t.completed_at).toLocaleString()}

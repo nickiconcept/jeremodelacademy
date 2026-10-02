@@ -460,6 +460,8 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
           week: wkNum,
           topic: entry ? entry.topic : '',
           objectives: entry ? entry.objectives || '' : '',
+          note: entry?.progress?.note || '',
+          progress: entry?.progress || null,
           id: entry ? entry.id : null
         };
       });
@@ -506,18 +508,21 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
     }
   };
 
-  const handleMarkTreated = async (schemeId) => {
+  const handleMarkTreated = async (schemeId, note = '') => {
     if (!schemeId) return;
+    const assign = assignments.subjects[teacherSchemeAssignIdx];
+    if (!assign) return;
     try {
       await api.post('/sow/mark-treated', {
         scheme_of_work_id: schemeId,
-        class_id: assignments.subjects[teacherSchemeAssignIdx]?.class_id,
-        academic_session: settings?.active_session
+        class_id: assign.class_id,
+        academic_session: settings?.active_session,
+        note
       });
       // Update local state to reflect change immediately
       setTeacherSchemeWeeks(prev => prev.map(s =>
         s.id === schemeId
-          ? { ...s, progress: { status: 'completed', completed_at: new Date().toISOString() } }
+          ? { ...s, note, progress: { ...s.progress, status: 'completed', note, completed_at: new Date().toISOString() } }
           : s
       ));
       setNotify("Topic marked as successfully treated!");
@@ -1554,12 +1559,12 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                   </div>
                 </div>
                 <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '0.78rem', fontWeight: '600', backgroundColor: 'var(--success-light)', color: 'var(--success)' }}>
-                  {teacherSchemeWeeks.filter(w => w.topic).length} / 12 Weeks Filled
+                  {teacherSchemeWeeks.filter(w => w.topic && w.progress?.status === 'completed').length} / {teacherSchemeWeeks.filter(w => w.topic).length} Planned Topics Treated
                 </span>
               </div>
 
               {/* Table */}
-              <div className="table-container" style={{ margin: 0, borderRadius: 0 }}>
+              <div className="table-container teacher-scheme-desktop" style={{ margin: 0, borderRadius: 0 }}>
                 <table className="school-table" style={{ margin: 0 }}>
                   <thead>
                     <tr>
@@ -1600,25 +1605,96 @@ export default function TeacherDashboard({ user, settings, activeTab, subTab, on
                         </td>
                         <td style={{ textAlign: 'center', verticalAlign: 'top', paddingTop: '12px' }}>
                           {w.topic ? (
-                            w.progress?.status === 'completed' ? (
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', backgroundColor: 'var(--success-light)', color: 'var(--success)', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '700' }}>
-                                <CheckCircle size={14} /> Treated
-                              </span>
-                            ) : (
-                              <button 
-                                className="btn btn-primary"
-                                style={{ fontSize: '0.75rem', padding: '6px 12px', borderRadius: '20px' }}
-                                onClick={() => handleMarkTreated(w.id)}
-                              >
-                                Mark Treated
-                              </button>
-                            )
+                            <div className="teacher-scheme-progress-cell">
+                              {w.progress?.status === 'completed' && (
+                                <span className="teacher-scheme-treated-badge"><CheckCircle size={14} /> Treated</span>
+                              )}
+                              <details className="teacher-scheme-note-editor">
+                                <summary>{w.progress?.note || w.note ? 'View / edit note' : 'Add note'}</summary>
+                                <textarea
+                                  className="form-control"
+                                  rows={3}
+                                  maxLength={2000}
+                                  aria-label={`Optional teaching note for week ${w.week}`}
+                                  placeholder="Optional note about this lesson..."
+                                  value={w.note ?? w.progress?.note ?? ''}
+                                  onChange={(e) => handleTeacherSchemeFieldChange(w.week, 'note', e.target.value)}
+                                />
+                              </details>
+                              {w.progress?.status !== 'completed' ? (
+                                <button
+                                  className="btn btn-primary"
+                                  style={{ fontSize: '0.75rem', padding: '6px 12px', borderRadius: '20px' }}
+                                  onClick={() => handleMarkTreated(w.id, w.note || '')}
+                                >
+                                  Mark Treated
+                                </button>
+                              ) : (w.note || '') !== (w.progress?.note || '') && (
+                                <button
+                                  className="btn btn-secondary"
+                                  style={{ fontSize: '0.75rem', padding: '6px 12px', borderRadius: '20px' }}
+                                  onClick={() => handleMarkTreated(w.id, w.note || '')}
+                                >
+                                  Save Note
+                                </button>
+                              )}
+                            </div>
                           ) : null}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              <div className="teacher-scheme-mobile">
+                {teacherSchemeWeeks.map((week) => {
+                  const isTreated = week.progress?.status === 'completed';
+                  const note = week.note ?? week.progress?.note ?? '';
+                  const noteChanged = note !== (week.progress?.note || '');
+                  return (
+                    <details className="teacher-scheme-week" key={week.week}>
+                      <summary>
+                        <span className="teacher-scheme-week__number">Week {week.week}</span>
+                        <span className="teacher-scheme-week__title">{week.topic || 'Not planned yet'}</span>
+                        <span className={`teacher-scheme-week__status ${isTreated ? 'is-treated' : week.topic ? 'is-planned' : 'is-empty'}`}>
+                          {isTreated ? 'Treated' : week.topic ? 'Planned' : 'Not planned'}
+                        </span>
+                      </summary>
+                      <div className="teacher-scheme-week__body">
+                        {week.subtitle && <p className="teacher-scheme-week__subtitle">{week.subtitle}</p>}
+                        <div className="teacher-scheme-week__objectives">
+                          <strong>Content / objectives</strong>
+                          <p>{week.objectives || 'No objectives specified.'}</p>
+                        </div>
+                        {week.topic && (
+                          <>
+                            <label className="teacher-scheme-week__note-label" htmlFor={`scheme-note-${week.week}`}>Teaching note (optional)</label>
+                            <textarea
+                              id={`scheme-note-${week.week}`}
+                              className="form-control"
+                              rows={3}
+                              maxLength={2000}
+                              placeholder="Add context about this lesson..."
+                              value={note}
+                              onChange={(e) => handleTeacherSchemeFieldChange(week.week, 'note', e.target.value)}
+                            />
+                            {!isTreated ? (
+                              <button type="button" className="btn btn-primary" onClick={() => handleMarkTreated(week.id, note)}>
+                                <CheckCircle size={15} /> Mark Treated
+                              </button>
+                            ) : noteChanged && (
+                              <button type="button" className="btn btn-secondary" onClick={() => handleMarkTreated(week.id, note)}>
+                                Save Note
+                              </button>
+                            )}
+                          </>
+                        )}
+                        {isTreated && <small className="teacher-scheme-week__treated-date">Treated {new Date(week.progress.completed_at).toLocaleDateString()}</small>}
+                      </div>
+                    </details>
+                  );
+                })}
               </div>
             </div>
           )}
