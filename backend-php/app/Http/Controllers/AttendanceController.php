@@ -45,8 +45,9 @@ class AttendanceController extends Controller
         $end_date = $request->query('end_date');
         $user = auth('api')->user();
 
+        $this->requireAdminOrFormMaster($classId);
+
         try {
-            $this->requireAdminOrFormMaster($classId);
 
             $query = DB::table('students as s')
                 ->join('users as u', 's.id', '=', 'u.id')
@@ -118,8 +119,9 @@ class AttendanceController extends Controller
     {
         $user = auth('api')->user();
 
+        $this->requireAdminOrFormMaster($classId);
+
         try {
-            $this->requireAdminOrFormMaster($classId);
 
             $roster = DB::table('students as s')
                 ->join('users as u', 's.id', '=', 'u.id')
