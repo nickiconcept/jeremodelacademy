@@ -5,9 +5,12 @@ import api from '../utils/api';
 export default function Login({ onLoginSuccess, onBack, settings }) {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [recoveryEmail, setRecoveryEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [recoveringPassword, setRecoveringPassword] = useState(false);
+  const [recoveryRequested, setRecoveryRequested] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,6 +27,25 @@ export default function Login({ onLoginSuccess, onBack, settings }) {
       await onLoginSuccess(user);
     } catch (err) {
       setError(err.message || 'Login failed. Please check your username and password.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordResetRequest = async (event) => {
+    event.preventDefault();
+    if (!identifier || !recoveryEmail) {
+      setError('Enter your username or admission number and registered email address.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    try {
+      await api.requestPasswordReset(identifier, recoveryEmail);
+      setRecoveryRequested(true);
+    } catch (err) {
+      setError(err.message || 'Could not submit the password reset request. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -168,10 +190,12 @@ export default function Login({ onLoginSuccess, onBack, settings }) {
           {/* Heading */}
           <div style={{ marginBottom: '36px' }}>
             <h2 style={{ fontSize: '1.75rem', fontWeight: '800', margin: '0 0 8px 0', color: 'var(--text-primary)' }}>
-              Welcome back 👋
+              {recoveringPassword ? 'Reset your password' : 'Welcome back 👋'}
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>
-              Sign in to access your school portal
+              {recoveringPassword
+                ? 'We’ll email a secure reset link if your account details match.'
+                : 'Sign in to access your school portal'}
             </p>
           </div>
 
@@ -194,6 +218,60 @@ export default function Login({ onLoginSuccess, onBack, settings }) {
             </div>
           )}
 
+          {recoveringPassword ? (
+            recoveryRequested ? (
+              <div role="status" style={{
+                background: 'var(--success-light, #dcfce7)',
+                color: 'var(--success, #166534)',
+                padding: '14px 16px',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '0.9rem',
+                lineHeight: 1.5,
+              }}>
+                If the username/admission number and email match an account, a secure password reset link has been sent. Please check your inbox.
+              </div>
+            ) : (
+              <form onSubmit={handlePasswordResetRequest} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label htmlFor="recovery-identifier">Username / Admission Number</label>
+                  <input
+                    type="text"
+                    id="recovery-identifier"
+                    className="form-control"
+                    autoComplete="username"
+                    placeholder="Enter your username or admission number"
+                    value={identifier}
+                    onChange={(event) => setIdentifier(event.target.value)}
+                    disabled={loading}
+                    required
+                  />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label htmlFor="recovery-email">Registered email address</label>
+                  <input
+                    type="email"
+                    id="recovery-email"
+                    className="form-control"
+                    autoComplete="email"
+                    placeholder="Enter the email registered to the account"
+                    value={recoveryEmail}
+                    onChange={(event) => setRecoveryEmail(event.target.value)}
+                    disabled={loading}
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ width: '100%', padding: '13px', fontSize: '1rem', borderRadius: 'var(--radius-md)' }}
+                  disabled={loading}
+                >
+                  {loading ? 'Sending request…' : 'Email reset link'}
+                </button>
+              </form>
+            )
+          ) : (
+          <>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* Username */}
             <div className="form-group" style={{ margin: 0 }}>
@@ -209,7 +287,7 @@ export default function Login({ onLoginSuccess, onBack, settings }) {
                 required
               />
               <small style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '5px', display: 'block' }}>
-                Enter the username or admission number provided by the school. For sign-in help, contact the school administrator.
+                Enter the username or admission number provided by the school.
               </small>
             </div>
 
@@ -261,6 +339,35 @@ export default function Login({ onLoginSuccess, onBack, settings }) {
               )}
             </button>
           </form>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            style={{ width: '100%', marginTop: '12px', color: 'var(--primary)' }}
+            onClick={() => {
+              setRecoveringPassword(true);
+              setRecoveryRequested(false);
+              setRecoveryEmail('');
+              setError('');
+            }}
+          >
+            Forgot password?
+          </button>
+          </>
+          )}
+          {recoveringPassword && (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              style={{ width: '100%', marginTop: '12px' }}
+              onClick={() => {
+                setRecoveringPassword(false);
+                setRecoveryRequested(false);
+                setError('');
+              }}
+            >
+              Back to sign in
+            </button>
+          )}
 
           {/* Footer note */}
           <p style={{

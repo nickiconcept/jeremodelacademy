@@ -50,6 +50,8 @@ class TeacherController extends Controller
         $request->validate([
             'surname' => 'required|string',
             'first_name' => 'required|string',
+            'address' => 'required|string',
+            'signature' => 'required|string',
         ]);
 
         $id = DB::table('teachers')->insertGetId([
@@ -70,25 +72,25 @@ class TeacherController extends Controller
     {
         $this->requireAdmin();
 
-        $request->validate([
-            'surname' => 'required|string',
-            'first_name' => 'required|string',
+        $validated = $request->validate([
+            'surname' => 'sometimes|required|string',
+            'first_name' => 'sometimes|required|string',
+            'other_names' => 'sometimes|nullable|string',
+            'address' => 'sometimes|required|string',
+            'state_of_residence' => 'sometimes|nullable|string',
+            'lga_of_residence' => 'sometimes|nullable|string',
+            'signature' => 'sometimes|required|string',
+            'status' => 'sometimes|required|in:active,inactive,suspended,archived',
         ]);
 
-        $updated = DB::table('teachers')->where('id', $id)->update([
-            'surname' => $request->surname,
-            'first_name' => $request->first_name,
-            'other_names' => $request->other_names,
-            'address' => $request->address,
-            'state_of_residence' => $request->state_of_residence,
-            'lga_of_residence' => $request->lga_of_residence,
-            'signature' => $request->signature,
-            'status' => $request->status ?? 'active',
-        ]);
-
-        if (! $updated) {
-            return response()->json(['error' => 'Teacher not found or no changes made'], 404);
+        if (! DB::table('teachers')->where('id', $id)->exists()) {
+            return response()->json(['error' => 'Teacher not found'], 404);
         }
+
+        DB::table('teachers')->where('id', $id)->update([
+            ...$validated,
+            'updated_at' => now(),
+        ]);
 
         return response()->json(['message' => 'Teacher updated successfully']);
     }

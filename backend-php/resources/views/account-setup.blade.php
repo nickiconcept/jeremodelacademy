@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="referrer" content="no-referrer">
-    <title>Set up your {{ config('app.name') }} account</title>
+    <title>Set or reset your {{ config('app.name') }} password</title>
     <style>
         body { font-family: system-ui, sans-serif; background: #f1f5f9; color: #0f172a; display: grid; min-height: 100vh; place-items: center; margin: 0; }
         main { background: white; border-radius: 16px; box-shadow: 0 12px 36px #0f172a1a; max-width: 420px; padding: 32px; width: calc(100% - 40px); }
@@ -17,24 +17,24 @@
 </head>
 <body>
 <main>
-    <h1>Set your account password</h1>
-    <p>Choose a new password with at least 12 characters. This setup link can only be used once.</p>
+    <h1>Set or reset your account password</h1>
+    <p>Choose a new password with at least 8 characters, including uppercase, lowercase, and a number. This secure link can only be used once.</p>
     <form id="setup-form">
         <input type="hidden" name="token" value="">
         <label for="password">New password</label>
-        <input id="password" name="password" type="password" minlength="12" autocomplete="new-password" required>
+        <input id="password" name="password" type="password" minlength="8" autocomplete="new-password" required>
         <label for="password_confirmation">Confirm password</label>
-        <input id="password_confirmation" name="password_confirmation" type="password" minlength="12" autocomplete="new-password" required>
+        <input id="password_confirmation" name="password_confirmation" type="password" minlength="8" autocomplete="new-password" required>
         <button type="submit">Set password</button>
     </form>
     <hr>
-    <h2>Need a fresh setup link?</h2>
+    <h2>Forgot your password?</h2>
     <form id="request-form">
-        <label for="identifier">Student admission number or staff ID</label>
+        <label for="identifier">Username, admission number, or staff ID</label>
         <input id="identifier" name="identifier" autocomplete="username" required>
-        <label for="email">Registered parent/guardian or staff email</label>
+        <label for="email">Registered email address</label>
         <input id="email" name="email" type="email" autocomplete="email" required>
-        <button type="submit">Request a new link</button>
+        <button type="submit">Email me a secure link</button>
     </form>
     <p id="message" role="status" aria-live="polite"></p>
 </main>

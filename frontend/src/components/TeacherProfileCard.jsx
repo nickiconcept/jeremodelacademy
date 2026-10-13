@@ -7,7 +7,7 @@ export default function TeacherProfileCard({ teacher, onClose, onUpdate }) {
   if (!teacher) return null;
 
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({ ...teacher });
+  const [formData, setFormData] = useState({ ...teacher, digital_signature: teacher.digital_signature || teacher.signature || '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const photoInputRef = useRef(null);
@@ -33,6 +33,10 @@ export default function TeacherProfileCard({ teacher, onClose, onUpdate }) {
   
   const handleSave = async (e) => {
     e.preventDefault();
+    if (!formData.digital_signature?.trim()) {
+      setError('Please draw and accept the teacher’s signature before saving.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -122,8 +126,8 @@ export default function TeacherProfileCard({ teacher, onClose, onUpdate }) {
 
                 <h4 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', marginBottom: '15px' }}>Digital Signature</h4>
                 <div>
-                  {teacher.digital_signature ? (
-                    <img src={teacher.digital_signature} alt="Signature" style={{ height: '60px', border: '1px solid var(--border-color)', borderRadius: '4px', background: '#fff', padding: '4px' }} />
+                  {(teacher.digital_signature || teacher.signature) ? (
+                    <img src={teacher.digital_signature || teacher.signature} alt="Signature" style={{ height: '60px', border: '1px solid var(--border-color)', borderRadius: '4px', background: '#fff', padding: '4px' }} />
                   ) : (
                     <span style={{ color: 'var(--text-muted)' }}>No signature on file</span>
                   )}
@@ -232,7 +236,7 @@ export default function TeacherProfileCard({ teacher, onClose, onUpdate }) {
                 </div>
 
                 <div className="form-group" style={{ marginTop: '10px' }}>
-                  <label>Digital Signature</label>
+                  <label>Digital Signature (required)</label>
                   {formData.digital_signature ? (
                     <div style={{ position: 'relative', display: 'inline-block' }}>
                       <img src={formData.digital_signature} alt="Signature" style={{ height: '60px', border: '1px solid var(--border-color)', borderRadius: '4px', background: '#fff' }} />

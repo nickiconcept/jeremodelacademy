@@ -90,6 +90,8 @@ class SchoolMailerTest extends TestCase
         $this->actingAs($admin, 'api')->postJson('/api/users/register-teacher', [
             'full_name' => 'New Teacher',
             'email' => 'new-teacher@example.com',
+            'address' => '12 School Road',
+            'signature' => 'data:image/png;base64,test-signature',
         ])->assertCreated();
 
         $teacher = User::where('email', 'new-teacher@example.com')->firstOrFail();
@@ -230,17 +232,37 @@ class SchoolMailerTest extends TestCase
 
         $this->postJson('/api/auth/account-setup', [
             'token' => $query['token'],
-            'password' => 'A-strong-password-2026',
-            'password_confirmation' => 'A-strong-password-2026',
+            'password' => 'Abcdefg1',
+            'password_confirmation' => 'Abcdefg1',
         ])->assertOk();
 
-        $this->assertTrue(password_verify('A-strong-password-2026', $teacher->fresh()->password_hash));
+        $this->assertTrue(password_verify('Abcdefg1', $teacher->fresh()->password_hash));
 
         $this->postJson('/api/auth/account-setup', [
             'token' => $query['token'],
             'password' => 'Another-strong-password-2026',
             'password_confirmation' => 'Another-strong-password-2026',
         ])->assertStatus(422);
+    }
+
+    public function test_account_setup_rejects_passwords_shorter_than_eight_characters(): void
+    {
+        $teacher = User::create([
+            'username' => 'TEACHER-SETUP-SHORT',
+            'email' => 'short-password@example.com',
+            'password_hash' => bcrypt('unusable-random-password'),
+            'full_name' => 'Teacher Setup',
+            'role' => 'teacher',
+            'permissions' => [],
+        ]);
+        $setupUrl = app(AccountSetupLink::class)->createFor($teacher->id, $teacher->email);
+        parse_str((string) parse_url($setupUrl, PHP_URL_FRAGMENT), $fragment);
+
+        $this->postJson('/api/auth/account-setup', [
+            'token' => $fragment['token'],
+            'password' => 'Abcdef1',
+            'password_confirmation' => 'Abcdef1',
+        ])->assertUnprocessable();
     }
 
     public function test_legacy_student_initial_password_login_is_allowed_but_forces_a_change(): void
@@ -303,6 +325,42 @@ class SchoolMailerTest extends TestCase
         $invalidResponse->assertOk();
         $this->assertSame($validResponse->json('message'), $invalidResponse->json('message'));
         Mail::assertSentTimes(SchoolMessage::class, 1);
+    }
+
+    public function test_admin_can_request_a_password_reset_with_an_eight_character_password(): void
+    {
+        Mail::fake();
+        $admin = User::create([
+            'username' => 'ADMIN-RESET-1',
+            'email' => 'admin-reset@example.com',
+            'password_hash' => bcrypt('old-password'),
+            'full_name' => 'Admin Reset',
+            'role' => 'admin',
+            'permissions' => [],
+        ]);
+
+        $this->postJson('/api/auth/account-setup/request', [
+            'identifier' => $admin->username,
+            'email' => strtoupper($admin->email),
+        ])->assertOk()
+            ->assertJsonPath('message', 'If the account ID and email match an eligible account, a password setup or reset link has been sent.');
+
+        $resetToken = null;
+        Mail::assertSent(SchoolMessage::class, function (SchoolMessage $mail) use (&$resetToken): bool {
+            preg_match('/\/account\/setup#token=([a-f0-9]{64})/', $mail->body, $matches);
+            $resetToken = $matches[1] ?? null;
+
+            return $mail->hasTo('admin-reset@example.com') && $resetToken !== null;
+        });
+        $this->assertNotNull($resetToken);
+
+        $this->postJson('/api/auth/account-setup', [
+            'token' => $resetToken,
+            'password' => 'Abcdefg1',
+            'password_confirmation' => 'Abcdefg1',
+        ])->assertOk();
+
+        $this->assertTrue(password_verify('Abcdefg1', $admin->fresh()->password_hash));
     }
 
     private function createStudentWithGuardian(string $admissionNumber, string $email): int

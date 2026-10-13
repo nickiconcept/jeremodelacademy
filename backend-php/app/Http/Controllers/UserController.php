@@ -17,6 +17,8 @@ class UserController extends Controller
         $validated = $request->validate([
             'full_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'address' => ['required', 'string'],
+            'signature' => ['required', 'string'],
         ]);
         $full_name = $validated['full_name'];
         $email = $validated['email'] ?? null;
@@ -131,6 +133,20 @@ class UserController extends Controller
             return response()->json(['error' => 'Access denied: You can only update your own profile'], 403);
         }
 
+        if ($request->exists('digital_signature')) {
+            $request->merge(['signature' => $request->input('digital_signature')]);
+        }
+
+        $request->validate([
+            'address' => ['sometimes', 'required', 'string'],
+            'signature' => ['sometimes', 'required', 'string'],
+            'digital_signature' => ['sometimes', 'required', 'string'],
+        ]);
+
+        if (! DB::table('teachers')->where('id', $id)->exists()) {
+            return response()->json(['error' => 'Teacher profile not found'], 404);
+        }
+
         $full_name = $request->input('full_name');
         $surname = $request->input('surname');
         $first_name = $request->input('first_name');
@@ -154,7 +170,10 @@ class UserController extends Controller
 
             $computedName = $full_name ?: trim("{$surname} {$first_name} {$other_names}");
 
-            $updateData = ['full_name' => $computedName ?: 'Teacher', 'updated_at' => now()];
+            $updateData = ['updated_at' => now()];
+            if ($computedName !== '') {
+                $updateData['full_name'] = $computedName;
+            }
             if ($passport_photo !== null) {
                 $updateData['passport_photo'] = $passport_photo;
             }

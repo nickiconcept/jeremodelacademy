@@ -18,6 +18,9 @@ Route::group([
     Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:api');
     Route::post('me', [AuthController::class, 'me'])->middleware('auth:api');
     Route::post('change-password', [AuthController::class, 'changePassword'])->middleware('auth:api');
+    Route::post('staff-signature', [AuthController::class, 'saveStaffSignature'])
+        ->middleware(['auth:api', 'password.changed'])
+        ->name('auth.staff-signature');
 });
 
 use App\Http\Controllers\ActivityLogController;

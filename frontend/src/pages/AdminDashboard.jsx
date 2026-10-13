@@ -1028,6 +1028,14 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
 
   const handleTeacherRegister = async (e) => {
     e.preventDefault();
+    if (!teacherForm.signature?.trim()) {
+      setErrorMsg('Please draw and accept, or upload, the teacher’s signature before registering.');
+      return;
+    }
+    if (!teacherForm.address?.trim()) {
+      setErrorMsg('Please enter the teacher’s home address before registering.');
+      return;
+    }
     try {
       const computedFullName = [teacherForm.surname, teacherForm.first_name, teacherForm.other_names].filter(Boolean).join(' ');
       const payload = { ...teacherForm, full_name: computedFullName };
@@ -5506,7 +5514,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
 
               <div className="form-group" style={{ marginBottom: '15px' }}>
                 <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>Digital Signature</span>
+                  <span>Digital Signature (required)</span>
                   <label className="btn btn-secondary" style={{ padding: '2px 8px', fontSize: '0.75rem', margin: 0, cursor: 'pointer' }}>
                     Upload Image
                     <input 
@@ -5536,6 +5544,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                 ) : (
                   <div style={{ marginTop: '8px' }}>
                     <SignaturePad onSave={(dataUrl) => setTeacherForm({ ...teacherForm, signature: dataUrl })} />
+                    <p style={{ fontSize: '0.85rem' }}>Draw your signature and click Accept Signature, or upload an image, before saving.</p>
                   </div>
                 )}
               </div>

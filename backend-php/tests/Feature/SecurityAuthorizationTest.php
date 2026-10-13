@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class SecurityAuthorizationTest extends TestCase
@@ -577,15 +578,178 @@ class SecurityAuthorizationTest extends TestCase
         $this->assertDatabaseCount('offline_sync_receipts', 1);
     }
 
-    private function createUser(string $role): User
+    public function test_teacher_registration_requires_a_signature_and_address(): void
     {
-        return User::create([
+        $admin = $this->createUser('admin');
+
+        foreach ([null, '', '   '] as $missingValue) {
+            $this->actingAs($admin, 'api')
+                ->postJson('/api/users/register-teacher', [
+                    'full_name' => 'Unsigned Teacher',
+                    'email' => 'unsigned@example.com',
+                    'signature' => $missingValue,
+                    'address' => $missingValue,
+                ])
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors(['signature', 'address']);
+        }
+
+        $this->assertDatabaseMissing('users', ['email' => 'unsigned@example.com']);
+        $this->actingAs($admin, 'api')
+            ->postJson('/api/teachers', ['surname' => 'Unsigned', 'first_name' => 'Teacher'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['signature', 'address']);
+    }
+
+    public function test_teacher_registration_returns_the_saved_address_and_signature_in_the_admin_list(): void
+    {
+        $admin = $this->createUser('admin');
+        Mail::fake();
+        $signature = 'data:image/png;base64,test-signature';
+
+        $registration = $this->actingAs($admin, 'api')
+            ->postJson('/api/users/register-teacher', [
+                'full_name' => 'Registered Teacher',
+                'email' => 'registered@example.com',
+                'address' => '12 School Road',
+                'signature' => $signature,
+            ])
+            ->assertCreated();
+
+        $this->assertDatabaseHas('teachers', [
+            'id' => $registration->json('teacherId'),
+            'address' => '12 School Road',
+            'signature' => $signature,
+        ]);
+        $this->getJson('/api/teachers')
+            ->assertOk()
+            ->assertJsonFragment([
+                'address' => '12 School Road',
+                'digital_signature' => $signature,
+            ]);
+    }
+
+    public function test_partial_teacher_updates_preserve_existing_addresses_and_signatures(): void
+    {
+        $admin = $this->createUser('admin');
+        $teacher = $this->createUser('teacher');
+        DB::table('teachers')->updateOrInsert(['id' => $teacher->id], [
+            'address' => '12 School Road',
+            'signature' => 'saved-signature',
+            'status' => 'suspended',
+        ]);
+
+        foreach (["/api/teachers/{$teacher->id}", "/api/users/update-teacher/{$teacher->id}"] as $endpoint) {
+            $this->actingAs($admin, 'api')->putJson($endpoint, ['other_names' => 'Updated'])->assertOk();
+            $this->assertDatabaseHas('teachers', [
+                'id' => $teacher->id,
+                'address' => '12 School Road',
+                'signature' => 'saved-signature',
+                'status' => 'suspended',
+            ]);
+        }
+    }
+
+    public function test_teacher_updates_cannot_clear_existing_addresses_or_signatures(): void
+    {
+        $admin = $this->createUser('admin');
+        $teacher = $this->createUser('teacher');
+        DB::table('teachers')->updateOrInsert(['id' => $teacher->id], [
+            'address' => '12 School Road',
+            'signature' => 'saved-signature',
+        ]);
+
+        foreach (["/api/teachers/{$teacher->id}", "/api/users/update-teacher/{$teacher->id}"] as $endpoint) {
+            $this->actingAs($admin, 'api')->putJson($endpoint, ['address' => '', 'signature' => ''])
+                ->assertUnprocessable()->assertJsonValidationErrors(['address', 'signature']);
+        }
+        $this->actingAs($teacher, 'api')
+            ->putJson("/api/users/update-teacher/{$teacher->id}", ['digital_signature' => ''])
+            ->assertUnprocessable()->assertJsonValidationErrors('digital_signature');
+        $this->assertDatabaseHas('teachers', ['id' => $teacher->id, 'address' => '12 School Road', 'signature' => 'saved-signature']);
+    }
+
+    public function test_unsigned_staff_must_save_a_signature_before_accessing_the_portal(): void
+    {
+        $teacher = $this->createUser('teacher', false);
+        DB::table('teachers')->insert(['id' => $teacher->id, 'address' => '24 School Road']);
+
+        $this->postJson('/api/auth/login', ['identifier' => $teacher->username, 'password' => 'test-password'])
+            ->assertOk()->assertJsonPath('user.must_add_signature', true);
+        $this->actingAs($teacher, 'api')->postJson('/api/auth/me')
+            ->assertOk()->assertJsonPath('must_add_signature', true);
+        $this->getJson('/api/teacher/assignments')->assertForbidden()->assertJsonPath('must_add_signature', true);
+        $this->postJson('/api/auth/staff-signature', ['signature' => ''])->assertUnprocessable();
+        $this->postJson('/api/auth/staff-signature', ['signature' => 'data:image/png;base64,dGVzdA=='])
+            ->assertUnprocessable()->assertJsonValidationErrors('signature');
+        $this->getJson('/api/teacher/assignments')->assertForbidden();
+        $this->postJson('/api/auth/staff-signature', ['signature' => $this->signatureImage()])->assertOk();
+        $this->postJson('/api/auth/me')->assertOk()->assertJsonPath('must_add_signature', false);
+        $this->getJson('/api/teacher/assignments')->assertOk();
+        $this->assertDatabaseHas('teachers', ['id' => $teacher->id, 'address' => '24 School Road', 'signature' => $this->signatureImage()]);
+        $this->putJson("/api/users/update-teacher/{$teacher->id}", ['address' => '25 School Road'])->assertOk();
+        $this->assertDatabaseHas('teachers', ['id' => $teacher->id, 'address' => '25 School Road', 'signature' => $this->signatureImage()]);
+    }
+
+    public function test_unsigned_teacher_with_a_missing_profile_can_complete_the_signature_requirement(): void
+    {
+        $teacher = $this->createUser('teacher', false);
+        $this->actingAs($teacher, 'api')->postJson('/api/auth/me')->assertJsonPath('must_add_signature', true);
+        $this->postJson('/api/auth/staff-signature', ['signature' => $this->signatureImage(), 'id' => 999])->assertOk();
+        $this->assertDatabaseHas('teachers', ['id' => $teacher->id, 'signature' => $this->signatureImage()]);
+        $this->assertDatabaseMissing('teachers', ['id' => 999]);
+        $this->getJson('/api/teacher/assignments')->assertOk();
+    }
+
+    public function test_staff_must_change_their_default_password_before_saving_a_signature(): void
+    {
+        $teacher = $this->createUser('teacher', false);
+        $teacher->update(['must_change_password' => true]);
+        $this->actingAs($teacher, 'api')->postJson('/api/auth/staff-signature', ['signature' => $this->signatureImage()])
+            ->assertForbidden()->assertJsonPath('must_change_password', true);
+        $this->postJson('/api/auth/change-password', ['oldPassword' => 'test-password', 'newPassword' => 'ChangedPass123'])->assertOk();
+        $this->getJson('/api/teacher/assignments')->assertForbidden()->assertJsonPath('must_add_signature', true);
+        $this->postJson('/api/auth/staff-signature', ['signature' => $this->signatureImage()])->assertOk();
+        $this->getJson('/api/teacher/assignments')->assertOk();
+    }
+
+    public function test_promoted_staff_with_a_missing_signature_are_also_required_to_add_it(): void
+    {
+        $admin = $this->createUser('admin');
+        DB::table('teachers')->insert(['id' => $admin->id]);
+        $this->actingAs($admin, 'api')->getJson('/api/teachers')->assertForbidden()->assertJsonPath('must_add_signature', true);
+        $this->postJson('/api/auth/staff-signature', ['signature' => $this->signatureImage()])->assertOk();
+        $this->getJson('/api/teachers')->assertOk();
+    }
+
+    public function test_signature_requirement_does_not_apply_to_students_or_standalone_system_admins(): void
+    {
+        foreach (['student', 'admin'] as $role) {
+            $user = $this->createUser($role);
+            $this->actingAs($user, 'api')->postJson('/api/auth/me')->assertOk()->assertJsonPath('must_add_signature', false);
+            $this->postJson('/api/auth/staff-signature', ['signature' => $this->signatureImage()])->assertForbidden();
+        }
+    }
+
+    private function signatureImage(): string
+    {
+        return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jVfoAAAAASUVORK5CYII=';
+    }
+
+    private function createUser(string $role, bool $withSignature = true): User
+    {
+        $user = User::create([
             'username' => strtoupper($role).'-'.bin2hex(random_bytes(4)),
             'password_hash' => bcrypt('test-password'),
             'full_name' => ucfirst($role).' Test',
             'role' => $role,
             'permissions' => [],
         ]);
+        if ($role === 'teacher' && $withSignature) {
+            DB::table('teachers')->insert(['id' => $user->id, 'signature' => $this->signatureImage()]);
+        }
+
+        return $user;
     }
 
     private function createClass(string $name = 'JSS 1A', string $tier = 'jss'): int

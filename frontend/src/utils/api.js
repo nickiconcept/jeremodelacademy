@@ -22,7 +22,7 @@ function isNetworkFailure(error) {
 function getOfflineSessionUserId() {
   try {
     const session = JSON.parse(localStorage.getItem('jma_offline_session') || '{}');
-    if (session.user?.role !== 'teacher' || !session.user.id) return null;
+    if (session.user?.role !== 'teacher' || !session.user.id || session.user.signature_verified !== true) return null;
     const token = localStorage.getItem('jma_token');
     const payload = token?.split('.')[1];
     if (!payload) return null;
@@ -230,6 +230,14 @@ const api = {
     const data = await handleResponse(res);
     localStorage.setItem('jma_token', data.token);
     return data.user;
+  },
+  requestPasswordReset: async (identifier, email) => {
+    const res = await fetch(`${API_BASE}/auth/account-setup/request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ identifier, email })
+    });
+    return handleResponse(res);
   },
 
   logout: () => {

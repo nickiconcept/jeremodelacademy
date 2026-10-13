@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -83,6 +84,7 @@ class AuthController extends Controller
         );
 
         $userData = $user->toArray();
+        $userData['must_add_signature'] = $user->requiresStaffSignature();
         $userData['must_change_password'] = (bool) $user->must_change_password;
         if ($user->role === 'student') {
             $studentDetails = DB::table('students')
@@ -132,6 +134,7 @@ class AuthController extends Controller
         abort_unless($user, 401);
 
         $userData = $user->toArray();
+        $userData['must_add_signature'] = $user->requiresStaffSignature();
         if ($user->role === 'student') {
             $studentDetails = DB::table('students')
                 ->leftJoin('classes', 'students.class_id', '=', 'classes.id')
@@ -147,11 +150,40 @@ class AuthController extends Controller
         return response()->json($userData);
     }
 
+    public function saveStaffSignature(Request $request): JsonResponse
+    {
+        $user = auth('api')->user();
+        abort_unless($user && in_array($user->role, ['teacher', 'admin'], true), 403);
+        abort_unless($user->role === 'teacher' || DB::table('teachers')->where('id', $user->id)->exists(), 403);
+
+        $validated = $request->validate([
+            'signature' => ['required', 'string', 'max:1000000', 'regex:/^data:image\/(?:png|jpe?g|webp|gif);base64,[A-Za-z0-9+\/]+={0,2}$/'],
+        ]);
+        $image = base64_decode(explode(',', $validated['signature'], 2)[1], true);
+        if ($image === false || @getimagesizefromstring($image) === false) {
+            throw ValidationException::withMessages([
+                'signature' => 'Please draw and accept a signature, or upload a valid signature image.',
+            ]);
+        }
+
+        DB::transaction(function () use ($user, $validated): void {
+            if (! DB::table('teachers')->where('id', $user->id)->exists()) {
+                DB::table('teachers')->insert(['id' => $user->id, 'created_at' => now(), 'updated_at' => now()]);
+            }
+            DB::table('teachers')->where('id', $user->id)->update([
+                'signature' => $validated['signature'],
+                'updated_at' => now(),
+            ]);
+        });
+
+        return response()->json(['message' => 'Signature saved successfully']);
+    }
+
     public function changePassword(Request $request)
     {
         $validated = $request->validate([
             'oldPassword' => ['required', 'string'],
-            'newPassword' => ['required', 'string', 'min:12', 'different:oldPassword', 'regex:/[a-z]/', 'regex:/[A-Z]/', 'regex:/[0-9]/'],
+            'newPassword' => ['required', 'string', 'min:8', 'different:oldPassword', 'regex:/[a-z]/', 'regex:/[A-Z]/', 'regex:/[0-9]/'],
         ]);
 
         $user = auth('api')->user();
@@ -172,7 +204,7 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'token' => ['required', 'string', 'size:64'],
-            'password' => ['required', 'string', 'min:12', 'confirmed', 'regex:/[a-z]/', 'regex:/[A-Z]/', 'regex:/[0-9]/'],
+            'password' => ['required', 'string', 'min:8', 'confirmed', 'regex:/[a-z]/', 'regex:/[A-Z]/', 'regex:/[0-9]/'],
         ]);
 
         $tokenHash = hash('sha256', $validated['token']);
@@ -184,21 +216,21 @@ class AuthController extends Controller
                 ->lockForUpdate()
                 ->first();
 
-            abort_unless($setupToken, 422, 'This account setup link is invalid or expired. Request a new link from the school.');
+            abort_unless($setupToken, 422, 'This password link is invalid or expired. Request another link using the registered email.');
 
             $user = User::find($setupToken->user_id);
             $recipientMatches = $user && (
-                $user->email === $setupToken->email
+                ($user->email && hash_equals(strtolower($user->email), strtolower($setupToken->email)))
                 || ($user->role === 'student'
                     && DB::table('students')
                         ->where('id', $user->id)
-                        ->where('parent_email', $setupToken->email)
+                        ->whereRaw('LOWER(parent_email) = ?', [strtolower($setupToken->email)])
                         ->exists())
             );
             abort_unless(
                 $recipientMatches,
                 422,
-                'This account setup link is no longer valid.'
+                'This password link is no longer valid.'
             );
 
             $user->password_hash = Hash::make($validated['password']);
@@ -222,36 +254,47 @@ class AuthController extends Controller
             'email' => ['required', 'email', 'max:255'],
         ]);
 
-        $user = User::where('username', $validated['identifier'])
-            ->whereIn('role', ['teacher', 'student'])
-            ->first();
+        $user = User::where('username', $validated['identifier'])->first();
 
         if (! $user) {
             $studentId = DB::table('students')
                 ->where('admission_number', $validated['identifier'])
                 ->value('id');
-            $user = $studentId ? User::where('id', $studentId)->where('role', 'student')->first() : null;
+            $user = $studentId ? User::find($studentId) : null;
         }
+
+        $recipientEmail = null;
+        $recipientName = $user?->full_name ?? '';
+        $accountId = $user?->username ?? $validated['identifier'];
 
         if ($user && $user->role === 'student') {
             $student = DB::table('students')->where('id', $user->id)->first();
-            if ($student && hash_equals(strtolower((string) $student->parent_email), strtolower($validated['email']))) {
-                $setupUrl = app(AccountSetupLink::class)->createFor($user->id, $student->parent_email);
-                app(SchoolMailer::class)->sendAccountSetupReminder(
-                    $student->parent_email,
-                    $student->parent_name ?: 'Parent/Guardian',
-                    $student->admission_number,
-                    $setupUrl
-                );
+            if ($student && $student->parent_email
+                && hash_equals(strtolower($student->parent_email), strtolower($validated['email']))) {
+                $recipientEmail = $student->parent_email;
+                $recipientName = $student->parent_name ?: 'Parent/Guardian';
+                $accountId = $student->admission_number;
+            } elseif ($user->email
+                && hash_equals(strtolower($user->email), strtolower($validated['email']))) {
+                $recipientEmail = $user->email;
             }
-        } elseif ($user && $user->role === 'teacher' && $user->email
+        } elseif ($user && $user->email
             && hash_equals(strtolower($user->email), strtolower($validated['email']))) {
-            $setupUrl = app(AccountSetupLink::class)->createFor($user->id, $user->email);
-            app(SchoolMailer::class)->sendAccountSetupReminder($user->email, $user->full_name, $user->username, $setupUrl);
+            $recipientEmail = $user->email;
+        }
+
+        if ($user && $recipientEmail) {
+            $setupUrl = app(AccountSetupLink::class)->createFor($user->id, $recipientEmail);
+            app(SchoolMailer::class)->sendAccountSetupReminder(
+                $recipientEmail,
+                $recipientName,
+                $accountId,
+                $setupUrl
+            );
         }
 
         return response()->json([
-            'message' => 'If the account ID and email match an eligible student or staff account, a password setup link has been sent.',
+            'message' => 'If the account ID and email match an eligible account, a password setup or reset link has been sent.',
         ]);
     }
 

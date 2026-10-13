@@ -6,6 +6,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import StudentDashboard from './pages/StudentDashboard';
 import RequiredPasswordChange from './components/RequiredPasswordChange';
+import RequiredStaffSignature from './components/RequiredStaffSignature';
 import PwaUpdatePrompt from './components/PwaUpdatePrompt';
 import api from './utils/api';
 import { GlobalUIProvider } from './contexts/GlobalUIContext';
@@ -24,7 +25,12 @@ function readStoredJson(key) {
 }
 
 function rememberTeacherSession(user) {
-  if (user?.role !== 'teacher' || user.must_change_password) return;
+  if (user?.role !== 'teacher') return;
+  if (user.must_change_password || user.must_add_signature !== false) {
+    localStorage.removeItem(OFFLINE_SESSION_KEY);
+    localStorage.removeItem(OFFLINE_SETTINGS_KEY);
+    return;
+  }
   const offlineUser = {
     id: user.id,
     role: user.role,
@@ -32,6 +38,7 @@ function rememberTeacherSession(user) {
     username: user.username,
     passport_photo: user.passport_photo,
     status: user.status,
+    signature_verified: true,
   };
   localStorage.setItem(OFFLINE_SESSION_KEY, JSON.stringify({ user: offlineUser, verifiedAt: Date.now() }));
 }
@@ -170,7 +177,7 @@ function AppContent() {
       const freshUser = await api.getMe();
       setUser(freshUser);
       rememberTeacherSession(freshUser);
-      if (!freshUser.must_change_password) {
+      if (!freshUser.must_change_password && !freshUser.must_add_signature) {
         await fetchSettings();
       }
     } catch (err) {
@@ -187,6 +194,7 @@ function AppContent() {
         const offlineSession = readStoredJson(OFFLINE_SESSION_KEY);
         const offlineSettings = readStoredJson(OFFLINE_SETTINGS_KEY);
         const sessionIsFresh = offlineSession?.user?.role === 'teacher'
+          && offlineSession.user.signature_verified === true
           && Date.now() - offlineSession.verifiedAt <= OFFLINE_SESSION_MAX_AGE;
         if (sessionIsFresh && offlineSettings?.data && Date.now() - offlineSettings.savedAt <= OFFLINE_SESSION_MAX_AGE) {
           setUser({ ...offlineSession.user, offlineMode: true });
@@ -218,7 +226,7 @@ function AppContent() {
 
   const handleLoginSuccess = async (loggedInUser) => {
     rememberTeacherSession(loggedInUser);
-    if (!loggedInUser.must_change_password) {
+    if (!loggedInUser.must_change_password && !loggedInUser.must_add_signature) {
       await fetchSettings();
     }
     setUser(loggedInUser);
@@ -253,7 +261,9 @@ function AppContent() {
   const handlePasswordChangeComplete = async () => {
     const freshUser = await api.getMe();
     rememberTeacherSession(freshUser);
-    await fetchSettings();
+    if (!freshUser.must_change_password && !freshUser.must_add_signature) {
+      await fetchSettings();
+    }
     setUser(freshUser);
   };
 
@@ -390,6 +400,10 @@ function AppContent() {
         onLogout={handleLogout}
       />
     );
+  }
+
+  if (user.must_add_signature) {
+    return <RequiredStaffSignature onComplete={handlePasswordChangeComplete} onLogout={handleLogout} />;
   }
 
   // Logged-in view selection based on role

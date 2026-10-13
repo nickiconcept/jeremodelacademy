@@ -405,6 +405,9 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
             {/* Change Password form */}
             <form onSubmit={handlePasswordChange} style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '18px' }}>
               <h4 style={{ margin: '0 0 16px 0', fontSize: '1rem', color: 'var(--text-primary)' }}>Change Password</h4>
+              <p style={{ margin: '-8px 0 14px', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                Use at least 8 characters, including uppercase, lowercase, and a number.
+              </p>
 
               {passwordError && (
                 <div style={{ padding: '9px 14px', backgroundColor: 'var(--danger-light)', color: 'var(--danger)', borderRadius: 'var(--radius-sm)', fontSize: '0.84rem', marginBottom: '12px', fontWeight: '600', border: '1px solid rgba(239,68,68,0.2)' }}>
@@ -420,12 +423,12 @@ export default function DashboardLayout({ children, user, activeTab, setActiveTa
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
                 {[
                   { label: 'Current Password', value: oldPassword, onChange: e => setOldPassword(e.target.value) },
-                  { label: 'New Password', value: newPassword, onChange: e => setNewPassword(e.target.value) },
-                  { label: 'Confirm New Password', value: confirmPassword, onChange: e => setConfirmPassword(e.target.value) },
-                ].map(({ label, value, onChange }) => (
+                  { label: 'New Password', value: newPassword, onChange: e => setNewPassword(e.target.value), minLength: 8 },
+                  { label: 'Confirm New Password', value: confirmPassword, onChange: e => setConfirmPassword(e.target.value), minLength: 8 },
+                ].map(({ label, value, onChange, minLength }) => (
                   <div key={label}>
                     <label style={{ fontSize: '0.78rem', fontWeight: '600', marginBottom: '5px', display: 'block', color: 'var(--text-secondary)' }}>{label}</label>
-                    <input type="password" className="form-control" value={value} onChange={onChange} required />
+                    <input type="password" className="form-control" value={value} onChange={onChange} minLength={minLength} required />
                   </div>
                 ))}
               </div>

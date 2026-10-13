@@ -296,7 +296,7 @@ export default function AdminManagementTab() {
 
                   <div className="form-group" style={{ marginBottom: '20px' }}>
                     <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Password {editingId && '(Leave blank to keep unchanged)'}</label>
-                    <input type="password" className="form-control" required={!editingId} minLength={6} value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
+                    <input type="password" className="form-control" required={!editingId} minLength={8} value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
                   </div>
                 </>
               )}

@@ -47,8 +47,8 @@ class SchoolMailer
 
         $this->sendSafely(
             $email,
-            'Set up your '.config('app.name').' portal password',
-            "Dear {$name},\n\nA password setup is required for the account {$accountId}. Use this secure, single-use link: "
+            'Set up or reset your '.config('app.name').' portal password',
+            "Dear {$name},\n\nA password setup or reset was requested for the account {$accountId}. Use this secure, single-use link: "
                 .($setupUrl ?? 'Please contact the school office to request a new setup link.')."\n\nRegards,\n"
                 .config('app.name')
         );

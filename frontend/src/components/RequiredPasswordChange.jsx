@@ -16,7 +16,7 @@ export default function RequiredPasswordChange({ user, onComplete, onLogout }) {
       return;
     }
     if (!/[a-z]/.test(newPassword) || !/[A-Z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
-      setError('Use at least 12 characters, including uppercase, lowercase, and a number.');
+      setError('Use at least 8 characters, including uppercase, lowercase, and a number.');
       return;
     }
 
@@ -48,11 +48,11 @@ export default function RequiredPasswordChange({ user, onComplete, onLogout }) {
           </label>
           <label style={{ display: 'grid', gap: 6, color: 'var(--text-primary)' }}>
             New password
-            <input className="form-control" type="password" autoComplete="new-password" minLength={12} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required />
+            <input className="form-control" type="password" autoComplete="new-password" minLength={8} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required />
           </label>
           <label style={{ display: 'grid', gap: 6, color: 'var(--text-primary)' }}>
             Confirm new password
-            <input className="form-control" type="password" autoComplete="new-password" minLength={12} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} required />
+            <input className="form-control" type="password" autoComplete="new-password" minLength={8} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} required />
           </label>
           <button className="btn btn-primary" type="submit" disabled={saving}>
             {saving ? 'Updating password…' : 'Change password and continue'}

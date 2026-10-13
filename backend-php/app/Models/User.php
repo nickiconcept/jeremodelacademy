@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 
 #[Fillable(['username', 'password_hash', 'must_change_password', 'email', 'full_name', 'role', 'passport_photo', 'permissions'])]
@@ -40,6 +41,18 @@ class User extends Authenticatable implements JWTSubject
             'permissions' => 'array',
             'must_change_password' => 'boolean',
         ];
+    }
+
+    public function requiresStaffSignature(): bool
+    {
+        if (! in_array($this->role, ['teacher', 'admin'], true)) {
+            return false;
+        }
+
+        $profile = DB::table('teachers')->where('id', $this->id)->first(['signature']);
+
+        return ($this->role === 'teacher' || $profile !== null)
+            && trim((string) ($profile?->signature)) === '';
     }
 
     /**

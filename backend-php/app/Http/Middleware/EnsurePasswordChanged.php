@@ -22,6 +22,13 @@ class EnsurePasswordChanged
             ], 403);
         }
 
+        if (auth('api')->user()?->requiresStaffSignature() && ! $request->routeIs('auth.staff-signature')) {
+            return response()->json([
+                'message' => 'You must add your signature before using the portal.',
+                'must_add_signature' => true,
+            ], 403);
+        }
+
         return $next($request);
     }
 }
