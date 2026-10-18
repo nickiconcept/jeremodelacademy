@@ -152,12 +152,27 @@ class StudentController extends Controller
         try {
             DB::beginTransaction();
 
-            $admission_number = $request->input('custom_admission_number');
+            $sequence = DB::table('student_admission_sequence')->where('id', 1)->lockForUpdate()->first();
+            $admission_number = strtoupper(trim((string) $request->input('custom_admission_number')));
             if (! $admission_number) {
                 $year = date('Y');
-                $count = DB::table('students')->count();
-                $nextSeq = str_pad($count + 1, 4, '0', STR_PAD_LEFT);
-                $admission_number = "JMA/{$year}/{$nextSeq}";
+                $nextValue = $sequence->last_number;
+                do {
+                    $nextValue++;
+                    $nextSeq = str_pad($nextValue, 4, '0', STR_PAD_LEFT);
+                    $admission_number = "JMA/{$year}/{$nextSeq}";
+                } while (DB::table('users')->where('username', $admission_number)->exists()
+                    || DB::table('students')->where('admission_number', $admission_number)->exists());
+                DB::table('student_admission_sequence')->where('id', 1)->update(['last_number' => $nextValue]);
+            } elseif (DB::table('users')->where('username', $admission_number)->exists()
+                || DB::table('students')->where('admission_number', $admission_number)->exists()) {
+                DB::rollBack();
+
+                return response()->json(['error' => 'This admission number is already in use. Enter a different number or leave it blank to generate one.'], 400);
+            } elseif (preg_match('/^JMA\/\d{4}\/(\d+)$/', $admission_number, $matches)) {
+                DB::table('student_admission_sequence')->where('id', 1)->update([
+                    'last_number' => max($sequence->last_number, (int) $matches[1]),
+                ]);
             }
 
             $username = strtoupper($admission_number);
@@ -264,8 +279,8 @@ class StudentController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            if (str_contains($e->getMessage(), 'Duplicate entry')) {
-                return response()->json(['error' => 'Username or Admission Number already exists'], 400);
+            if (str_contains($e->getMessage(), 'Duplicate entry') && (str_contains($e->getMessage(), 'username') || str_contains($e->getMessage(), 'admission_number'))) {
+                return response()->json(['error' => 'This admission number is already in use. Please try again or choose a different admission number.'], 400);
             }
             Log::error($e->getMessage());
 
@@ -300,8 +315,9 @@ class StudentController extends Controller
         try {
             DB::beginTransaction();
 
+            $existingUser = DB::table('users')->where('id', $id)->first();
             DB::table('users')->where('id', $id)->update([
-                'full_name' => $request->input('full_name'),
+                'full_name' => $request->input('full_name', $existingUser?->full_name),
                 'passport_photo' => $request->input('passport_photo') ?: DB::raw('passport_photo'),
                 'updated_at' => now(),
             ]);
@@ -324,6 +340,8 @@ class StudentController extends Controller
                 'parent_address' => $request->input('parent_address'),
                 'parent_phone' => $request->input('parent_phone'),
             ];
+
+            $studentData = array_intersect_key($studentData, $request->all());
 
             if ($request->has('custom_admission_number') && ! empty($request->input('custom_admission_number'))) {
                 $studentData['admission_number'] = $request->input('custom_admission_number');
@@ -701,6 +719,8 @@ class StudentController extends Controller
 
             $studentUser = DB::table('users')->where('id', $id)->where('role', 'student')->first();
             if (! $studentUser) {
+                DB::rollBack();
+
                 return response()->json(['error' => 'Student not found.'], 404);
             }
 

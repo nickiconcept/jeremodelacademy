@@ -4,7 +4,7 @@ import api from '../utils/api';
 import { ArrowLeft, Edit2, X, Download } from 'lucide-react';
 import html2pdf from 'html2pdf.js';
 
-export default function StudentRegistrationForm({ student, onClose, onUpdate }) {
+export default function StudentRegistrationForm({ student, onClose, onUpdate, classes = [], canChangeClass = false }) {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(() => ({ ...(student || {}) }));
   const [loading, setLoading] = useState(false);
@@ -163,6 +163,16 @@ export default function StudentRegistrationForm({ student, onClose, onUpdate }) 
                 <h4 style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', marginBottom: '15px' }}>Edit Information</h4>
                 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                  {canChangeClass && (
+                    <div className="form-group">
+                      <label htmlFor="student-current-class">Current Class</label>
+                      <select id="student-current-class" className="form-control" name="class_id" value={formData.class_id ?? ''} onChange={handleChange} required>
+                        <option value="">Select class...</option>
+                        {classes.map(cls => <option key={cls.id} value={cls.id}>{cls.name}</option>)}
+                      </select>
+                      <small>Existing results, attendance and invoices are retained.</small>
+                    </div>
+                  )}
                   <div className="form-group">
                     <label>Full Name</label>
                     <input type="text" className="form-control" name="full_name" value={formData.full_name || ''} onChange={handleChange} required />

@@ -1,0 +1,7 @@
+
+Hash : 5CCEAF3438DDEF17217290B6DA7006D1BA119B1525BC76EE1B2C45771ECE36E6
+Path : C:\Users\N Concept World\Desktop\Nicholas'_Projects\Jere Model Academy\student-fix-release\student-fix-backend.zip
+
+Hash : 42BEF793A484D91D8314B9542AEAC5FD7C29EDAB8459C8D0638ACDC130E63E3E
+Path : C:\Users\N Concept World\Desktop\Nicholas'_Projects\Jere Model Academy\student-fix-release\student-fix-frontend.zip
+

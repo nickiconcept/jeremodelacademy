@@ -985,7 +985,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
   };
 
   const handleDeleteStudent = async (studentId) => {
-    const confirmed = await confirm({ title: 'Delete Student', message: 'Are you sure you want to delete this student? This action cannot be undone.', confirmText: 'Delete', type: 'danger' });
+    const confirmed = await confirm({ title: 'Delete Student', message: 'This permanently deletes the student account and linked results, attendance and fee invoices. Re-registering will not restore these records. To change class, use Edit Profile instead. This action cannot be undone.', confirmText: 'Delete Permanently', type: 'danger' });
     if (!confirmed) return;
     try {
       await api.deleteStudent(studentId);
@@ -5970,6 +5970,8 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
       {selectedStudentForForm && (
         <StudentRegistrationForm
           student={selectedStudentForForm}
+          classes={classes}
+          canChangeClass={true}
           onClose={() => setSelectedStudentForForm(null)}
           onUpdate={() => { setSelectedStudentForForm(null); loadAllData(); }}
         />
