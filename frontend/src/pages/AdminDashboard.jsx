@@ -450,6 +450,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
 
   // Search & Filter States
   const [studentSearch, setStudentSearch] = useState('');
+  const [showAlumni, setShowAlumni] = useState(false);
   const [studentClassFilter, setStudentClassFilter] = useState('');
   
   const [teacherSearch, setTeacherSearch] = useState('');
@@ -2237,11 +2238,14 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                 <UserRound size={25} color="white" />
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '700', letterSpacing: '0.5px' }}>Student Roster</h3>
+                <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '700', letterSpacing: '0.5px' }}>{showAlumni ? 'Alumni Students' : 'Student Roster'}</h3>
                 <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.85rem', margin: '4px 0 0 0' }}>Click any student's name to view and print their official registration profile.</p>
               </div>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+              <button type="button" className="btn btn-secondary" aria-pressed={showAlumni} onClick={() => { setShowAlumni(!showAlumni); setStudentSearch(''); setStudentClassFilter(''); setStudentPage(1); }} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <GraduationCap size={16} /> {showAlumni ? 'Back to Student Roster' : 'Alumni Students'}
+              </button>
               <button className="btn btn-secondary" onClick={() => setShowGraduatesModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid rgba(255,255,255,0.4)', backgroundColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(5px)', color: 'white', padding: '8px 16px', fontSize: '0.85rem', borderRadius: '20px' }}>
                 <Users size={16} /> Manage Graduates
               </button>
@@ -2259,27 +2263,29 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
               style={{ flex: 1, minWidth: '200px', padding: '10px' }}
               placeholder="Search student by name or admission number..."
               value={studentSearch}
-              onChange={(e) => setStudentSearch(e.target.value)}
+              onChange={(e) => { setStudentSearch(e.target.value); setStudentPage(1); }}
             />
-            <select
+            {!showAlumni && <select
+              aria-label="Filter students by class"
               className="form-control"
               style={{ width: '200px', padding: '10px' }}
               value={studentClassFilter}
-              onChange={(e) => setStudentClassFilter(e.target.value)}
+              onChange={(e) => { setStudentClassFilter(e.target.value); setStudentPage(1); }}
             >
               <option value="">All Classes</option>
               {classes.map((cls, idx) => (
                 <option key={idx} value={cls.id}>{cls.name}</option>
               ))}
-            </select>
+            </select>}
           </div>
 
           {(() => {
             const filteredStudents = students.filter(student => {
-              const matchesSearch = student.full_name.toLowerCase().includes(studentSearch.toLowerCase()) ||
-                                    student.admission_number.toLowerCase().includes(studentSearch.toLowerCase());
-              const matchesClass = studentClassFilter === '' || student.class_id === parseInt(studentClassFilter);
-              return matchesSearch && matchesClass;
+              const matchesSearch = (student.full_name || '').toLowerCase().includes(studentSearch.toLowerCase()) ||
+                                    (student.admission_number || '').toLowerCase().includes(studentSearch.toLowerCase());
+              const matchesClass = showAlumni || studentClassFilter === '' || student.class_id === parseInt(studentClassFilter);
+              const matchesStatus = showAlumni ? student.status === 'graduated' : student.status !== 'graduated';
+              return matchesSearch && matchesClass && matchesStatus;
             });
             const paginatedStudents = filteredStudents.slice((studentPage - 1) * studentPageSize, studentPage * studentPageSize);
             
@@ -2308,8 +2314,9 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                       </tr>
                     </thead>
                     <tbody>
-                      {paginatedStudents.map((student, idx) => (
-                  <tr key={idx}>
+                      {paginatedStudents.length === 0 && <tr><td colSpan="7" style={{ textAlign: 'center', padding: '24px' }}>{showAlumni ? 'No alumni students found.' : 'No students found.'}</td></tr>}
+                      {paginatedStudents.map((student) => (
+                  <tr key={student.id}>
                     <td>
                       <div
                         style={{ width: '34px', height: '34px', borderRadius: '4px', overflow: 'hidden', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)', cursor: 'pointer' }}
@@ -2343,7 +2350,7 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                     <td>{student.class_name || 'Unassigned'}</td>
                     <td title={`${student.parent_name} (${student.parent_phone})`}>{student.parent_name} ({student.parent_phone})</td>
                     <td>
-                      <select
+                      {showAlumni ? <span className="badge badge-success">Alumni</span> : <select
                         className="form-control"
                         style={{ padding: '4px 6px', fontSize: '0.8rem', width: '100%' }}
                         value={student.status || 'active'}
@@ -2353,16 +2360,16 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                         <option value="suspended">Suspended</option>
                         <option value="inactive">Inactive</option>
                         <option value="graduated">Graduated</option>
-                      </select>
+                      </select>}
                     </td>
                     <td>
-                      <button 
+                      {!showAlumni && <button
                         className="btn btn-danger" 
                         style={{ padding: '6px 10px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}
                         onClick={() => handleDeleteStudent(student.id)}
                       >
                         <Trash size={14} />
-                      </button>
+                      </button>}
                     </td>
                   </tr>
                 ))}
