@@ -35,9 +35,8 @@ class SecurityAuthorizationTest extends TestCase
 
         $this->actingAs($student, 'api')
             ->getJson('/api/grades?student_id='.$otherStudent->id)
-            ->assertOk()
-            ->assertJsonCount(1)
-            ->assertJsonPath('0.student_id', $student->id);
+            ->assertForbidden();
+        $this->getJson('/api/grades?student_id='.$student->id)->assertForbidden();
     }
 
     public function test_student_cannot_write_grades(): void

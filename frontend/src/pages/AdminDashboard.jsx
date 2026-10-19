@@ -462,7 +462,12 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
   const [feeCategoryFilter, setFeeCategoryFilter] = useState('');
   
   const [pinSearch, setPinSearch] = useState('');
-  const [pinStatusFilter, setPinStatusFilter] = useState('all');
+  const [pinStatusFilter, setPinStatusFilter] = useState('available');
+  const [issuingCard, setIssuingCard] = useState(null);
+  const [issueStudent, setIssueStudent] = useState('');
+  const [savingCard, setSavingCard] = useState(false);
+  const [invoicePeriod, setInvoicePeriod] = useState(null);
+  const [savingPeriod, setSavingPeriod] = useState(false);
   
   const [customInvoiceSearch, setCustomInvoiceSearch] = useState('');
   const [customInvoiceClassFilter, setCustomInvoiceClassFilter] = useState('');
@@ -1265,6 +1270,46 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
     } catch (err) {
       setErrorMsg(err.message);
     }
+  };
+
+  const cardAvailable = p => !p.issued_to_student_id && !p.student_id && Number(p.usage_count) === 0 && p.status === 'active';
+  const filteredPins = pins.filter(p => {
+    const query = pinSearch.trim().toLowerCase();
+    const matches = [p.serial_number, p.pin, p.student_name, p.admission_number].some(value => String(value || '').toLowerCase().includes(query));
+    return matches && (pinStatusFilter === 'all'
+      || (pinStatusFilter === 'available' && cardAvailable(p))
+      || (pinStatusFilter === 'issued' && (p.issued_to_student_id || p.student_id))
+      || (pinStatusFilter === 'exhausted' && (p.status === 'exhausted' || Number(p.usage_count) >= 5)));
+  });
+
+  const handleIssueCard = async e => {
+    e.preventDefault();
+    const student = students.find(s => s.admission_number === issueStudent);
+    if (!student) { setErrorMsg('Select a valid student admission number.'); return; }
+    setSavingCard(true);
+    try {
+      await api.issuePin(issuingCard.id, student.id);
+      setPins(current => current.map(p => p.id === issuingCard.id ? { ...p, issued_to_student_id: student.id, student_name: student.full_name, admission_number: student.admission_number, issued_at: new Date().toISOString() } : p));
+      setIssuingCard(null);
+      setIssueStudent('');
+      setPins(await api.getPins());
+      setNotify('Card issued to ' + student.full_name + '.');
+    } catch (err) {
+      setErrorMsg(err.message);
+      setPins(await api.getPins());
+    } finally { setSavingCard(false); }
+  };
+
+  const handleInvoicePeriod = async e => {
+    e.preventDefault();
+    setSavingPeriod(true);
+    try {
+      await api.classifyInvoice(invoicePeriod.id, { term: invoicePeriod.term, academic_year: invoicePeriod.academic_year });
+      setStudentHistoryData(current => ({ ...current, invoices: current.invoices.map(inv => inv.id === invoicePeriod.id ? { ...inv, term: invoicePeriod.term, academic_year: invoicePeriod.academic_year } : inv) }));
+      setInvoicePeriod(null);
+      setNotify('Invoice term/session saved.');
+    } catch (err) { setErrorMsg(err.message); }
+    finally { setSavingPeriod(false); }
   };
 
   const handleGeneratePins = async () => {
@@ -4120,41 +4165,24 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                   type="text"
                   className="form-control"
                   style={{ maxWidth: '300px', padding: '10px' }}
-                  placeholder="Search PIN code or student..."
+                  placeholder="Search serial, PIN or student..."
                   value={pinSearch}
-                  onChange={(e) => setPinSearch(e.target.value)}
+                  onChange={(e) => { setPinSearch(e.target.value); setPinPage(1); }}
                 />
                 <select
                   className="form-control"
                   style={{ maxWidth: '200px', padding: '10px' }}
                   value={pinStatusFilter}
-                  onChange={(e) => setPinStatusFilter(e.target.value)}
+                  onChange={(e) => { setPinStatusFilter(e.target.value); setPinPage(1); }}
                 >
-                  <option value="all">All Statuses</option>
-                  <option value="active">Active (Partial)</option>
-                  <option value="not_used">Not Used (New)</option>
-                  <option value="exhausted">Used (Exhausted)</option>
+                  <option value="available">Available Cards</option>
+                  <option value="issued">Issued Cards</option>
+                  <option value="exhausted">Exhausted Cards</option>
+                  <option value="all">All Cards</option>
                 </select>
               </div>
 
               {(() => {
-                const filteredPins = pins.filter(p => {
-                  const query = pinSearch.toLowerCase();
-                  const matchesSearch = p.pin.toLowerCase().includes(query) ||
-                         (p.student_name && p.student_name.toLowerCase().includes(query)) ||
-                         (p.admission_number && p.admission_number.toLowerCase().includes(query));
-                  
-                  let matchesStatus = true;
-                  if (pinStatusFilter === 'active') {
-                    matchesStatus = p.status === 'active' && p.usage_count > 0;
-                  } else if (pinStatusFilter === 'not_used') {
-                    matchesStatus = p.status === 'active' && (!p.usage_count || p.usage_count === 0);
-                  } else if (pinStatusFilter === 'exhausted') {
-                    matchesStatus = p.status === 'exhausted';
-                  }
-
-                  return matchesSearch && matchesStatus;
-                });
                 const paginatedPins = filteredPins.slice((pinPage - 1) * pinPageSize, pinPage * pinPageSize);
                 
                 return (
@@ -4162,27 +4190,29 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                     <table className="school-table">
                       <thead>
                         <tr>
-                          <th>Result Checker PIN</th>
+                          <th>Serial / PIN</th>
                           <th>Term / Session</th>
                           <th>Assigned Student</th>
                           <th>Checks Remaining</th>
-                          <th>Status</th>
+                          <th>Status / Issuance</th><th>Action</th>
                         </tr>
                       </thead>
                       <tbody>
                         {paginatedPins.length === 0 ? (
-                          <tr><td colSpan="5" style={{textAlign: 'center', color: 'var(--text-secondary)'}}>No PINs found.</td></tr>
+                          <tr><td colSpan="6" style={{textAlign: 'center', color: 'var(--text-secondary)'}}>No PINs found.</td></tr>
                         ) : paginatedPins.map((p, idx) => (
                           <tr key={idx}>
-                            <td><strong style={{ fontSize: '1.1rem', letterSpacing: '0.05em' }}>{p.pin}</strong></td>
-                            <td>{p.term ? `${p.term} (${p.academic_year})` : 'Universal (Any Term/Session)'}</td>
-                            <td>{p.student_name ? `${p.student_name} (${p.admission_number})` : 'Unused Token'}</td>
-                            <td><strong>{Math.max(0, parseInt(settingsForm?.pin_max_checks || 5) - p.usage_count)}</strong></td>
+                            <td><strong>{p.serial_number}</strong><div style={{ fontFamily: 'monospace' }}>{p.pin}</div></td>
+                            <td>{p.term ? `${p.term} (${p.academic_year})` : 'Not activated'}</td>
+                            <td>{p.student_name ? `${p.student_name} (${p.admission_number})` : 'Not issued'}</td>
+                            <td><strong>{Math.max(0, 5 - p.usage_count)}</strong></td>
                             <td>
                               <span className={`badge ${p.status === 'active' ? 'badge-success' : 'badge-danger'}`}>
-                                {p.status}
+                                {Number(p.usage_count) >= 5 || p.status === 'exhausted' ? 'Exhausted' : cardAvailable(p) ? 'Available' : p.student_id ? 'Activated' : 'Issued — unused'}
                               </span>
+                              {p.issued_to_student_id && <small style={{ display: 'block' }}>{p.issued_at ? new Date(p.issued_at).toLocaleString() : 'Legacy card — issuance date unknown'}{p.issued_by_name ? ' · ' + p.issued_by_name : ''}</small>}
                             </td>
+                            <td>{cardAvailable(p) && <button className="btn btn-primary" onClick={() => { setIssuingCard(p); setIssueStudent(''); }}>Issue card</button>}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -5845,6 +5875,14 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                 <label>Amount (₦)</label>
                 <input type="number" className="form-control" placeholder="Amount in Naira" required value={feeForm.amount} onChange={(e) => setFeeForm({ ...feeForm, amount: e.target.value })} />
               </div>
+              <div className="form-group">
+                <label>Term<select required className="form-control" value={feeForm.term || ''} onChange={e => setFeeForm({...feeForm, term: e.target.value})}>
+                  <option value="">Select term</option>{['1st Term', '2nd Term', '3rd Term'].map(t => <option key={t}>{t}</option>)}
+                </select></label>
+              </div>
+              <div className="form-group">
+                <label>Academic session<input required className="form-control" placeholder="2026/2027" pattern="[0-9]{4}/[0-9]{4}" value={feeForm.academic_year || ''} onChange={e => setFeeForm({...feeForm, academic_year: e.target.value})} /></label>
+              </div>
 
               <div style={{ border: '1px solid var(--border-color)', padding: '15px', borderRadius: 'var(--radius-sm)', marginBottom: '20px' }}>
                 <span style={{ fontWeight: 'bold', fontSize: '0.85rem', display: 'block', marginBottom: '10px' }}>WHO SHOULD PAY? (Choose One)</span>
@@ -6282,6 +6320,14 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                                 <label style={{ fontSize: '0.75rem', fontWeight: 'bold' }}>Amount (,)</label>
                                 <input type="number" className="form-control" placeholder="10000" required value={individualFeeForm.amount} onChange={e => setIndividualFeeForm({...individualFeeForm, amount: e.target.value})} />
                               </div>
+              <div className="form-group">
+                <label>Term<select required className="form-control" value={individualFeeForm.term || ''} onChange={e => setIndividualFeeForm({...individualFeeForm, term: e.target.value})}>
+                  <option value="">Select term</option>{['1st Term', '2nd Term', '3rd Term'].map(t => <option key={t}>{t}</option>)}
+                </select></label>
+              </div>
+              <div className="form-group">
+                <label>Academic session<input required className="form-control" placeholder="2026/2027" pattern="[0-9]{4}/[0-9]{4}" value={individualFeeForm.academic_year || ''} onChange={e => setIndividualFeeForm({...individualFeeForm, academic_year: e.target.value})} /></label>
+              </div>
                               <button type="submit" className="btn btn-primary" style={{ padding: '8px 16px', height: '38px' }}>Add Fee</button>
                             </form>
                           </div>
@@ -6320,8 +6366,8 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
                                       </td>
                                       <td style={{ padding: '14px 15px' }}>
                                         <span className="badge" style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '0.7rem' }}>
-                                          {inv.term || settings?.active_term || '3rd Term'} ({inv.session || settings?.active_session || '2026/2027'})
-                                        </span>
+                                          {inv.term && inv.academic_year ? inv.term + ' (' + inv.academic_year + ')' : 'Needs term/session classification'}
+                                        </span><button className="btn btn-secondary no-print" onClick={() => setInvoicePeriod({ id: inv.id, term: inv.term || '', academic_year: inv.academic_year || '' })}>Set term/session</button>
                                       </td>
                                       <td style={{ padding: '14px 15px', textAlign: 'right', fontWeight: '700', color: 'var(--text-primary)' }}>₦{inv.amount_due.toLocaleString()}</td>
                                       <td style={{ padding: '14px 15px', textAlign: 'right', color: 'var(--success)', fontWeight: '700' }}>₦{inv.amount_paid.toLocaleString()}</td>
@@ -6574,25 +6620,40 @@ export default function AdminDashboard({ settings, fetchSettings, activeTab, sub
         />
       )}
 
+      {issuingCard && (
+        <div className="modal-overlay"><div className="modal-content glass-panel" role="dialog" aria-modal="true" aria-label="Issue card">
+          <h3>Issue card {issuingCard.serial_number}</h3>
+          <p>Select the recipient. This reserves the card without activating it or using a check.</p>
+          <form onSubmit={handleIssueCard}>
+            <label>Student admission number
+              <input required className="form-control" list="card-students" value={issueStudent} onChange={e => setIssueStudent(e.target.value)} />
+            </label>
+            <datalist id="card-students">{students.map(s => <option key={s.id} value={s.admission_number}>{s.full_name}</option>)}</datalist>
+            <p>{students.find(s => s.admission_number === issueStudent)?.full_name || 'Choose a student from the list.'}</p>
+            <button className="btn btn-primary" disabled={savingCard}>{savingCard ? 'Issuing…' : 'Issue card'}</button>
+            <button type="button" className="btn btn-secondary" disabled={savingCard} onClick={() => setIssuingCard(null)}>Cancel</button>
+          </form>
+        </div></div>
+      )}
+      {invoicePeriod && (
+        <div className="modal-overlay"><div className="modal-content glass-panel" role="dialog" aria-modal="true" aria-label="Invoice period">
+          <h3>Set invoice term/session</h3>
+          <p>Use the period this fee was billed for. Unclassified outstanding fees block result access until reviewed.</p>
+          <form onSubmit={handleInvoicePeriod}>
+            <label>Term<select required className="form-control" value={invoicePeriod.term} onChange={e => setInvoicePeriod({...invoicePeriod, term: e.target.value})}>
+              <option value="">Select term</option>{['1st Term', '2nd Term', '3rd Term'].map(t => <option key={t}>{t}</option>)}
+            </select></label>
+            <label>Academic session<input required className="form-control" pattern="[0-9]{4}/[0-9]{4}" placeholder="2026/2027" value={invoicePeriod.academic_year} onChange={e => setInvoicePeriod({...invoicePeriod, academic_year: e.target.value})} /></label>
+            <button className="btn btn-primary" disabled={savingPeriod}>Save period</button>
+            <button type="button" className="btn btn-secondary" disabled={savingPeriod} onClick={() => setInvoicePeriod(null)}>Cancel</button>
+          </form>
+        </div></div>
+      )}
+
       {/* Print PIN Cards Modal */}
       {showPrintPinsModal && (
         <PrintPinCards
-          pins={pins.filter(p => {
-            const query = pinSearch.toLowerCase();
-            const matchesSearch = p.pin.toLowerCase().includes(query) ||
-                   (p.student_name && p.student_name.toLowerCase().includes(query)) ||
-                   (p.admission_number && p.admission_number.toLowerCase().includes(query));
-            
-            let matchesStatus = true;
-            if (pinStatusFilter === 'active') {
-              matchesStatus = p.status === 'active' && p.usage_count > 0;
-            } else if (pinStatusFilter === 'not_used') {
-              matchesStatus = p.status === 'active' && (!p.usage_count || p.usage_count === 0);
-            } else if (pinStatusFilter === 'exhausted') {
-              matchesStatus = p.status === 'exhausted';
-            }
-            return matchesSearch && matchesStatus;
-          })}
+          pins={filteredPins}
           settings={settings}
           onClose={() => setShowPrintPinsModal(false)}
         />

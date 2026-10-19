@@ -92,6 +92,8 @@ class FeeController extends Controller
                             'student_id' => $student->id,
                             'title' => $title,
                             'category' => $structure->category,
+                            'term' => $settings->active_term,
+                            'academic_year' => $settings->active_session,
                             'amount_due' => $structure->amount,
                             'amount_paid' => 0,
                             'status' => 'unpaid',
@@ -134,7 +136,14 @@ class FeeController extends Controller
             return response()->json(['error' => 'Unauthorized'], 403);
         }
 
-        $title = $request->input('title');
+        $period = $request->validate([
+            'title' => ['required', 'string', 'max:180'],
+            'amount' => ['required', 'numeric', 'gt:0'],
+            'student_id' => ['nullable', 'integer', 'exists:students,id'],
+            'term' => ['required', 'in:1st Term,2nd Term,3rd Term'],
+            'academic_year' => ['required', 'regex:/^\d{4}\/\d{4}$/'],
+        ]);
+        $title = $request->input('title').' - '.$period['term'].' '.$period['academic_year'];
         $category = $request->input('category', 'School Fees');
         $amount = (float) $request->input('amount');
         $class_id = $request->input('class_id');
@@ -173,6 +182,8 @@ class FeeController extends Controller
                         'student_id' => $sId,
                         'title' => $title,
                         'category' => $category,
+                        'term' => $period['term'],
+                        'academic_year' => $period['academic_year'],
                         'amount_due' => $amount,
                         'amount_paid' => 0,
                         'status' => 'unpaid',

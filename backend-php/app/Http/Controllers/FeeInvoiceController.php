@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Services\SchoolMailer;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -35,7 +37,10 @@ class FeeInvoiceController extends Controller
             'student_id' => 'required|exists:users,id',
             'title' => 'required|string',
             'category' => 'required|string',
-            'amount_due' => 'required|numeric',
+            'amount_due' => 'required|numeric|min:0',
+            'amount_paid' => 'nullable|numeric|min:0|lte:amount_due',
+            'term' => 'required|in:1st Term,2nd Term,3rd Term',
+            'academic_year' => ['required', 'regex:/^\d{4}\/\d{4}$/'],
         ]);
 
         try {
@@ -43,9 +48,11 @@ class FeeInvoiceController extends Controller
                 'student_id' => $request->student_id,
                 'title' => $request->title,
                 'category' => $request->category,
+                'term' => $request->term,
+                'academic_year' => $request->academic_year,
                 'amount_due' => $request->amount_due,
                 'amount_paid' => $request->amount_paid ?? 0,
-                'status' => $request->status ?? 'unpaid',
+                'status' => ($request->amount_paid ?? 0) >= $request->amount_due ? 'paid' : (($request->amount_paid ?? 0) > 0 ? 'partial' : 'unpaid'),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -64,12 +71,20 @@ class FeeInvoiceController extends Controller
     {
         $this->requireAdmin();
 
+        $request->validate([
+            'title' => 'required|string', 'category' => 'required|string',
+            'amount_due' => 'required|numeric|min:0', 'amount_paid' => 'required|numeric|min:0|lte:amount_due',
+            'term' => 'required|in:1st Term,2nd Term,3rd Term',
+            'academic_year' => ['required', 'regex:/^\d{4}\/\d{4}$/'],
+        ]);
         $updated = DB::table('fee_invoices')->where('id', $id)->update([
             'title' => $request->title,
             'category' => $request->category,
+            'term' => $request->term,
+            'academic_year' => $request->academic_year,
             'amount_due' => $request->amount_due,
             'amount_paid' => $request->amount_paid,
-            'status' => $request->status,
+            'status' => $request->amount_paid >= $request->amount_due ? 'paid' : ($request->amount_paid > 0 ? 'partial' : 'unpaid'),
             'updated_at' => now(),
         ]);
 
@@ -136,6 +151,20 @@ class FeeInvoiceController extends Controller
             'status' => $payment['status'],
             'receipt_number' => $payment['receipt_number'],
         ]);
+    }
+
+    public function classifyPeriod(Request $request, int $id): JsonResponse
+    {
+        $this->requireAdmin();
+        $data = $request->validate([
+            'term' => ['required', 'in:1st Term,2nd Term,3rd Term'],
+            'academic_year' => ['required', 'regex:/^\d{4}\/\d{4}$/'],
+        ]);
+        abort_unless(DB::table('fee_invoices')->where('id', $id)->exists(), 404);
+        DB::table('fee_invoices')->where('id', $id)->update($data);
+        ActivityLog::log('classify_invoice', 'finance', "Classified invoice {$id}", ['meta' => $data]);
+
+        return response()->json(['message' => 'Invoice term/session saved.']);
     }
 
     public function destroy($id)

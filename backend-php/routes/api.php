@@ -188,6 +188,7 @@ Route::group(['middleware' => ['auth:api', 'password.changed', 'throttle:60,1']]
 
     // PINs & Security
     Route::get('/pins', [PinController::class, 'getPins']);
+    Route::post('/pins/{id}/issue', [PinController::class, 'issue']);
     Route::post('/pins/generate', [PinController::class, 'generatePins']);
     Route::post('/pins/verify', [PinController::class, 'verifyPin'])->middleware('throttle:10,1');
 
@@ -197,6 +198,7 @@ Route::group(['middleware' => ['auth:api', 'password.changed', 'throttle:60,1']]
 
     Route::get('/fee-invoices', [FeeInvoiceController::class, 'index']);
     Route::post('/fee-invoices', [FeeInvoiceController::class, 'store']);
+    Route::patch('/fee-invoices/{id}/period', [FeeInvoiceController::class, 'classifyPeriod']);
     Route::put('/fee-invoices/{id}', [FeeInvoiceController::class, 'update']);
     Route::post('/fee-invoices/{id}/pay', [FeeInvoiceController::class, 'recordPayment']);
     Route::delete('/fee-invoices/{id}', [FeeInvoiceController::class, 'destroy']);

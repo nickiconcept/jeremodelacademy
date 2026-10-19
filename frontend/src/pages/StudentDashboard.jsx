@@ -30,6 +30,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
   // Student statistics
   const [timeline, setTimeline] = useState([]);
   const [unlockedPins, setUnlockedPins] = useState([]);
+  const [checkingResult, setCheckingResult] = useState(false);
   const [invoices, setInvoices] = useState([]);
   const [receipts, setReceipts] = useState([]);
   const [attendance, setAttendance] = useState([]);
@@ -146,8 +147,10 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
   };
 
   const handleTermClick = (item) => {
+    if (checkingResult) return;
+    if (item.debt_message) { showAlert(item.debt_message, 'error', 'Result unavailable'); return; }
     const pinBinding = unlockedPins.find(p => p.term === item.term && p.academic_year === item.academic_year);
-    const isUnlocked = pinBinding && pinBinding.usage_count < 5;
+    const isUnlocked = !item.debt_message && pinBinding && pinBinding.usage_count < 5;
     if (isUnlocked) {
       fetchReportCard(item.term, item.academic_year);
     } else {
@@ -172,7 +175,8 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
   };
 
   const fetchReportCard = async (term, academic_year) => {
-    if (!user?.id) return;
+    if (!user?.id || checkingResult) return;
+    setCheckingResult(true);
     try {
       const data = await api.getReportCard(user.id, term, academic_year);
       setDownloadReportCard(true);
@@ -190,25 +194,27 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
       } else {
         showAlert(err.message, 'error', 'Failed to load report card');
       }
-    }
+    } finally { setCheckingResult(false); }
   };
 
   const handleVerifyPinSubmit = async (e) => {
     e.preventDefault();
-    if (!pinInput || !selectedTermForRC) return;
+    if (!pinInput || !selectedTermForRC || checkingResult) return;
+    setCheckingResult(true);
     setErrorMsg('');
     setNotify('');
     try {
       const res = await api.verifyPin(pinInput, selectedTermForRC.term, selectedTermForRC.academic_year);
-      const maxChecks = settings?.pin_max_checks ? parseInt(settings.pin_max_checks) : 5;
-      const usageCount = res.pin ? parseInt(res.pin.usage_count) : 0;
-      const remaining = Math.max(0, maxChecks - usageCount - 1); // Subtract 1 because fetchReportCard uses a check
-      
-      setNotify(`${res.message} You have ${remaining} checks remaining.`);
       setShowPinModal(false);
-      await fetchReportCard(selectedTermForRC.term, selectedTermForRC.academic_year);
+      setPinInput('');
+      setDownloadReportCard(true);
+      setActiveReportCardData(res.report_card);
+      setNotify(res.message + ' You have ' + res.remaining_checks + ' checks remaining for this result.');
+      await loadStudentData();
     } catch (err) {
       setErrorMsg(err.message);
+    } finally {
+      setCheckingResult(false);
     }
   };
 
@@ -312,7 +318,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
                 overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.1)', flexShrink: 0
               }}>
                 {user.passport_photo ? (
-                  <img src={user.passport_photo.startsWith('data:') ? user.passport_photo : `http://localhost:8000${user.passport_photo}`} alt="Student Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <ProfilePhoto src={user.passport_photo.startsWith('data:') ? user.passport_photo : `http://localhost:8000${user.passport_photo}`} alt="Student Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
                     <User size={36} style={{ opacity: 0.6 }} color="white" />
@@ -370,7 +376,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
                     <AlertTriangle size={24} />
                     <div>
                       <div style={{ fontWeight: '700', fontSize: '1rem' }}>Outstanding Fees: ₦{outstandingDebt.toLocaleString()}</div>
-                      <div style={{ fontSize: '0.82rem', opacity: 0.85 }}>Result PINs are only issued after all fees are settled.</div>
+                      <div style={{ fontSize: '0.82rem', opacity: 0.85 }}>Outstanding fees for a term must be cleared before its result can be checked.</div>
                     </div>
                   </div>
                   <div style={{ padding: '14px 22px', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
@@ -557,7 +563,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
             ) : (
               timeline.map((item, idx) => {
                 const pinBinding = unlockedPins.find(p => p.term === item.term && p.academic_year === item.academic_year);
-                const isUnlocked = pinBinding && pinBinding.usage_count < 5;
+                const isUnlocked = !item.debt_message && pinBinding && pinBinding.usage_count < 5;
 
                 return (
                   <div
@@ -579,7 +585,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
                       <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0 }}>
                         {isUnlocked ? (
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--success)' }}>
-                            <Key size={13} /> Unlocked — Checks Remaining: {Math.max(0, (parseInt(settings?.pin_max_checks) || 5) - pinBinding.usage_count)}
+                            <Key size={13} /> Unlocked — Checks Remaining: {Math.max(0, 5 - pinBinding.usage_count)}
                             <button onClick={() => handleViewHistory(item)} style={{ marginLeft: '10px', background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.8rem', padding: 0 }}>
                               View History
                             </button>
@@ -593,7 +599,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
                     </div>
                     <button
                       className="btn"
-                      onClick={() => handleTermClick(item)}
+                      disabled={checkingResult} onClick={() => handleTermClick(item)}
                       style={{
                         display: 'flex', alignItems: 'center', gap: '8px',
                         background: isUnlocked ? 'linear-gradient(135deg, var(--primary) 0%, #1e3a8a 100%)' : undefined,
@@ -603,7 +609,7 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
                         padding: '10px 20px', borderRadius: '20px', fontWeight: '700', cursor: 'pointer'
                       }}
                     >
-                      {isUnlocked ? <><Download size={14} /> Download Report Card</> : <><Key size={14} /> Enter PIN</>}
+                      {checkingResult ? 'Opening result…' : item.debt_message ? 'Fees clearance required' : isUnlocked ? <><Download size={14} /> Download Report Card</> : <><Key size={14} /> Enter PIN</>}
                     </button>
                   </div>
                 );
@@ -856,10 +862,10 @@ export default function StudentDashboard({ user, settings, activeTab, subTab, on
                     required
                   />
                   <small style={{ color: 'var(--text-muted)', display: 'block', marginTop: '6px', textAlign: 'center' }}>
-                    *This PIN can check results up to 5 times.
+                    *First use locks this PIN to the selected term/session result. Five checks total, including the first view.
                   </small>
                 </div>
-                <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: '700', fontSize: '1rem' }}>
+                <button type="submit" disabled={checkingResult} className="btn btn-primary" style={{ width: '100%', padding: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: '700', fontSize: '1rem' }}>
                   <Key size={16} /> Verify & View Results
                 </button>
               </form>

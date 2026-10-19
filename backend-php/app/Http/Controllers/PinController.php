@@ -2,129 +2,73 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class PinController extends Controller
 {
-    private function generateRandomPIN()
-    {
-        return strtoupper(Str::random(4)).'-'.strtoupper(Str::random(4)).'-'.strtoupper(Str::random(4));
-    }
-
-    public function generatePins(Request $request)
+    public function generatePins(Request $request): JsonResponse
     {
         $this->requireAdmin();
-
         $validated = $request->validate(['count' => ['nullable', 'integer', 'min:1', 'max:500']]);
         $count = (int) ($validated['count'] ?? 50);
-
-        try {
-            $pinsToInsert = [];
+        DB::transaction(function () use ($count): void {
             for ($i = 0; $i < $count; $i++) {
-                $pinsToInsert[] = [
-                    'pin' => $this->generateRandomPIN(),
-                    'usage_count' => 0,
-                    'status' => 'active',
-                    'generated_at' => now(),
-                ];
+                $id = DB::table('result_pins')->insertGetId([
+                    'pin' => strtoupper(Str::random(4).'-'.Str::random(4).'-'.Str::random(4)),
+                    'usage_count' => 0, 'status' => 'active', 'generated_at' => now(),
+                ]);
+                DB::table('result_pins')->where('id', $id)->update(['serial_number' => 'JMA-'.str_pad((string) $id, 8, '0', STR_PAD_LEFT)]);
             }
-            DB::table('result_pins')->insert($pinsToInsert);
+        });
 
-            return response()->json(['message' => "Successfully generated {$count} universal PINs"], 201);
-        } catch (\Exception $e) {
-            Log::error($e->getMessage());
-
-            return response()->json(['error' => 'An internal server error occurred.'], 500);
-        }
+        return response()->json(['message' => "Successfully generated {$count} cards"], 201);
     }
 
-    public function getPins(Request $request)
+    public function getPins(Request $request): JsonResponse
     {
         $this->requireAdmin();
+        $pins = DB::table('result_pins as p')
+            ->leftJoin('students as s', 'p.issued_to_student_id', '=', 's.id')
+            ->leftJoin('users as u', 's.id', '=', 'u.id')
+            ->leftJoin('users as staff', 'p.issued_by', '=', 'staff.id')
+            ->select('p.*', 'u.full_name as student_name', 's.admission_number', 'staff.full_name as issued_by_name')
+            ->orderByDesc('p.id')->get();
 
-        try {
-            $pins = DB::table('result_pins as p')
-                ->leftJoin('students as s', 'p.student_id', '=', 's.id')
-                ->leftJoin('users as u', 's.id', '=', 'u.id')
-                ->select('p.*', 'u.full_name as student_name', 's.admission_number')
-                ->orderByDesc('p.generated_at')
-                ->get();
-
-            return response()->json($pins);
-        } catch (\Exception $e) {
-            Log::error($e->getMessage());
-
-            return response()->json(['error' => 'An internal server error occurred.'], 500);
-        }
+        return response()->json($pins);
     }
 
-    public function verifyPin(Request $request)
+    public function issue(Request $request, int $id): JsonResponse
+    {
+        $this->requireAdmin();
+        $data = $request->validate(['student_id' => ['required', 'integer', 'exists:students,id']]);
+        DB::transaction(function () use ($id, $data): void {
+            $pin = DB::table('result_pins')->where('id', $id)->lockForUpdate()->first();
+            abort_unless($pin, 404, 'Card not found.');
+            abort_if($pin->issued_to_student_id !== null || $pin->student_id !== null || $pin->usage_count > 0 || $pin->status !== 'active', 409, 'This card is no longer available for issuance.');
+            DB::table('result_pins')->where('id', $id)->update([
+                'issued_to_student_id' => $data['student_id'], 'issued_by' => auth('api')->id(), 'issued_at' => now(),
+            ]);
+            ActivityLog::log('issue_card', 'results', "Issued card {$pin->serial_number}", ['meta' => ['student_id' => $data['student_id']]]);
+        });
+
+        return response()->json(['message' => 'Card issued successfully.']);
+    }
+
+    public function verifyPin(Request $request): JsonResponse
     {
         $user = auth('api')->user();
         abort_unless($user && $user->role === 'student', 403);
-
-        $validated = $request->validate([
+        $data = $request->validate([
             'pin' => ['required', 'string', 'max:20'],
             'term' => ['required', 'string', 'max:40'],
             'academic_year' => ['required', 'string', 'max:40'],
         ]);
+        $result = app(ReportCardController::class)->viewStudentResult((int) $user->id, $data['term'], $data['academic_year'], $data['pin']);
 
-        $pin = $validated['pin'];
-        $term = $validated['term'];
-        $academic_year = $validated['academic_year'];
-        $studentId = $user->id;
-
-        if (! $term || ! $academic_year) {
-            return response()->json(['error' => 'Term and academic session are required.'], 400);
-        }
-
-        $isPublished = DB::table('result_publications')
-            ->where('student_id', $studentId)
-            ->where('term', $term)
-            ->where('academic_year', $academic_year)
-            ->exists();
-
-        if (! $isPublished) {
-            return response()->json(['error' => 'This result has not been published yet.'], 403);
-        }
-
-        try {
-            $pinRow = DB::table('result_pins')->where('pin', strtoupper($pin))->first();
-
-            if (! $pinRow) {
-                return response()->json(['error' => 'Invalid PIN. Please check the code and try again.'], 404);
-            }
-
-            if ($pinRow->student_id) {
-                if ($pinRow->student_id !== $studentId || $pinRow->term !== $term || $pinRow->academic_year !== $academic_year) {
-                    return response()->json(['error' => 'This PIN has already been used to unlock another student or result.'], 403);
-                }
-                if ($pinRow->status === 'exhausted' || $pinRow->usage_count >= 5) {
-                    return response()->json(['error' => 'This PIN has exceeded its maximum limit of 5 checks.'], 403);
-                }
-            } else {
-                DB::table('result_pins')->where('id', $pinRow->id)->update([
-                    'student_id' => $studentId,
-                    'term' => $term,
-                    'academic_year' => $academic_year,
-                    'usage_count' => 0,
-                    'status' => 'active',
-                ]);
-            }
-
-            $updatedPin = DB::table('result_pins')->where('id', $pinRow->id)->first();
-
-            return response()->json([
-                'message' => 'PIN successfully verified and bound to this result sheet!',
-                'pin' => $updatedPin,
-            ]);
-        } catch (\Exception $e) {
-            Log::error($e->getMessage());
-
-            return response()->json(['error' => 'An internal server error occurred.'], 500);
-        }
+        return response()->json($result + ['message' => 'Result opened. This card can only check this result.'])->header('Cache-Control', 'no-store');
     }
 }

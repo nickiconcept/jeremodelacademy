@@ -248,6 +248,8 @@ class StudentController extends Controller
                             'student_id' => $userId,
                             'title' => $title,
                             'category' => $fee->category,
+                            'term' => $settings?->active_term,
+                            'academic_year' => $settings?->active_session,
                             'amount_due' => $fee->amount,
                             'amount_paid' => 0,
                             'status' => 'unpaid',

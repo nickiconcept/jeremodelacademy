@@ -73,14 +73,13 @@ class GradesController extends Controller
         $user = $this->authenticatedUser();
         abort_unless($user, 401);
 
+        abort_if($user->role === 'student', 403, 'Use the result checker to view your results.');
         $student_id = $request->query('student_id');
         $query = DB::table('grades')
             ->join('subjects', 'grades.subject_id', '=', 'subjects.id')
             ->select('grades.*', 'subjects.name as subject_name');
 
-        if ($user->role === 'student') {
-            $student_id = $user->id;
-        } elseif ($user->role === 'teacher') {
+        if ($user->role === 'teacher') {
             $classId = $request->query('class_id');
             $subjectId = $request->query('subject_id');
             abort_unless($classId && $subjectId && $this->teacherHasAssignment($classId, $subjectId), 403);

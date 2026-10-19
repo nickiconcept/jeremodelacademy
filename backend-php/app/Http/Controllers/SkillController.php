@@ -251,6 +251,7 @@ class SkillController extends Controller
 
     public function getBehavioral(Request $request, $studentId)
     {
+        abort_if(auth('api')->user()?->role === 'student', 403, 'Use the result checker to view your results.');
         $user = $this->authenticatedUser();
         $studentClassId = DB::table('students')->where('id', $studentId)->value('class_id');
         abort_unless(

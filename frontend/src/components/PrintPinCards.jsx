@@ -90,8 +90,8 @@ export default function PrintPinCards({ pins, settings, onClose }) {
         {/* Printable Area */}
         <div id="pin-print-area">
           <div className="pin-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, 80mm)', gap: '15px', justifyContent: 'center' }}>
-            {pins.map((pin, index) => (
-              <div key={index} className="pin-card pin-card-preview">
+            {pins.map((pin) => (
+              <div key={pin.id} className="pin-card pin-card-preview">
                 
                 {/* Card Header (School Name) */}
                 <div style={{ textAlign: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px', marginBottom: '8px' }}>
@@ -108,9 +108,9 @@ export default function PrintPinCards({ pins, settings, onClose }) {
                   {/* QR Code Section */}
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                     <div style={{ padding: '4px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                       <QRCode value={`https://jeremodelacademy.com.ng/?pin=${pin.pin}`} size={36} />
+                       <QRCode value="https://jeremodelacademy.com.ng" size={36} />
                     </div>
-                    <span style={{ fontSize: '0.45rem', color: '#94a3b8', fontWeight: '600', letterSpacing: '0.5px' }}>SCAN TO VERIFY</span>
+                    <span style={{ fontSize: '0.45rem', color: '#94a3b8', fontWeight: '600', letterSpacing: '0.5px' }}>OPEN PORTAL</span>
                   </div>
 
                   {/* PIN Section */}
@@ -120,16 +120,17 @@ export default function PrintPinCards({ pins, settings, onClose }) {
                     </div>
                     
                     {/* The PIN Code (No border, exposed) */}
-                    <div style={{ fontSize: '1.4rem', fontWeight: '900', letterSpacing: '1px', fontFamily: 'monospace', color: '#0f172a', margin: '4px 0' }}>
+                    <div style={{ fontSize: '1.05rem', fontWeight: '900', letterSpacing: '1px', fontFamily: 'monospace', color: '#0f172a', margin: '4px 0' }}>
                       {pin.pin}
                     </div>
+                    <div style={{ fontSize: '0.65rem', fontFamily: 'monospace' }}>Serial: {pin.serial_number}</div>
                   </div>
                 </div>
 
                 {/* Card Footer (Instructions) */}
                 <div style={{ textAlign: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '6px', marginTop: '8px', fontSize: '0.5rem', color: '#64748b' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>
-                    <ShieldCheck size={10} /> Valid for {settings?.pin_max_checks || 5} checks. Do not share.
+                    <ShieldCheck size={10} /> 5 checks for one term/session result. Do not share.
                   </div>
                   <div>
                     Visit <strong style={{ color: '#0f172a' }}>https://jeremodelacademy.com.ng</strong> to check your result.

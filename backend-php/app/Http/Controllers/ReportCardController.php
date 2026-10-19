@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ActivityLog;
+use App\Services\ResultAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -278,67 +278,20 @@ class ReportCardController extends Controller
             'You are not authorized to access this report card.'
         );
 
-        if ($user->role === 'student' && ! $term) {
-            return response()->json(['error' => 'Term is required.'], 422);
+        $request->validate(['term' => ['required', 'string', 'max:40'], 'year' => ['required', 'string', 'max:40']]);
+        if ($user->role === 'student') {
+            $result = $this->viewStudentResult((int) $studentId, $term, $year);
+
+            return response()->json($result['report_card'])->header('Cache-Control', 'no-store');
         }
 
-        try {
-            if ($user->role === 'student') {
-                $isPublished = DB::table('result_publications')
-                    ->where('student_id', $studentId)
-                    ->where('term', $term)
-                    ->where('academic_year', $year)
-                    ->exists();
+        return response()->json($this->buildReportCardData($studentId, $term, $year));
+    }
 
-                if (! $isPublished) {
-                    return response()->json(['error' => 'This result has not been published yet.'], 403);
-                }
-
-                $unpaidTermFees = DB::table('fee_invoices')
-                    ->where('student_id', $studentId)
-                    ->where('status', '!=', 'paid')
-                    ->where('title', 'like', "%{$term} {$year}%")
-                    ->first();
-
-                if ($unpaidTermFees) {
-                    return response()->json(['error' => 'Access Denied: Outstanding school fees for this term must be cleared before viewing this result.'], 403);
-                }
-
-                $boundPin = DB::table('result_pins')
-                    ->where('student_id', $studentId)
-                    ->where('term', $term)
-                    ->where('academic_year', $year)
-                    ->where('status', 'active')
-                    ->where('usage_count', '<', 5)
-                    ->orderByDesc('id')
-                    ->first();
-
-                if (! $boundPin) {
-                    return response()->json(['error' => 'Result Locked: Please input a result checker PIN to unlock this term\'s grades.'], 403);
-                }
-
-                $newUsage = $boundPin->usage_count + 1;
-                $newStatus = $newUsage >= 5 ? 'exhausted' : 'active';
-                DB::table('result_pins')->where('id', $boundPin->id)->update([
-                    'usage_count' => $newUsage,
-                    'status' => $newStatus,
-                ]);
-
-                ActivityLog::log(
-                    'check_result',
-                    'results',
-                    "Viewed Report Card for {$term} {$year} (PIN Usage: {$newUsage} of 5)"
-                );
-            }
-
-            $reportCardData = $this->buildReportCardData($studentId, $term, $year);
-
-            return response()->json($reportCardData);
-        } catch (\Exception $e) {
-            Log::error($e->getMessage());
-
-            return response()->json(['error' => 'An internal server error occurred.'], 500);
-        }
+    public function viewStudentResult(int $studentId, string $term, string $year, ?string $pin = null): array
+    {
+        return app(ResultAccess::class)->view($studentId, $term, $year, $pin,
+            fn () => $this->buildReportCardData($studentId, $term, $year));
     }
 
     public function getBulkReportCards(Request $request)
@@ -713,9 +666,13 @@ class ReportCardController extends Controller
                 ->where('student_id', $studentId)
                 ->where('usage_count', '<', 5)
                 ->where('status', 'active')
-                ->select('term', 'academic_year', 'usage_count')
-                ->orderByDesc('id')
+                ->select('term', 'academic_year', 'usage_count', 'serial_number')
+                ->orderByDesc('activated_at')->orderByDesc('id')
                 ->get();
+
+            foreach ($timeline as $item) {
+                $item->debt_message = app(ResultAccess::class)->debtMessage((int) $studentId, $item->term, $item->academic_year);
+            }
 
             return response()->json([
                 'timeline' => $timeline,

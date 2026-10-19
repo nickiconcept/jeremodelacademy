@@ -599,6 +599,13 @@ const api = {
     return handleResponse(res);
   },
 
+  issuePin: async (id, student_id) => handleResponse(await fetch(API_BASE + '/pins/' + id + '/issue', {
+    method: 'POST', headers: getHeaders(), body: JSON.stringify({ student_id }),
+  })),
+  classifyInvoice: async (id, period) => handleResponse(await fetch(API_BASE + '/fee-invoices/' + id + '/period', {
+    method: 'PATCH', headers: getHeaders(), body: JSON.stringify(period),
+  })),
+
   getPins: async () => {
     const res = await fetch(`${API_BASE}/pins`, { headers: getHeaders() });
     return handleResponse(res);
