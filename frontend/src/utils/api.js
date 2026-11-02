@@ -999,6 +999,21 @@ const api = {
     return { data: responseData };
   },
 
+  put: async (endpoint, data = {}) => {
+    const responseData = await requestWithOfflineSupport(endpoint, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+    return { data: responseData };
+  },
+
+  delete: async (endpoint) => {
+    const responseData = await requestWithOfflineSupport(endpoint, {
+      method: 'DELETE'
+    });
+    return { data: responseData };
+  },
+
   getOfflineQueue: async () => getOfflineQueue(),
   discardOfflineRequest: async (id) => {
     await removeOfflineRequest(id);
