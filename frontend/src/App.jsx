@@ -62,6 +62,7 @@ function AppContent() {
   const [showLogin, setShowLogin] = useState(false);
   const [settingsError, setSettingsError] = useState(false);
   const [sessionRestoreError, setSessionRestoreError] = useState('');
+  const [retryCountdown, setRetryCountdown] = useState(0);
 
   // Sync settings and token session on mount
   useEffect(() => {
@@ -218,6 +219,10 @@ function AppContent() {
         const status = err.status ? `HTTP ${err.status}` : 'No HTTP response';
         const contentType = err.contentType || 'unknown content type';
         setSessionRestoreError(`${status} · ${contentType} · ${endpoint}`);
+        if (err.status === 429) {
+          // Honor the server's Retry-After with a little jitter so clients don't retry in lockstep.
+          setRetryCountdown(Math.min(Math.max(err.retryAfter || 15, 5), 90) + Math.floor(Math.random() * 4));
+        }
       }
     } finally {
       setLoading(false);
@@ -251,12 +256,23 @@ function AppContent() {
   };
 
   const retrySessionRestore = () => {
+    setRetryCountdown(0);
     setSessionRestoreError('');
     setSettingsError(false);
     setLoading(true);
     fetchPublicSettings();
     verifySession();
   };
+
+  useEffect(() => {
+    if (retryCountdown <= 0) return undefined;
+    const timer = setTimeout(() => {
+      if (retryCountdown === 1) retrySessionRestore();
+      else setRetryCountdown(retryCountdown - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [retryCountdown]);
 
   const handlePasswordChangeComplete = async () => {
     const freshUser = await api.getMe();
@@ -295,18 +311,21 @@ function AppContent() {
         alignItems: 'center', justifyContent: 'center', padding: '24px',
         background: 'var(--bg-primary, #f9fafb)', color: 'var(--text-primary, #111827)', textAlign: 'center'
       }}>
-        <h2 style={{ marginBottom: '10px' }}>Could not restore your session</h2>
+        <h2 style={{ marginBottom: '10px' }}>{retryCountdown > 0 ? 'Server is busy' : 'Could not restore your session'}</h2>
         <p style={{ color: 'var(--text-muted, #6b7280)', marginBottom: '20px', maxWidth: '520px' }}>
-          Your saved sign-in has been kept on this device. The server did not return a valid session response. Check your connection and try again.
+          {retryCountdown > 0
+            ? `Too many requests right now. Your sign-in is safe on this device. Retrying automatically in ${retryCountdown}s.`
+            : 'Your saved sign-in has been kept on this device. The server did not return a valid session response. Check your connection and try again.'}
         </p>
         <p role="status" style={{ color: 'var(--text-muted, #6b7280)', margin: '0 0 20px', maxWidth: '520px', fontSize: '0.82rem', overflowWrap: 'anywhere' }}>
           Diagnostic: {sessionRestoreError}
         </p>
         <button
           onClick={retrySessionRestore}
-          style={{ padding: '10px 20px', background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}
+          disabled={retryCountdown > 0}
+          style={{ padding: '10px 20px', background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '5px', cursor: retryCountdown > 0 ? 'not-allowed' : 'pointer', opacity: retryCountdown > 0 ? 0.6 : 1, fontWeight: 'bold' }}
         >
-          Retry
+          {retryCountdown > 0 ? `Retry in ${retryCountdown}s` : 'Retry'}
         </button>
       </div>
     );

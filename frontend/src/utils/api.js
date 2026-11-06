@@ -1,4 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
+import fetch from './apiFetch';
 import {
   cacheOfflineValue,
   enqueueOfflineRequest,
@@ -54,6 +55,7 @@ async function handleResponse(response) {
     if (!response.ok) {
       const error = new Error(data.error || data.message || 'Something went wrong');
       error.status = response.status;
+      error.retryAfter = Number(response.headers.get('retry-after')) || 0;
       error.contentType = contentType;
       error.url = response.url;
       error.response = { data, status: response.status, contentType, url: response.url };
@@ -83,6 +85,7 @@ async function handleResponse(response) {
     if (!response.ok) {
       const error = new Error(`Server error (${response.status}): ${text.slice(0, 150)}`);
       error.status = response.status;
+      error.retryAfter = Number(response.headers.get('retry-after')) || 0;
       error.contentType = contentType;
       error.url = response.url;
       error.response = { status: response.status, contentType, url: response.url };
@@ -314,8 +317,8 @@ const api = {
   },
 
   // Users Management (Admin)
-  getStudents: async () => {
-    const res = await fetch(`${API_BASE}/students`, { headers: getHeaders() });
+  getStudents: async ({ summary = false } = {}) => {
+    const res = await fetch(`${API_BASE}/students${summary ? '?summary=1' : ''}`, { headers: getHeaders() });
     return handleResponse(res);
   },
 
@@ -324,12 +327,17 @@ const api = {
     return handleResponse(res);
   },
 
-  getTeachers: async () => {
-    const res = await fetch(`${API_BASE}/teachers`, { headers: getHeaders() });
+  getTeachers: async ({ summary = false } = {}) => {
+    const res = await fetch(`${API_BASE}/teachers${summary ? '?summary=1' : ''}`, { headers: getHeaders() });
     return handleResponse(res);
   },
 
   
+  getTeacherProfile: async (id) => {
+    const res = await fetch(`${API_BASE}/teachers/${id}`, { headers: getHeaders() });
+    return handleResponse(res);
+  },
+
   fastTrackGraduate: async (data) => {
     const res = await fetch(`${API_BASE}/students/fast-track-graduate`, {
       method: 'POST',

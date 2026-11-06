@@ -9,17 +9,17 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::group([
-    'middleware' => ['api', 'throttle:10,1'],
+    'middleware' => ['api'],
     'prefix' => 'auth',
 ], function ($router) {
-    Route::post('login', [AuthController::class, 'login']);
+    Route::post('login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::post('account-setup', [AuthController::class, 'completeAccountSetup'])->middleware('throttle:10,1');
     Route::post('account-setup/request', [AuthController::class, 'requestAccountSetup'])->middleware('throttle:5,1');
-    Route::post('logout', [AuthController::class, 'logout'])->middleware('auth:api');
-    Route::post('me', [AuthController::class, 'me'])->middleware('auth:api');
-    Route::post('change-password', [AuthController::class, 'changePassword'])->middleware('auth:api');
+    Route::post('logout', [AuthController::class, 'logout'])->middleware(['throttle:session', 'auth:api']);
+    Route::post('me', [AuthController::class, 'me'])->middleware(['throttle:session', 'auth:api']);
+    Route::post('change-password', [AuthController::class, 'changePassword'])->middleware(['throttle:session', 'auth:api']);
     Route::post('staff-signature', [AuthController::class, 'saveStaffSignature'])
-        ->middleware(['auth:api', 'password.changed'])
+        ->middleware(['throttle:session', 'auth:api', 'password.changed'])
         ->name('auth.staff-signature');
 });
 
