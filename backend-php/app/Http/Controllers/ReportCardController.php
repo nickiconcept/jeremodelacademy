@@ -512,6 +512,7 @@ class ReportCardController extends Controller
                     ->where('subject_id', $item->subject_id)
                     ->where('term', $term)
                     ->where('academic_year', $year)
+                    ->where('exam_score', '>', 0)
                     ->whereIn('student_id', function ($q) use ($item) {
                         $q->select('id')->from('students')->where('class_id', $item->class_id);
                     })
@@ -593,6 +594,7 @@ class ReportCardController extends Controller
                     ->where('subject_id', $item->subject_id)
                     ->where('term', $term)
                     ->where('academic_year', $year)
+                    ->where('exam_score', '>', 0)
                     ->whereIn('student_id', function ($q) use ($item) {
                         $q->select('id')->from('students')->where('class_id', $item->class_id);
                     })
